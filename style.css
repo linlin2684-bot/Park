@@ -574,3 +574,7 @@ html[data-theme="night"] .emb-C   { --e-bg: #2a141b; --e-ink: #f6c8d4; --e-acc: 
 .fc.SSR .holo { background: repeating-linear-gradient(118deg, #ff9fb2 0%, #ffd59a 7%, #fff3a8 14%, #a8f0c8 21%, #9fd2ff 28%, #d0b4ff 35%, #ff9fb2 42%); background-size: 320% 320%; background-position: var(--hx, 50%) var(--hy, 50%); mix-blend-mode: color-dodge; opacity: .42; }
 html[data-theme="night"] .fc.SSR .holo { opacity: .2; mix-blend-mode: screen; }
 .fc.SR .glare, .fc.SSR .glare { background: radial-gradient(circle at var(--gx, 50%) var(--gy, 40%), rgba(255, 255, 255, .55), transparent 45%); mix-blend-mode: overlay; }
+
+/* iPhone 日期欄位不要超出邊框 */
+input[type="date"] { -webkit-appearance: none; appearance: none; display: block; min-width: 0; max-width: 100%; min-height: 44px; text-align: left; }
+input[type="date"]::-webkit-date-and-time-value { text-align: left; }

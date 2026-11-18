@@ -608,7 +608,7 @@ ACT.settings = () => {
       <label>在一起的日子</label><input id="s-an" type="date" value="${esc(c.dates?.anniversary || '')}">
       <label>尺度上限（兩人都打開才會出現更高的等級）</label>
       <div class="seg" id="s-sp">${[1, 2, 3].map((l) => `<button data-l="${l}" class="${(p.spice || 1) === l ? 'on' : ''}">${D.SPICE[l].icon} ${D.SPICE[l].label}</button>`).join('')}</div>
-      <p class="small muted" style="margin:0">目前兩人共同等級：${D.SPICE[spiceLevel()].icon} ${D.SPICE[spiceLevel()].label}</p>
+      <p class="small muted" style="margin:0" id="s-lv">目前兩人共同等級：${D.SPICE[spiceLevel()].icon} ${D.SPICE[spiceLevel()].label}</p>
     </div>
     <button class="btn block" id="s-save">儲存</button>
     <div class="card mt">
@@ -632,7 +632,10 @@ ACT.settings = () => {
       [`profiles.${me()}`]: { ...p, nick: $('#s-nk', m).value.trim() || p.nick, emoji: $('#s-em', m).value.trim() || p.emoji, bday: bd || p.bday, spice: sp },
       'dates.anniversary': $('#s-an', m).value || c.dates?.anniversary,
     });
-    toast('儲存好了'); closeModal(m);
+    // 儲存後留在設定頁，按鈕短暫顯示「已儲存」
+    const btn = $('#s-save', m);
+    btn.textContent = '已儲存 ✓'; btn.disabled = true;
+    setTimeout(() => { btn.textContent = '儲存'; btn.disabled = false; const lv = $('#s-lv', m); if (lv) lv.textContent = `目前兩人共同等級：${D.SPICE[spiceLevel()].icon} ${D.SPICE[spiceLevel()].label}`; }, 1200);
   };
   $('#s-noti', m).onclick = async () => {
     if (!('Notification' in window)) return toast('這個瀏覽器不支援通知。iPhone 要先「加入主畫面」再從主畫面打開');
