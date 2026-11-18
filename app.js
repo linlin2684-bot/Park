@@ -1451,7 +1451,7 @@ ACT.wishNo = async (el) => {
 
 // ---------- 合成 ----------
 function craftable() {
-  return list('cards').filter((c) => c.owner === me() && c.scratched && c.kind !== 'collect' && !c.mystery && remaining(c) > 0 && !isExpired(c));
+  return list('cards').filter((c) => c.owner === me() && c.scratched && c.kind !== 'collect' && !c.series && !c.mystery && remaining(c) > 0 && !isExpired(c));
 }
 function walletCraft() {
   const cs = craftable();
@@ -1467,7 +1467,7 @@ function walletCraft() {
         <span class="chip" style="color:var(--r-${to.toLowerCase()});font-size:14px">${to} ×1</span>
         <button class="btn sm" data-act="craft" data-r="${r}" ${units >= n && partner() ? '' : 'disabled'}>合成</button></div></div>`;
     }).join('')}
-    <p class="small muted center">合成會用掉 ${n} 張票券，剩最多張的會優先用掉</p>`;
+    <p class="small muted center">合成會用掉 ${n} 張票券，剩最多張的會優先用掉<br>生日、節日、旅行等系列卡是心意，不能拿去合成</p>`;
 }
 ACT.craft = async (el) => {
   const r = el.dataset.r, to = D.RARITY_ORDER[rarityRank(r) + 1];
