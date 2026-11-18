@@ -197,7 +197,7 @@ export const MOODS = [
 
 // ---------- 點數規則 ----------
 export const POINTS = {
-  gachaCost: 10,
+  gachaCost: 20,
   stamp: 2,          // 被蓋一個章
   weeklyTask: 5,
   quizMatch: 5,
