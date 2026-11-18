@@ -1,0 +1,2039 @@
+// ============================================================
+//  兩人遊樂園 — 主程式
+//  （這個檔案是由 src/ 資料夾裡的分段檔合併而成）
+// ============================================================
+import { firebaseConfig } from './config.js';
+import * as D from './data.js';
+import { createStore } from './store.js';
+
+const S = {
+  store: null, me: null, cid: null, couple: null, d: {},
+  tab: localStorage.getItem('park-tab') || 'home',
+  sub: { wallet: 'mine', travel: 'fund', memory: 'goals' },
+  unsubs: [], started: Date.now(), seenEvents: new Set(), deferRender: false,
+};
+const COLS = ['cards', 'events', 'points', 'pool', 'wishes', 'taskDone', 'battles', 'quiz', 'daily',
+  'deposits', 'trips', 'goals', 'capsules', 'notes', 'misses', 'gacha'];
+
+// ---------- 小工具 ----------
+const $ = (s, r = document) => r.querySelector(s);
+const $$ = (s, r = document) => [...r.querySelectorAll(s)];
+const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const pad = (n) => String(n).padStart(2, '0');
+const now = () => Date.now();
+const dkey = (d = new Date()) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+const parseD = (s) => { const [y, m, d] = s.split('-').map(Number); return new Date(y, m - 1, d); };
+function weekKey(d = new Date()) {
+  const t = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+  const day = t.getUTCDay() || 7;
+  t.setUTCDate(t.getUTCDate() + 4 - day);
+  const y0 = new Date(Date.UTC(t.getUTCFullYear(), 0, 1));
+  return `${t.getUTCFullYear()}-W${pad(Math.ceil(((t - y0) / 86400000 + 1) / 7))}`;
+}
+const fmtDate = (ts) => { const d = new Date(ts); return `${d.getMonth() + 1}/${d.getDate()}`; };
+const fmtFull = (ts) => { const d = new Date(ts); return `${d.getFullYear()}/${d.getMonth() + 1}/${d.getDate()}`; };
+function ago(ts) {
+  const s = (now() - ts) / 1000;
+  if (s < 60) return '剛剛';
+  if (s < 3600) return `${Math.floor(s / 60)} 分鐘前`;
+  if (s < 86400) return `${Math.floor(s / 3600)} 小時前`;
+  if (s < 86400 * 7) return `${Math.floor(s / 86400)} 天前`;
+  return fmtDate(ts);
+}
+function hash(str) { let h = 2166136261; for (const c of str) { h ^= c.charCodeAt(0); h = Math.imul(h, 16777619); } return h >>> 0; }
+function rng(seed) { let a = seed >>> 0; return () => { a = (a + 0x6D2B79F5) | 0; let t = Math.imul(a ^ (a >>> 15), 1 | a); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }
+function shuffled(arr, seed) { const r = rng(seed), a = [...arr]; for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(r() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; }
+const pick = (arr) => arr[Math.floor(Math.random() * arr.length)];
+const sum = (arr, f) => arr.reduce((a, x) => a + (f(x) || 0), 0);
+const money = (n) => Number(n || 0).toLocaleString('zh-TW');
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+const makeCode = () => { const A = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; let s = ''; for (let i = 0; i < 6; i++) s += A[Math.floor(Math.random() * A.length)]; return s; };
+
+// ---------- 情侶空間 ----------
+const me = () => S.me.uid;
+const partner = () => S.couple?.members?.find((u) => u !== S.me.uid) || null;
+const prof = (uid) => S.couple?.profiles?.[uid] || {};
+const nick = (uid) => uid === 'sys' ? '遊樂園' : (prof(uid).nick || (uid === me() ? '我' : '對方'));
+const avatar = (uid) => uid === 'sys' ? '🎡' : (prof(uid).emoji || (prof(uid).role === 'him' ? '👦' : '👧'));
+const spiceLevel = () => {
+  const ms = S.couple?.members || [];
+  if (!ms.length) return 1;
+  return Math.min(...ms.map((u) => prof(u).spice || 1));
+};
+const balance = (uid) => sum((S.d.points || []).filter((p) => p.uid === uid), (p) => p.amt);
+const tickets = (uid) => S.couple?.tickets?.[uid] || 0;
+const col = (name) => S.store.col(S.cid, name);
+const list = (name) => S.d[name] || [];
+
+async function addPoints(uid, amt, reason, tag = '') {
+  if (!uid) return;
+  await col('points').add({ uid, amt, reason, tag, by: me(), at: now() });
+}
+async function notify(to, type, text, detail = '') {
+  if (!to) return;
+  await col('events').add({ to, by: me(), type, text, detail, at: now(), read: false });
+}
+async function addTicket(uid, n = 1) {
+  await S.store.coupleTx(S.cid, (c) => ({ [`tickets.${uid}`]: Math.max(0, ((c.tickets || {})[uid] || 0) + n) }));
+}
+
+function cardDoc(tpl, owner, from, extra = {}) {
+  const used = tpl.used || 0;
+  return {
+    title: tpl.title, desc: tpl.desc || '', rarity: tpl.rarity || 'N',
+    owner, from, qty: tpl.qty || 1, used,
+    series: tpl.series || '', kind: tpl.kind || 'card',
+    mystery: !!tpl.mystery, secret: tpl.secret || '', spice: tpl.spice || 1,
+    expiresAt: tpl.expiresAt || 0, weekendOnly: !!tpl.weekendOnly,
+    scratched: false, at: now(),
+    log: Array.from({ length: used }, () => ({ at: now(), how: 'birthday' })),
+    ...extra,
+  };
+}
+async function giveCard(owner, tpl, extra = {}) {
+  const from = extra.from || me();
+  const id = await col('cards').add(cardDoc(tpl, owner, from, extra));
+  if (owner !== me()) await notify(owner, 'card', '你收到一張新票券 🎟️', tpl.title);
+  return id;
+}
+const remaining = (c) => Math.max(0, (c.qty || 1) - (c.used || 0));
+const isExpired = (c) => c.expiresAt && c.expiresAt < now() && remaining(c) > 0;
+const isWeekend = () => [0, 6].includes(new Date().getDay());
+
+// ---------- 介面小工具 ----------
+function toast(msg) {
+  const t = document.createElement('div');
+  t.className = 'toast'; t.textContent = msg;
+  $('#toasts').appendChild(t);
+  setTimeout(() => t.remove(), 3100);
+}
+function confetti(n = 70, colors) {
+  colors ||= ['#ff6f91', '#ffc75f', '#845ec2', '#4fd1c5', '#f9f871', '#ff9671'];
+  for (let i = 0; i < n; i++) {
+    const c = document.createElement('div');
+    c.className = 'confetti';
+    c.style.left = Math.random() * 100 + 'vw';
+    c.style.background = pick(colors);
+    c.style.setProperty('--dx', (Math.random() * 200 - 100) + 'px');
+    c.style.setProperty('--rot', (Math.random() * 1080) + 'deg');
+    c.style.animationDuration = (1.8 + Math.random() * 1.6) + 's';
+    c.style.animationDelay = (Math.random() * .4) + 's';
+    c.style.borderRadius = Math.random() > .5 ? '50%' : '2px';
+    document.body.appendChild(c);
+    setTimeout(() => c.remove(), 4200);
+  }
+}
+function floaty(x, y, chars = ['💗', '💕', '💖', '❤️', '💘']) {
+  for (let i = 0; i < 6; i++) {
+    const f = document.createElement('div');
+    f.className = 'floaty'; f.textContent = pick(chars);
+    f.style.left = (x - 14 + Math.random() * 20) + 'px'; f.style.top = (y - 20) + 'px';
+    f.style.setProperty('--dx', (Math.random() * 120 - 60) + 'px');
+    f.style.animationDelay = (i * 0.06) + 's';
+    document.body.appendChild(f);
+    setTimeout(() => f.remove(), 1600);
+  }
+}
+const vibrate = (p) => { try { navigator.vibrate && navigator.vibrate(p); } catch (e) {} };
+
+function openModal(html, { center = false, cls = '', onClose } = {}) {
+  const back = document.createElement('div');
+  back.className = `modal-back ${center ? 'center' : ''} ${cls}`;
+  back.innerHTML = `<div class="modal">${html}</div>`;
+  back.addEventListener('click', (e) => { if (e.target === back) closeModal(back); });
+  back._onClose = onClose;
+  document.body.appendChild(back);
+  return back;
+}
+function closeModal(back) {
+  back ||= $$('.modal-back').pop();
+  if (!back) return;
+  const fn = back._onClose; back._onClose = null;
+  back.remove();
+  fn && fn();
+}
+const closeAll = () => $$('.modal-back').forEach((b) => closeModal(b));
+const mhead = (title) => `<div class="m-head"><h2>${title}</h2><button class="m-close" data-act="close">✕</button></div>`;
+function confirmBox(msg, okText = '確定') {
+  return new Promise((res) => {
+    const m = openModal(`<div class="center" style="padding:6px 0"><div style="font-size:16px;font-weight:600;white-space:pre-wrap">${esc(msg)}</div>
+      <div class="btn-row"><button class="btn ghost" data-r="0">取消</button><button class="btn" data-r="1">${esc(okText)}</button></div></div>`,
+      { center: true, onClose: () => res(false) });
+    m.querySelectorAll('[data-r]').forEach((b) => b.onclick = () => { m._onClose = null; m.remove(); res(b.dataset.r === '1'); });
+  });
+}
+function promptBox(title, { placeholder = '', value = '', multiline = false, ok = '確定' } = {}) {
+  return new Promise((res) => {
+    const inp = multiline ? `<textarea id="pb-in" placeholder="${esc(placeholder)}">${esc(value)}</textarea>` : `<input id="pb-in" placeholder="${esc(placeholder)}" value="${esc(value)}">`;
+    const m = openModal(`${mhead(esc(title))}${inp}<div class="btn-row"><button class="btn" id="pb-ok">${esc(ok)}</button></div>`, { center: true, onClose: () => res(null) });
+    const i = $('#pb-in', m); setTimeout(() => i.focus(), 50);
+    $('#pb-ok', m).onclick = () => { const v = i.value.trim(); m._onClose = null; m.remove(); res(v || null); };
+  });
+}
+
+// ---------- 事件委派 ----------
+const ACT = {};
+document.addEventListener('click', (e) => {
+  const el = e.target.closest('[data-act]');
+  if (!el) return;
+  const name = el.dataset.act;
+  if (name === 'close') { closeModal(el.closest('.modal-back')); return; }
+  const fn = ACT[name];
+  if (fn) { e.preventDefault(); Promise.resolve(fn(el, e)).catch((err) => { console.error(err); toast('出了點問題：' + (err.message || err)); }); }
+});
+
+// ---------- 主題（日夜模式） ----------
+function themeMode() { return localStorage.getItem('park-theme') || 'auto'; }
+function applyTheme() {
+  const mode = themeMode();
+  const h = new Date().getHours();
+  const t = mode === 'auto' ? (h >= 6 && h < 18 ? 'day' : 'night') : mode;
+  document.documentElement.dataset.theme = t;
+  const mc = document.querySelector('meta[name=theme-color]');
+  if (mc) mc.content = t === 'day' ? '#fff6f1' : '#150a0f';
+  return t;
+}
+ACT.theme = () => {
+  const order = ['auto', 'day', 'night'];
+  const next = order[(order.indexOf(themeMode()) + 1) % 3];
+  localStorage.setItem('park-theme', next);
+  applyTheme();
+  toast({ auto: '🕯️ 自動模式：白天甜蜜、晚上燭光', day: '☀️ 白天模式', night: '🌙 夜晚模式' }[next]);
+  renderTop();
+};
+applyTheme();
+setInterval(applyTheme, 60000);
+
+// 主畫面圖示（加到主畫面時用）
+(function touchIcon() {
+  try {
+    const c = document.createElement('canvas'); c.width = c.height = 180;
+    const g = c.getContext('2d');
+    const gr = g.createLinearGradient(0, 0, 180, 180); gr.addColorStop(0, '#ff9ab3'); gr.addColorStop(1, '#c42e52');
+    g.fillStyle = gr; g.fillRect(0, 0, 180, 180);
+    g.font = '110px serif'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText('🎡', 90, 98);
+    const l = document.createElement('link'); l.rel = 'apple-touch-icon'; l.href = c.toDataURL('image/png');
+    document.head.appendChild(l);
+  } catch (e) {}
+})();
+// ============================================================
+//  啟動、登入、配對、外框
+// ============================================================
+
+async function boot() {
+  try {
+    S.store = await createStore(firebaseConfig);
+  } catch (e) {
+    console.error(e);
+    $('#app').innerHTML = `<div class="auth-wrap"><div class="auth-logo"><span class="lg">🎡</span><h1>連不上 Firebase</h1><p>請檢查 config.js 的設定，或網路是否正常。<br><small>${esc(e.message || e)}</small></p></div></div>`;
+    return;
+  }
+  S.store.auth.onChange(async (u) => {
+    cleanup();
+    if (!u) return renderLogin();
+    S.me = u;
+    if (S.store.mode === 'demo') await ensureDemo();
+    const ud = await S.store.getUser(u.uid);
+    if (!ud || !ud.coupleId) return renderOnboard();
+    enterCouple(ud.coupleId);
+  });
+}
+function cleanup() {
+  S.unsubs.forEach((f) => { try { f(); } catch (e) {} });
+  S.unsubs = []; S.couple = null; S.cid = null; S.d = {};
+  if (S.map) { try { S.map.remove(); } catch (e) {} S.map = null; S.mapEl = null; }
+}
+
+// ---------- 試玩模式 ----------
+async function ensureDemo() {
+  const cid = 'DEMO01';
+  if (await S.store.getCouple(cid)) return;
+  const A = 'demo-her', B = 'demo-him';
+  await S.store.createCouple(cid, newCoupleData(A, { nick: '寶貝', role: 'her', emoji: '👧', bday: D.DEFAULT_DATES.herBirthday, spice: 3 }, true));
+  await S.store.updateCouple(cid, { members: [A, B], [`profiles.${B}`]: { nick: '好寶', role: 'him', emoji: '👦', bday: D.DEFAULT_DATES.hisBirthday, spice: 3 } });
+  await S.store.setUser(A, { coupleId: cid });
+  await S.store.setUser(B, { coupleId: cid });
+  await seedPool(cid);
+  await welcomeGift(cid, A); await welcomeGift(cid, B);
+}
+// 入園禮：每人 20 點
+async function welcomeGift(cid, uid) {
+  await S.store.col(cid, 'points').add({ uid, amt: 20, reason: '入園禮 🎁', tag: '', by: 'sys', at: now() });
+}
+
+function newCoupleData(uid, profile, seedBirthday) {
+  return {
+    members: [uid], creator: uid, profiles: { [uid]: profile },
+    dates: { anniversary: D.DEFAULT_DATES.anniversary },
+    seedPending: !!seedBirthday, tickets: {}, spins: {}, moods: {}, drops: {},
+    food: D.DEFAULT_FOOD, fund: { name: '第一趟旅行基金', goal: 30000, round: 1, rewarded: false },
+    createdAt: now(),
+  };
+}
+async function seedPool(cid) {
+  const c = S.store.col(cid, 'pool');
+  for (const p of D.POOL) await c.add({ ...p, by: 'sys', at: now() });
+}
+
+// 對方加入後，把生日卡組放進對方的票夾（只會執行一次）
+async function maybeSeed() {
+  const c = S.couple;
+  if (!c || !c.seedPending || (c.members || []).length < 2) return;
+  const ok = await S.store.coupleTx(S.cid, (x) => (x.seedPending ? { seedPending: false } : null));
+  if (!ok) return;
+  const owner = c.members.find((u) => u !== c.creator);
+  const from = c.creator;
+  // 生日當天用掉的卡，兌換日期記在最近一次的生日
+  const bd = (c.profiles?.[owner]?.bday || D.DEFAULT_DATES.hisBirthday).split('-').map(Number);
+  let bt = new Date(new Date().getFullYear(), bd[0] - 1, bd[1], 20);
+  if (bt.getTime() > now()) bt = new Date(bt.getFullYear() - 1, bd[0] - 1, bd[1], 20);
+  const bts = bt.getTime();
+  for (const t of D.BIRTHDAY_CARDS) {
+    const doc = cardDoc({ ...t, series: D.BIRTHDAY_SERIES }, owner, from, { scratched: true, at: bts });
+    doc.log = doc.log.map(() => ({ at: bts, how: 'birthday' }));
+    await col('cards').add(doc);
+  }
+  for (const t of D.BIRTHDAY_COLLECTIBLES) {
+    await col('cards').add(cardDoc({ ...t, rarity: 'SSR', kind: 'collect', series: D.BIRTHDAY_SERIES }, owner, from, { scratched: true, at: bts }));
+  }
+  if (owner !== me()) await notify(owner, 'card', '你收到一整套生日票券 🎂');
+}
+
+// 節日自動發限定卡
+async function holidayDrops() {
+  const c = S.couple;
+  if (!c || (c.members || []).length < 2) return;
+  const d = new Date(), y = d.getFullYear(), md = `${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+  const her = c.members.find((u) => prof(u).role === 'her');
+  const him = c.members.find((u) => prof(u).role === 'him');
+  const ann = (c.dates?.anniversary || D.DEFAULT_DATES.anniversary).slice(5);
+  const rules = [
+    { key: 'herBirthday', md: prof(her).bday || D.DEFAULT_DATES.herBirthday, to: her ? [her] : [] },
+    { key: 'hisBirthday', md: prof(him).bday || D.DEFAULT_DATES.hisBirthday, to: him ? [him] : [] },
+    { key: 'anniversary', md: ann, to: c.members },
+    { key: 'valentine', md: '02-14', to: c.members },
+    { key: 'christmas', md: '12-25', to: c.members },
+    { key: 'newyear', md: '01-01', to: c.members },
+  ];
+  for (const r of rules) {
+    if (r.md !== md || !r.to.length) continue;
+    const k = `${y}-${r.key}`;
+    const ok = await S.store.coupleTx(S.cid, (x) => (x.drops && x.drops[k] ? null : { [`drops.${k}`]: true }));
+    if (!ok) continue;
+    for (const u of r.to) {
+      await col('cards').add(cardDoc(D.HOLIDAY_CARDS[r.key], u, 'sys'));
+      await col('events').add({ to: u, by: 'sys', type: 'card', text: '今天有一張節日限定券送給你 🎁', detail: D.HOLIDAY_CARDS[r.key].title, at: now(), read: false });
+    }
+  }
+}
+
+// ---------- 進入空間 ----------
+function enterCouple(cid) {
+  S.cid = cid;
+  renderShell();
+  let first = true;
+  S.unsubs.push(S.store.watchCouple(cid, (c) => {
+    if (!c) { toast('找不到這個空間'); return; }
+    S.couple = c;
+    if (first) { first = false; maybeSeed(); holidayDrops(); }
+    else maybeSeed();
+    render();
+  }));
+  for (const name of COLS) {
+    S.unsubs.push(col(name).watch((arr) => { S.d[name] = arr; onData(name); render(); }));
+  }
+}
+
+function onData(name) {
+  if (name === 'events') {
+    for (const e of S.d.events) {
+      if (e.to !== me() || e.read || S.seenEvents.has(e.id)) continue;
+      S.seenEvents.add(e.id);
+      if (e.at > S.started) {
+        toast(e.text);
+        if (document.hidden && 'Notification' in window && Notification.permission === 'granted') {
+          try { new Notification('兩人遊樂園', { body: e.text, tag: e.id }); } catch (err) {}
+        }
+      }
+    }
+  }
+  if (name === 'deposits') checkFund();
+  scheduleAchievements();
+}
+
+// ---------- 登入畫面 ----------
+function renderLogin() {
+  let signup = false;
+  const draw = () => {
+    $('#app').innerHTML = `<div class="auth-wrap">
+      <div class="auth-logo"><span class="lg">🎡</span><h1>兩人遊樂園</h1><p>只屬於我們兩個的遊樂園</p></div>
+      <div class="card">
+        <label>Email</label><input id="em" type="email" autocomplete="email" placeholder="you@example.com">
+        <label>密碼（至少 6 個字）</label><input id="pw" type="password" autocomplete="${signup ? 'new-password' : 'current-password'}">
+        <button class="btn block mt" id="go">${signup ? '註冊' : '登入'}</button>
+        <div class="row mt" style="justify-content:space-between">
+          <button class="link" id="sw">${signup ? '已經有帳號？登入' : '第一次來？註冊'}</button>
+          ${signup ? '' : '<button class="link" id="fg">忘記密碼</button>'}
+        </div>
+      </div></div>`;
+    $('#sw').onclick = () => { signup = !signup; draw(); };
+    $('#fg') && ($('#fg').onclick = async () => {
+      const e = $('#em').value.trim(); if (!e) return toast('先填 Email');
+      try { await S.store.auth.reset(e); toast('重設密碼信寄出了，去信箱看看'); } catch (err) { toast(authErr(err)); }
+    });
+    $('#go').onclick = async () => {
+      const e = $('#em').value.trim(), p = $('#pw').value;
+      if (!e || p.length < 6) return toast('Email 和密碼（至少 6 個字）都要填');
+      $('#go').disabled = true;
+      try { signup ? await S.store.auth.signUp(e, p) : await S.store.auth.signIn(e, p); }
+      catch (err) { toast(authErr(err)); $('#go').disabled = false; }
+    };
+  };
+  draw();
+}
+function authErr(err) {
+  const c = err.code || '';
+  if (c.includes('invalid-credential') || c.includes('wrong-password') || c.includes('user-not-found')) return 'Email 或密碼不對';
+  if (c.includes('email-already-in-use')) return '這個 Email 已經註冊過了，直接登入吧';
+  if (c.includes('invalid-email')) return 'Email 格式不對';
+  if (c.includes('weak-password')) return '密碼太短了';
+  if (c.includes('operation-not-allowed')) return 'Firebase 還沒打開「電子郵件/密碼」登入，請看教學第 3 步';
+  return '登入失敗：' + (err.message || c);
+}
+
+// ---------- 第一次設定（建立或加入空間） ----------
+function renderOnboard() {
+  const p = { nick: '', role: 'her', emoji: '👧', bday: D.DEFAULT_DATES.herBirthday, spice: 1 };
+  const draw = () => {
+    $('#app').innerHTML = `<div class="auth-wrap">
+      <div class="auth-logo"><span class="lg">🎡</span><h1>歡迎光臨</h1><p>先介紹一下你自己</p></div>
+      <div class="card">
+        <label>你的暱稱</label><input id="nk" maxlength="12" placeholder="對方在 app 裡看到的名字" value="${esc(p.nick)}">
+        <label>你是</label>
+        <div class="role-pick">
+          <button data-role="her" class="${p.role === 'her' ? 'on' : ''}"><span>👧</span>女生</button>
+          <button data-role="him" class="${p.role === 'him' ? 'on' : ''}"><span>👦</span>男生</button>
+        </div>
+        <label>你的生日（月-日）</label><input id="bd" placeholder="03-16" value="${esc(p.bday)}" inputmode="numeric">
+      </div>
+      <div class="card">
+        <h3>🏰 建立我們的遊樂園</h3>
+        <p class="small muted" style="margin:0 0 8px">建立後會拿到一組邀請碼，傳給對方輸入就配對好了。</p>
+        <div class="toggle"><label class="switch"><input type="checkbox" id="sb" checked><span></span></label><span class="small">把「生日系列」卡組送給對方（對方加入時會收到）</span></div>
+        <button class="btn block mt" id="mk">建立空間</button>
+      </div>
+      <div class="card">
+        <h3>🔑 我有邀請碼</h3>
+        <input id="cd" placeholder="輸入 6 碼邀請碼" maxlength="6" style="text-transform:uppercase;letter-spacing:.2em;font-weight:800">
+        <button class="btn ghost block mt" id="jn">加入</button>
+      </div>
+      <button class="link center" id="so" style="margin-top:4px">登出</button>
+    </div>`;
+    $$('[data-role]').forEach((b) => b.onclick = () => {
+      p.nick = $('#nk').value; p.role = b.dataset.role;
+      p.emoji = p.role === 'him' ? '👦' : '👧';
+      p.bday = p.role === 'him' ? D.DEFAULT_DATES.hisBirthday : D.DEFAULT_DATES.herBirthday;
+      draw();
+    });
+    const collect = () => {
+      p.nick = $('#nk').value.trim(); p.bday = $('#bd').value.trim();
+      if (!p.nick) { toast('先取一個暱稱'); return false; }
+      if (!/^\d{2}-\d{2}$/.test(p.bday)) { toast('生日格式是 月-日，例如 03-16'); return false; }
+      return true;
+    };
+    $('#mk').onclick = async () => {
+      if (!collect()) return;
+      $('#mk').disabled = true;
+      try {
+        let cid = makeCode();
+        while (await S.store.getCouple(cid)) cid = makeCode();
+        await S.store.createCouple(cid, newCoupleData(me(), { ...p }, $('#sb').checked));
+        await S.store.setUser(me(), { coupleId: cid });
+        await seedPool(cid);
+        await welcomeGift(cid, me());
+        enterCouple(cid);
+        setTimeout(() => ACT.invite(), 400);
+      } catch (e) { console.error(e); toast('建立失敗：' + e.message); $('#mk').disabled = false; }
+    };
+    $('#jn').onclick = async () => {
+      if (!collect()) return;
+      const code = $('#cd').value.trim().toUpperCase();
+      if (code.length !== 6) return toast('邀請碼是 6 碼');
+      $('#jn').disabled = true;
+      try {
+        const c = await S.store.getCouple(code);
+        if (!c) { toast('找不到這組邀請碼'); $('#jn').disabled = false; return; }
+        if (!c.members.includes(me())) {
+          if (c.members.length >= 2) { toast('這個空間已經有兩個人了'); $('#jn').disabled = false; return; }
+          await S.store.updateCouple(code, { members: [...c.members, me()], [`profiles.${me()}`]: { ...p } });
+          await welcomeGift(code, me());
+        }
+        await S.store.setUser(me(), { coupleId: code });
+        enterCouple(code);
+        setTimeout(() => { confetti(); toast('配對成功！歡迎光臨兩人遊樂園 🎡'); }, 500);
+      } catch (e) { console.error(e); toast('加入失敗：' + e.message); $('#jn').disabled = false; }
+    };
+    $('#so').onclick = () => S.store.auth.signOut();
+  };
+  draw();
+}
+
+ACT.invite = () => {
+  const code = S.cid;
+  const m = openModal(`${mhead('邀請對方')}
+    <p class="muted small" style="margin-top:0">請對方打開這個 app、註冊後輸入這組邀請碼：</p>
+    <div class="code-box">${esc(code)}</div>
+    <div class="btn-row"><button class="btn ghost" id="cp">複製</button><button class="btn" id="sh">傳給對方</button></div>`, { center: true });
+  const text = `來跟我一起玩「兩人遊樂園」🎡\n網址：${location.href.split('#')[0]}\n邀請碼：${code}`;
+  $('#cp', m).onclick = async () => { try { await navigator.clipboard.writeText(text); toast('複製好了'); } catch (e) { toast('複製失敗，請手動抄下邀請碼'); } };
+  $('#sh', m).onclick = async () => { if (navigator.share) { try { await navigator.share({ text }); } catch (e) {} } else $('#cp', m).click(); };
+};
+
+// ---------- 外框 ----------
+const TABS = [
+  { id: 'home', icon: '🏠', name: '首頁' },
+  { id: 'wallet', icon: '🎟️', name: '票夾' },
+  { id: 'play', icon: '🎰', name: '遊樂區' },
+  { id: 'travel', icon: '🗺️', name: '旅行' },
+  { id: 'memory', icon: '📖', name: '回憶' },
+];
+function renderShell() {
+  $('#app').innerHTML = `<header class="topbar" id="top"></header><main id="main"></main><nav class="nav" id="nav"></nav>
+    ${S.store.mode === 'demo' ? '<div class="demo-bar" id="demobar"></div>' : ''}`;
+}
+let rq = false;
+function render() {
+  if (rq) return; rq = true;
+  requestAnimationFrame(() => { rq = false; doRender(); });
+}
+function doRender() {
+  if (!S.couple || !$('#main')) return;
+  const a = document.activeElement;
+  if (a && a.closest && a.closest('#main') && /INPUT|TEXTAREA|SELECT/.test(a.tagName)) { S.deferRender = true; renderTop(); renderNav(); return; }
+  renderTop(); renderNav(); renderMain();
+}
+document.addEventListener('focusout', () => setTimeout(() => {
+  const a = document.activeElement;
+  if (S.deferRender && !(a && a.closest && a.closest('#main') && /INPUT|TEXTAREA|SELECT/.test(a.tagName))) { S.deferRender = false; render(); }
+}, 120));
+
+const unreadEvents = () => list('events').filter((e) => e.to === me() && !e.read);
+function renderTop() {
+  const top = $('#top'); if (!top) return;
+  const t = document.documentElement.dataset.theme;
+  const mode = themeMode();
+  const n = unreadEvents().length;
+  const tk = tickets(me());
+  top.innerHTML = `
+    <div class="brand">🎡 兩人遊樂園</div>
+    <button class="pill" data-act="pointsLog">🪙 ${balance(me())}${tk ? ` · 🎫${tk}` : ''}</button>
+    <button class="icon-btn" data-act="theme" title="日夜模式">${mode === 'auto' ? '🕯️' : t === 'day' ? '☀️' : '🌙'}</button>
+    <button class="icon-btn" data-act="inbox">🔔${n ? `<span class="badge-dot">${n > 9 ? '9+' : n}</span>` : ''}</button>
+    <button class="icon-btn" data-act="settings">⚙️</button>`;
+  const db = $('#demobar');
+  if (db) db.innerHTML = `試玩模式：現在是「${esc(nick(me()))}」 <button data-act="demoSwitch">切換成${esc(nick(partner()))}</button>`;
+}
+function navBadges() {
+  const b = { home: homeTodos().length, wallet: 0, play: 0, travel: 0, memory: 0 };
+  b.wallet = list('cards').filter((c) => c.owner === me() && !c.scratched).length + list('wishes').filter((w) => w.status === 'pending' && w.by !== me()).length;
+  const q = todayQuiz(); if (q && !(q.answers || {})[me()]) b.play = 1;
+  b.memory = list('capsules').filter((c) => c.openAt <= now() && !(c.opened || {})[me()]).length;
+  return b;
+}
+function renderNav() {
+  const nav = $('#nav'); if (!nav) return;
+  const b = navBadges();
+  nav.innerHTML = TABS.map((t) => `<button class="${S.tab === t.id ? 'on' : ''}" data-act="tab" data-tab="${t.id}">
+    <span class="ni">${t.icon}</span>${t.name}${b[t.id] ? `<span class="badge-dot">${b[t.id]}</span>` : ''}</button>`).join('');
+}
+ACT.tab = (el) => {
+  const t = el.dataset.tab;
+  if (S.tab === t) { window.scrollTo({ top: 0, behavior: 'smooth' }); return; }
+  S.tab = t; localStorage.setItem('park-tab', t);
+  window.scrollTo(0, 0);
+  render();
+};
+ACT.sub = (el) => { S.sub[el.dataset.page] = el.dataset.sub; render(); };
+ACT.demoSwitch = () => S.store.demo.switch();
+
+const PAGES = {};
+function renderMain() {
+  const main = $('#main');
+  const page = PAGES[S.tab] || PAGES.home;
+  main.innerHTML = page.html();
+  page.after && page.after(main);
+  placeHiddenNotes(main);
+}
+
+// ---------- 通知中心 ----------
+const EV_ICON = { card: '🎟️', redeem: '✂️', stamp: '📮', miss: '💗', mood: '🌦️', wish: '🌠', battle: '⚔️', note: '💌', capsule: '⏳', fund: '💰', trip: '🗺️', goal: '🎯', daily: '💬', quiz: '🧠', mystery: '🎁' };
+ACT.inbox = async () => {
+  const evs = list('events').filter((e) => e.to === me()).sort((a, b) => b.at - a.at).slice(0, 60);
+  openModal(`${mhead('通知')}
+    ${evs.length ? evs.map((e) => `<div class="list-row ${e.read ? '' : 'unread'}"><span class="lr-i">${EV_ICON[e.type] || '✨'}</span>
+      <div class="grow">${esc(e.text)}${e.detail ? `<div class="small muted">${esc(e.detail)}</div>` : ''}</div><span class="when">${ago(e.at)}</span></div>`).join('')
+      : '<div class="empty"><span class="big">🔕</span>還沒有通知</div>'}`);
+  for (const e of evs) if (!e.read) col('events').update(e.id, { read: true });
+};
+
+ACT.pointsLog = () => {
+  const ps = list('points').filter((p) => p.uid === me()).sort((a, b) => b.at - a.at).slice(0, 80);
+  openModal(`${mhead('🪙 我的點數')}
+    <div class="row" style="gap:14px;margin-bottom:10px">
+      <div class="card grow center" style="margin:0"><div class="fund-num">${balance(me())}</div><div class="small muted">點數</div></div>
+      <div class="card grow center" style="margin:0"><div class="fund-num">${tickets(me())}</div><div class="small muted">扭蛋券</div></div>
+    </div>
+    <p class="small muted">點數可以拿來扭蛋（${D.POINTS.gachaCost} 點一次）。蓋章、每週任務、默契問答、每日一問、年度清單、旅行足跡都能賺點數。</p>
+    ${ps.map((p) => `<div class="list-row"><span class="grow">${esc(p.reason)}</span><b style="color:${p.amt >= 0 ? 'var(--accent)' : 'var(--muted)'}">${p.amt >= 0 ? '+' : ''}${p.amt}</b><span class="when">${ago(p.at)}</span></div>`).join('') || '<div class="empty">還沒有紀錄</div>'}`);
+};
+
+// ---------- 設定 ----------
+ACT.settings = () => {
+  const p = prof(me());
+  const c = S.couple;
+  const m = openModal(`${mhead('⚙️ 設定')}
+    <div class="card">
+      <h3>我的資料</h3>
+      <div class="row"><div style="width:70px"><label>頭像</label><input id="s-em" maxlength="2" value="${esc(p.emoji || '')}" style="text-align:center;font-size:22px"></div>
+      <div class="grow"><label>暱稱</label><input id="s-nk" maxlength="12" value="${esc(p.nick || '')}"></div></div>
+      <label>我的生日（月-日）</label><input id="s-bd" value="${esc(p.bday || '')}" placeholder="03-16">
+    </div>
+    <div class="card">
+      <h3>我們</h3>
+      <label>在一起的日子</label><input id="s-an" type="date" value="${esc(c.dates?.anniversary || '')}">
+      <label>尺度上限（兩人都打開才會出現更高的等級）</label>
+      <div class="seg" id="s-sp">${[1, 2, 3].map((l) => `<button data-l="${l}" class="${(p.spice || 1) === l ? 'on' : ''}">${D.SPICE[l].icon} ${D.SPICE[l].label}</button>`).join('')}</div>
+      <p class="small muted" style="margin:0">目前兩人共同等級：${D.SPICE[spiceLevel()].icon} ${D.SPICE[spiceLevel()].label}</p>
+    </div>
+    <button class="btn block" id="s-save">儲存</button>
+    <div class="card mt">
+      <h3>更多</h3>
+      <div class="list-row" data-act="poolManager"><span class="lr-i">🎰</span><span class="grow">管理扭蛋卡池</span>›</div>
+      <div class="list-row" data-act="invite"><span class="lr-i">🔑</span><span class="grow">邀請碼 ${esc(S.cid)}</span>›</div>
+      <div class="list-row" id="s-noti"><span class="lr-i">🔔</span><span class="grow">開啟瀏覽器通知<div class="small muted">開著 app 的時候才收得到，內容一律低調</div></span>›</div>
+      <div class="list-row" data-act="theme"><span class="lr-i">🕯️</span><span class="grow">切換日夜模式（自動／白天／夜晚）</span>›</div>
+      ${S.store.mode === 'demo'
+        ? `<div class="list-row" data-act="demoSwitch"><span class="lr-i">🔁</span><span class="grow">切換成對方身份</span>›</div>
+           <div class="list-row" id="s-reset"><span class="lr-i">🧹</span><span class="grow">清空試玩資料</span>›</div>`
+        : `<div class="list-row" id="s-out"><span class="lr-i">🚪</span><span class="grow">登出</span>›</div>`}
+    </div>
+    <p class="center small muted">兩人遊樂園 · 做給我們兩個 💗</p>`);
+  let sp = p.spice || 1;
+  $$('#s-sp button', m).forEach((b) => b.onclick = () => { sp = +b.dataset.l; $$('#s-sp button', m).forEach((x) => x.classList.toggle('on', x === b)); });
+  $('#s-save', m).onclick = async () => {
+    const bd = $('#s-bd', m).value.trim();
+    if (bd && !/^\d{2}-\d{2}$/.test(bd)) return toast('生日格式是 月-日，例如 03-16');
+    await S.store.updateCouple(S.cid, {
+      [`profiles.${me()}`]: { ...p, nick: $('#s-nk', m).value.trim() || p.nick, emoji: $('#s-em', m).value.trim() || p.emoji, bday: bd || p.bday, spice: sp },
+      'dates.anniversary': $('#s-an', m).value || c.dates?.anniversary,
+    });
+    toast('儲存好了'); closeModal(m);
+  };
+  $('#s-noti', m).onclick = async () => {
+    if (!('Notification' in window)) return toast('這個瀏覽器不支援通知。iPhone 要先「加入主畫面」再從主畫面打開');
+    const r = await Notification.requestPermission();
+    toast(r === 'granted' ? '通知開好了 🔔' : '沒有開啟通知');
+  };
+  $('#s-reset', m) && ($('#s-reset', m).onclick = async () => { if (await confirmBox('清空所有試玩資料？')) S.store.demo.reset(); });
+  $('#s-out', m) && ($('#s-out', m).onclick = async () => { if (await confirmBox('確定要登出？')) { closeAll(); S.store.auth.signOut(); } });
+};
+
+ACT.poolManager = () => {
+  const draw = (m) => {
+    const pool = list('pool').sort((a, b) => D.RARITY_ORDER.indexOf(a.rarity) - D.RARITY_ORDER.indexOf(b.rarity));
+    const html = `${mhead('🎰 扭蛋卡池')}
+      <p class="small muted" style="margin-top:0">扭蛋時會從這裡隨機抽一張。抽到的卡由對方負責兌現，你們都可以新增。</p>
+      <button class="btn block" id="pm-add">＋ 新增一張到卡池</button>
+      <div class="mt">${pool.map((p) => `<div class="list-row"><span class="chip" style="color:var(--r-${p.rarity.toLowerCase()})">${p.rarity}</span>
+        <span class="grow">${esc(p.title)} <span class="small muted">${D.SPICE[p.spice || 1].icon}${p.mystery ? ' 🎁' : ''}</span></span>
+        <button class="small muted" data-del="${p.id}">刪除</button></div>`).join('')}</div>`;
+    if (!m) m = openModal(html); else m.querySelector('.modal').innerHTML = html;
+    $('#pm-add', m).onclick = () => cardEditor({ title: '新增到卡池', pool: true }, async (t) => { await col('pool').add({ ...t, by: me(), at: now() }); toast('加進卡池了'); setTimeout(() => draw(m), 300); });
+    $$('[data-del]', m).forEach((b) => b.onclick = async () => { if (await confirmBox('從卡池刪掉這張？')) { await col('pool').remove(b.dataset.del); setTimeout(() => draw(m), 200); } });
+    return m;
+  };
+  draw();
+};
+
+// 共用：卡片編輯器
+function cardEditor({ title, pool = false, give = false, preset = {} }, onSave) {
+  const t = { title: '', desc: '', rarity: 'N', spice: 1, qty: 1, mystery: false, secret: '', limit: 'none', ...preset };
+  const m = openModal(`${mhead(esc(title))}
+    <label>卡片名稱</label><input id="ce-t" maxlength="24" value="${esc(t.title)}" placeholder="例如：按摩 15 分鐘">
+    <label>說明（可以不寫）</label><input id="ce-d" maxlength="60" value="${esc(t.desc)}" placeholder="一句話補充">
+    <label>稀有度</label>
+    <div class="rarity-pick" id="ce-r">${D.RARITY_ORDER.map((r) => `<button data-r="${r}" style="--rc:var(--r-${r.toLowerCase()})" class="${t.rarity === r ? 'on' : ''}">${r}</button>`).join('')}</div>
+    <label>尺度</label>
+    <div class="seg" id="ce-s">${[1, 2, 3].map((l) => `<button data-l="${l}" class="${t.spice === l ? 'on' : ''}">${D.SPICE[l].icon} ${D.SPICE[l].label}</button>`).join('')}</div>
+    ${give ? `<div class="row"><div class="grow"><label>張數</label><input id="ce-q" type="number" min="1" max="20" value="${t.qty}"></div>
+      <div class="grow"><label>限時</label><select id="ce-l"><option value="none">不限時</option><option value="7d">7 天內有效</option><option value="weekend">週末限定</option><option value="today">今天限定</option></select></div></div>` : ''}
+    <div class="toggle mt"><label class="switch"><input type="checkbox" id="ce-m" ${t.mystery ? 'checked' : ''}><span></span></label><span class="small">🎁 神秘盲盒（內容先藏起來，兌換時才揭曉）</span></div>
+    <div id="ce-sw" class="${t.mystery && give ? '' : 'hidden'}"><label>盲盒裡的真正內容</label><input id="ce-sec" maxlength="60" placeholder="兌換時才會顯示" value="${esc(t.secret)}"></div>
+    <button class="btn block mt" id="ce-ok">${give ? '送出 💌' : '儲存'}</button>`);
+  $$('#ce-r button', m).forEach((b) => b.onclick = () => { t.rarity = b.dataset.r; $$('#ce-r button', m).forEach((x) => x.classList.toggle('on', x === b)); });
+  $$('#ce-s button', m).forEach((b) => b.onclick = () => { t.spice = +b.dataset.l; $$('#ce-s button', m).forEach((x) => x.classList.toggle('on', x === b)); });
+  $('#ce-m', m).onchange = (e) => { if (give) $('#ce-sw', m).classList.toggle('hidden', !e.target.checked); };
+  if (give && preset.limit) $('#ce-l', m).value = preset.limit;
+  $('#ce-ok', m).onclick = async () => {
+    t.title = $('#ce-t', m).value.trim(); t.desc = $('#ce-d', m).value.trim(); t.mystery = $('#ce-m', m).checked;
+    if (!t.title) return toast('卡片要有名稱');
+    if (give) {
+      t.qty = Math.max(1, Math.min(20, +$('#ce-q', m).value || 1));
+      t.secret = t.mystery ? $('#ce-sec', m).value.trim() : '';
+      if (t.mystery && !t.secret) return toast('寫一下盲盒裡的內容');
+      const l = $('#ce-l', m).value;
+      t.expiresAt = 0; t.weekendOnly = false;
+      if (l === '7d') t.expiresAt = now() + 7 * 86400000;
+      if (l === 'today') { const d = new Date(); d.setHours(23, 59, 59, 999); t.expiresAt = d.getTime(); }
+      if (l === 'weekend') t.weekendOnly = true;
+    }
+    $('#ce-ok', m).disabled = true;
+    try { await onSave(t); closeModal(m); } catch (e) { toast('失敗了：' + e.message); $('#ce-ok', m).disabled = false; }
+  };
+}
+// ============================================================
+//  🏠 首頁：在一起天數、紀念日、心情、想你、每日一問、小紙條
+// ============================================================
+
+function daysTogether() {
+  const ann = parseD(S.couple?.dates?.anniversary || D.DEFAULT_DATES.anniversary);
+  const t = new Date(); t.setHours(0, 0, 0, 0);
+  return Math.floor((t - ann) / 86400000) + 1;
+}
+function nextOf(md) {
+  const [m, d] = md.split('-').map(Number);
+  const t = new Date(); t.setHours(0, 0, 0, 0);
+  let x = new Date(t.getFullYear(), m - 1, d);
+  if (x < t) x = new Date(t.getFullYear() + 1, m - 1, d);
+  return { date: x, days: Math.round((x - t) / 86400000) };
+}
+function countdowns() {
+  const c = S.couple;
+  const annStr = c.dates?.anniversary || D.DEFAULT_DATES.anniversary;
+  const annY = +annStr.slice(0, 4);
+  const items = [];
+  const a = nextOf(annStr.slice(5));
+  items.push({ name: `${a.date.getFullYear() - annY} 週年`, ...a, icon: '💞' });
+  for (const u of c.members) {
+    const p = prof(u); if (!p.bday) continue;
+    items.push({ name: `${p.nick || ''}生日`, ...nextOf(p.bday), icon: '🎂' });
+  }
+  items.push({ name: '情人節', ...nextOf('02-14'), icon: '🌹' });
+  items.push({ name: '聖誕節', ...nextOf('12-25'), icon: '🎄' });
+  const dt = daysTogether(), next100 = Math.ceil((dt + 1) / 100) * 100;
+  items.push({ name: `第 ${next100} 天`, days: next100 - dt, icon: '💯' });
+  return items.sort((x, y) => x.days - y.days);
+}
+
+function homeTodos() {
+  if (!S.couple) return [];
+  const t = [];
+  const p = partner();
+  if (!p) t.push({ icon: '🔑', text: '對方還沒加入，把邀請碼傳給對方', act: 'invite', btn: '邀請' });
+  const ns = list('cards').filter((c) => c.owner === me() && !c.scratched).length;
+  if (ns) t.push({ icon: '🎟️', text: `有 ${ns} 張新票券等你刮開`, act: 'goScratch', btn: '去刮' });
+  const wl = list('wishes').filter((w) => w.status === 'pending' && w.by !== me()).length;
+  if (wl) t.push({ icon: '🌠', text: `${nick(p)} 在許願池許了 ${wl} 個願`, act: 'wishes', btn: '看看' });
+  for (const c of list('cards').filter((c) => c.mystery && !c.secret && c.from === me() && c.owner !== me())) {
+    t.push({ icon: '🎁', text: `${nick(c.owner)} 扭到了神秘盲盒，換你偷偷寫內容`, act: 'writeSecret', id: c.id, btn: '去寫' });
+  }
+  for (const b of list('battles')) {
+    if (b.status === 'claimed' && b.claimer !== me()) t.push({ icon: '⚔️', text: `${nick(b.claimer)} 說自己完成挑戰「${b.task}」了`, act: 'battleJudge', id: b.id, btn: '確認' });
+    if (b.status === 'done' && b.loser === me() && !b.paid) t.push({ icon: '🏳️', text: `挑戰輸了，要發一張卡給 ${nick(b.winner)}`, act: 'battlePay', id: b.id, btn: '發卡' });
+  }
+  const caps = list('capsules').filter((c) => c.openAt <= now() && !(c.opened || {})[me()]).length;
+  if (caps) t.push({ icon: '⏳', text: `有 ${caps} 封時光膠囊可以打開了`, act: 'goCapsule', btn: '打開' });
+  return t;
+}
+ACT.goScratch = () => { S.tab = 'wallet'; S.sub.wallet = 'mine'; render(); window.scrollTo(0, 0); };
+ACT.goCapsule = () => { S.tab = 'memory'; S.sub.memory = 'capsule'; render(); window.scrollTo(0, 0); };
+
+PAGES.home = {
+  html() {
+    const c = S.couple, p = partner();
+    const cds = countdowns();
+    const todos = homeTodos();
+    const moods = c.moods || {};
+    const mm = moods[me()], pm = p ? moods[p] : null;
+    const today = dkey();
+    const misses = list('misses');
+    const isToday = (x) => dkey(new Date(x.at)) === today;
+    const myToday = misses.filter((x) => x.by === me() && isToday(x)).length;
+    const theirToday = misses.filter((x) => x.by === p && isToday(x)).length;
+    const total = misses.length;
+    return `
+    <div class="card hero">
+      <div class="small muted">我們在一起</div>
+      <div class="days">第 ${money(daysTogether())} <small>天</small></div>
+      <div class="couple"><span>${avatar(me())} ${esc(nick(me()))}</span><span class="heart">💗</span><span>${p ? `${avatar(p)} ${esc(nick(p))}` : '<span class="muted">等待對方加入…</span>'}</span></div>
+      <div class="countdowns">${cds.map((x) => `<div class="cd ${x.days === 0 ? 'today' : ''}">${x.icon} ${esc(x.name)}<b>${x.days === 0 ? '就是今天！' : x.days + ' 天'}</b></div>`).join('')}</div>
+    </div>
+
+    ${todos.length ? `<div class="card"><h3>📌 待辦</h3>${todos.map((t) => `<div class="todo-item"><span class="ti">${t.icon}</span><span class="grow">${esc(t.text)}</span>
+      <button class="btn sm" data-act="${t.act}" ${t.id ? `data-id="${t.id}"` : ''}>${t.btn}</button></div>`).join('')}</div>` : ''}
+
+    <div class="card">
+      <h3>🌦️ 心情天氣 <span class="sub">點自己的換心情</span></h3>
+      <div class="mood-row">
+        <button class="mood-box" data-act="mood"><div class="mi">${mm ? mm.icon : '❔'}</div><b>${mm ? esc(mm.label) : '還沒設定'}</b><div class="who">${esc(nick(me()))}${mm ? ' · ' + ago(mm.at) : ''}</div></button>
+        <div class="mood-box"><div class="mi">${pm ? pm.icon : '❔'}</div><b>${pm ? esc(pm.label) : '還沒設定'}</b><div class="who">${p ? esc(nick(p)) : '對方'}${pm ? ' · ' + ago(pm.at) : ''}</div>
+          ${pm && (pm.icon === '🌧️' || pm.icon === '⛈️') ? '<div class="small" style="color:var(--accent);font-weight:700">需要哄哄！</div>' : ''}</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>💗 想你按鈕</h3>
+      <div class="miss-wrap">
+        <button class="miss-btn" data-act="miss" id="missbtn">💗</button>
+        <div class="grow small">
+          <div>今天我想了 ${esc(nick(p))} <b style="font-size:18px;color:var(--accent)">${myToday}</b> 次</div>
+          <div>今天 ${esc(nick(p))} 想了我 <b style="font-size:18px;color:var(--accent)">${theirToday}</b> 次</div>
+          <div class="muted">累計 ${money(total)} 次 · 連續 ${missStreak(me())} 天</div>
+        </div>
+      </div>
+    </div>
+
+    ${dailyCardHTML()}
+
+    <div class="card">
+      <h3>💌 情話小紙條</h3>
+      <p class="small muted" style="margin:0 0 10px">寫一張小紙條，它會偷偷藏在 app 的某個角落，等 ${esc(nick(p))} 自己發現。</p>
+      <div class="row"><button class="btn" data-act="writeNote">藏一張小紙條</button>
+        <span class="small muted">${list('notes').filter((n) => n.by === me() && !n.found).length} 張還沒被找到</span></div>
+    </div>`;
+  },
+};
+
+// ---------- 心情 ----------
+ACT.mood = () => {
+  const cur = (S.couple.moods || {})[me()];
+  const m = openModal(`${mhead('今天的心情天氣')}
+    <div class="mood-pick">${D.MOODS.map((x, i) => `<button data-i="${i}" class="${cur && cur.icon === x.icon ? 'on' : ''}"><span>${x.icon}</span>${x.label}<small class="muted">${x.hint}</small></button>`).join('')}</div>`, { center: true });
+  $$('[data-i]', m).forEach((b) => b.onclick = async () => {
+    const x = D.MOODS[+b.dataset.i];
+    await S.store.updateCouple(S.cid, { [`moods.${me()}`]: { icon: x.icon, label: x.label, at: now() } });
+    await notify(partner(), 'mood', `${nick(me())} 更新了心情 ${x.icon}`);
+    closeModal(m); toast(`心情：${x.icon} ${x.label}`);
+  });
+};
+
+// ---------- 想你 ----------
+function missStreak(uid) {
+  const days = new Set(list('misses').filter((x) => x.by === uid).map((x) => dkey(new Date(x.at))));
+  let n = 0; const d = new Date();
+  if (!days.has(dkey(d))) d.setDate(d.getDate() - 1);
+  while (days.has(dkey(d))) { n++; d.setDate(d.getDate() - 1); }
+  return n;
+}
+ACT.miss = async (el, e) => {
+  const r = el.getBoundingClientRect();
+  floaty(r.left + r.width / 2, r.top);
+  el.classList.remove('pulse'); void el.offsetWidth; el.classList.add('pulse');
+  vibrate([30, 40, 30]);
+  await col('misses').add({ by: me(), at: now() });
+  const p = partner();
+  const recent = list('events').some((x) => x.type === 'miss' && x.by === me() && x.to === p && !x.read && now() - x.at < 30 * 60000);
+  if (p && !recent) await notify(p, 'miss', '有人在想你 💗');
+};
+
+// ---------- 每日一問 ----------
+const dayIndex = () => Math.floor(parseD(dkey()).getTime() / 86400000);
+function todayDaily() { return list('daily').find((x) => x.id === dkey()); }
+function dailyCardHTML() {
+  const q = D.DAILY_QUESTIONS[dayIndex() % D.DAILY_QUESTIONS.length];
+  const doc = todayDaily();
+  const ans = doc?.answers || {};
+  const p = partner();
+  const mine = ans[me()], theirs = p ? ans[p] : null;
+  return `<div class="card">
+    <h3>💬 每日一問 <span class="sub"><button class="link" data-act="dailyHistory">看以前的</button></span></h3>
+    <div style="font-family:var(--serif);font-size:17px;font-weight:700;margin-bottom:10px">${esc(q)}</div>
+    ${mine ? `<div class="todo-item" style="display:block"><div class="small muted">${esc(nick(me()))}</div>${esc(mine)}</div>
+      <div class="todo-item" style="display:block"><div class="small muted">${esc(nick(p))}</div>${theirs ? esc(theirs) : '<span class="muted">🔒 等對方回答後就看得到</span>'}</div>`
+      : `<textarea id="daily-in" placeholder="寫下你的答案…（兩人都回答才看得到對方的）"></textarea>
+         <div class="row mt"><button class="btn" data-act="dailyAnswer">送出 +${D.POINTS.daily} 點</button>
+         <span class="small muted">${theirs ? `${esc(nick(p))} 已經回答了，快來看` : ''}</span></div>`}
+  </div>`;
+}
+ACT.dailyAnswer = async () => {
+  const v = $('#daily-in').value.trim();
+  if (!v) return toast('先寫下答案');
+  $('#daily-in').blur();
+  const id = dkey(), doc = todayDaily();
+  if (doc) await col('daily').update(id, { [`answers.${me()}`]: v });
+  else await col('daily').set(id, { qi: dayIndex() % D.DAILY_QUESTIONS.length, answers: { [me()]: v }, at: now() });
+  await addPoints(me(), D.POINTS.daily, '每日一問');
+  await notify(partner(), 'daily', `${nick(me())} 回答了今天的每日一問 💬`);
+  toast('送出了 💬');
+};
+ACT.dailyHistory = () => {
+  const p = partner();
+  const ds = list('daily').filter((d) => d.answers && d.answers[me()] && p && d.answers[p]).sort((a, b) => b.id.localeCompare(a.id));
+  openModal(`${mhead('💬 以前的每日一問')}
+    ${ds.map((d) => `<div class="card"><div class="small muted">${d.id}</div><b style="font-family:var(--serif)">${esc(D.DAILY_QUESTIONS[d.qi] || '')}</b>
+      <div class="small mt"><b>${esc(nick(me()))}：</b>${esc(d.answers[me()])}</div><div class="small"><b>${esc(nick(p))}：</b>${esc(d.answers[p])}</div></div>`).join('')
+      || '<div class="empty"><span class="big">💬</span>兩人都回答過的題目會出現在這裡</div>'}`);
+};
+
+// ---------- 情話小紙條 ----------
+ACT.writeNote = async () => {
+  if (!partner()) return toast('對方加入後才能藏紙條喔');
+  const text = await promptBox('💌 寫一張小紙條', { placeholder: `想對 ${nick(partner())} 說的話…`, multiline: true, ok: '藏起來' });
+  if (!text) return;
+  const tab = pick(TABS).id;
+  await col('notes').add({ by: me(), to: partner(), text, found: false, spot: { tab, x: 6 + Math.random() * 80, y: 8 + Math.random() * 84 }, at: now() });
+  toast(`藏好了，看 ${nick(partner())} 什麼時候發現 🤫`);
+};
+function placeHiddenNotes(main) {
+  for (const n of list('notes')) {
+    if (n.to !== me() || n.found || !n.spot || n.spot.tab !== S.tab) continue;
+    const b = document.createElement('button');
+    b.className = 'hidden-note'; b.textContent = '💌';
+    b.dataset.act = 'findNote'; b.dataset.id = n.id;
+    b.style.left = n.spot.x + '%'; b.style.top = n.spot.y + '%';
+    main.appendChild(b);
+  }
+}
+ACT.findNote = async (el) => {
+  const n = list('notes').find((x) => x.id === el.dataset.id);
+  if (!n) return;
+  vibrate(40); confetti(40, ['#ff6f91', '#ffc2d1', '#fff']);
+  openModal(`${mhead('💌 你找到一張小紙條！')}
+    <div class="letter">${esc(n.text)}</div>
+    <p class="small muted center">—— ${esc(nick(n.by))} · ${fmtFull(n.at)}</p>`, { center: true });
+  await col('notes').update(n.id, { found: true, foundAt: now() });
+  await notify(n.by, 'note', '你藏的小紙條被找到了 💌');
+};
+// ============================================================
+//  🎟️ 票夾：我的卡、刮刮卡、兌換儀式、發卡、許願池、合成、收藏冊
+// ============================================================
+
+function ticketHTML(c, { act = 'openCard', showFrom = true, showOwner = false } = {}) {
+  const rem = remaining(c);
+  const collect = c.kind === 'collect';
+  const used = !collect && rem === 0;
+  const exp = isExpired(c);
+  const hideMystery = c.mystery && rem > 0;
+  const R = D.RARITY[c.rarity] || D.RARITY.N;
+  const meta = [];
+  if (showFrom && c.from) meta.push(`<span class="chip">${c.from === me() ? '我送的' : '來自 ' + esc(nick(c.from))}</span>`);
+  if (showOwner) meta.push(`<span class="chip">給 ${esc(nick(c.owner))}</span>`);
+  if (c.series) meta.push(`<span class="chip">${esc(c.series)}</span>`);
+  if (c.weekendOnly) meta.push('<span class="chip">週末限定</span>');
+  if (c.expiresAt && !exp && rem > 0) meta.push(`<span class="chip">⏰ ${fmtDate(c.expiresAt)} 前</span>`);
+  if ((c.spice || 1) > 1) meta.push(`<span class="chip">${D.SPICE[c.spice].icon}</span>`);
+  if (c.mystery && !c.secret) meta.push('<span class="chip">等待對方寫內容</span>');
+  return `<div class="ticket ${c.rarity} ${used ? 'used' : ''} ${exp ? 'expired used' : ''} ${hideMystery ? 'mystery' : ''} ${collect ? 'collect' : ''}" ${act ? `data-act="${act}" data-id="${c.id}"` : ''}>
+    <div class="stub"><span class="rk">${collect ? '💝' : R.name}</span><span class="rl">${collect ? '珍藏' : R.label}</span></div>
+    <div class="perf"></div>
+    <div class="body">
+      <div class="t-title">${hideMystery ? '🎁 神秘盲盒' : esc(c.title)}</div>
+      <div class="t-desc">${hideMystery ? '兌換時才揭曉內容' : esc(c.desc || '')}</div>
+      ${meta.length ? `<div class="t-meta">${meta.join('')}</div>` : ''}
+    </div>
+    ${!collect && (c.qty || 1) > 1 ? `<div class="qty">×${rem}<span class="small muted">/${c.qty}</span></div>` : ''}
+    ${used && !exp ? '<div class="stamp-used">已兌換</div>' : ''}${exp ? '<div class="stamp-used">已過期</div>' : ''}
+  </div>`;
+}
+const rarityRank = (r) => D.RARITY_ORDER.indexOf(r);
+
+PAGES.wallet = {
+  html() {
+    const sub = S.sub.wallet;
+    const tabs = [['mine', '我的票夾'], ['sent', '我送出的'], ['wish', '許願池'], ['craft', '合成'], ['book', '收藏冊']];
+    const wishN = list('wishes').filter((w) => w.status === 'pending' && w.by !== me()).length;
+    return `<div class="page-title"><h2>🎟️ 票夾</h2><span>${list('cards').filter((c) => c.owner === me() && c.kind !== 'collect' && remaining(c) > 0 && !isExpired(c)).length} 種可以用</span></div>
+      <div class="seg">${tabs.map(([k, n]) => `<button class="${sub === k ? 'on' : ''}" data-act="sub" data-page="wallet" data-sub="${k}">${n}${k === 'wish' && wishN ? ` (${wishN})` : ''}</button>`).join('')}</div>
+      ${({ mine: walletMine, sent: walletSent, wish: walletWish, craft: walletCraft, book: walletBook }[sub] || walletMine)()}`;
+  },
+};
+
+function walletMine() {
+  const mine = list('cards').filter((c) => c.owner === me());
+  const fresh = mine.filter((c) => !c.scratched);
+  const filter = S.walletFilter || 'ok';
+  let cards = mine.filter((c) => c.scratched && c.kind !== 'collect');
+  if (filter === 'ok') cards = cards.filter((c) => remaining(c) > 0 && !isExpired(c));
+  if (filter === 'used') cards = cards.filter((c) => remaining(c) === 0 || isExpired(c));
+  cards.sort((a, b) => (filter === 'ok' ? rarityRank(b.rarity) - rarityRank(a.rarity) : 0) || b.at - a.at);
+  return `
+    ${fresh.length ? `<div class="card"><h3>✨ 新票券 <span class="sub">刮開看看是什麼</span></h3>
+      <div class="new-tickets">${fresh.map((c) => `<button class="scratch-thumb" data-act="scratch" data-id="${c.id}"><span class="q">?</span>刮刮卡<span class="small">${c.from === 'sys' ? '遊樂園送的' : '來自 ' + esc(nick(c.from))}</span></button>`).join('')}</div></div>` : ''}
+    <button class="btn block" data-act="giveCard" style="margin-bottom:14px">💌 發一張卡給 ${esc(nick(partner()))}</button>
+    <div class="seg">${[['ok', '可以用'], ['used', '用過的'], ['all', '全部']].map(([k, n]) => `<button class="${filter === k ? 'on' : ''}" data-act="walletFilter" data-f="${k}">${n}</button>`).join('')}</div>
+    ${cards.length ? cards.map((c) => ticketHTML(c)).join('') : `<div class="empty"><span class="big">🎟️</span>${filter === 'ok' ? '目前沒有可以用的票券<br>去遊樂區扭蛋，或許個願吧' : '這裡空空的'}</div>`}`;
+}
+ACT.walletFilter = (el) => { S.walletFilter = el.dataset.f; render(); };
+
+function walletSent() {
+  const sent = list('cards').filter((c) => c.from === me() && c.owner !== me() && c.kind !== 'collect').sort((a, b) => b.at - a.at);
+  return `<p class="small muted" style="margin:0 0 10px">你送給 ${esc(nick(partner()))} 的票券。對方兌換的時候，你會收到通知，記得兌現喔 😉</p>
+    ${sent.length ? sent.map((c) => ticketHTML({ ...c, mystery: false }, { showFrom: false, act: 'openSent' })).join('') : '<div class="empty"><span class="big">💌</span>還沒送出任何票券</div>'}`;
+}
+ACT.openSent = (el) => {
+  const c = list('cards').find((x) => x.id === el.dataset.id); if (!c) return;
+  const log = (c.log || []).filter((l) => l.how !== 'birthday');
+  openModal(`${mhead('送出的票券')}${ticketHTML({ ...c, mystery: false }, { act: '', showFrom: false })}
+    ${c.mystery ? `<p class="small">🎁 盲盒內容：${c.secret ? esc(c.secret) : '<span class="muted">還沒寫</span>'}</p>` : ''}
+    <p class="small muted">送出時間：${fmtFull(c.at)} · ${c.scratched ? '對方已經刮開' : '對方還沒刮開'}</p>
+    ${log.length ? `<h3 style="font-size:15px">兌換紀錄</h3>${log.map((l) => `<div class="list-row"><span>${l.how === 'craft' ? '⚗️ 拿去合成' : '✂️ 兌換'}</span><span class="when">${fmtFull(l.at)}</span></div>`).join('')}` : ''}
+    ${c.mystery && remaining(c) > 0 ? '<button class="btn ghost block mt" data-act="writeSecret" data-id="' + c.id + '">改寫盲盒內容</button>' : ''}`);
+};
+
+// ---------- 發卡 ----------
+ACT.giveCard = (el) => {
+  if (!partner()) return toast('對方加入後才能發卡');
+  const battleId = el?.dataset?.battle;
+  cardEditor({ title: `💌 發卡給 ${nick(partner())}`, give: true }, async (t) => {
+    await giveCard(partner(), t);
+    if (battleId) await col('battles').update(battleId, { paid: true });
+    confetti(36); toast(`送出了！等 ${nick(partner())} 刮開 💌`);
+  });
+};
+
+// ---------- 刮刮卡 ----------
+ACT.scratch = (el) => {
+  const c = list('cards').find((x) => x.id === el.dataset.id); if (!c) return;
+  const R = D.RARITY[c.rarity];
+  const m = openModal(`${mhead('刮刮卡')}
+    <p class="center small muted" style="margin:0">${c.from === 'sys' ? '遊樂園送你的' : esc(nick(c.from)) + ' 送你的'}，用手指刮開 👆</p>
+    <div class="scratch-area" id="sa">
+      <div class="under" style="--rc:${R.color}">
+        <div class="rk" style="color:${R.color}">${c.kind === 'collect' ? '💝 珍藏' : R.name + ' · ' + R.label}</div>
+        <div class="tt">${c.mystery ? '🎁 神秘盲盒' : esc(c.title)}</div>
+        <div class="small muted">${c.mystery ? '兌換時才揭曉' : esc(c.desc || '')}</div>
+      </div>
+      <canvas id="sc"></canvas>
+    </div>
+    <div class="center"><button class="link" id="sk">刮不動？直接打開</button></div>`, { center: true });
+  const cv = $('#sc', m), area = $('#sa', m);
+  const W = area.clientWidth, H = area.clientHeight, dpr = window.devicePixelRatio || 1;
+  cv.width = W * dpr; cv.height = H * dpr;
+  const g = cv.getContext('2d'); g.scale(dpr, dpr);
+  const night = document.documentElement.dataset.theme === 'night';
+  const grd = g.createLinearGradient(0, 0, W, H);
+  grd.addColorStop(0, night ? '#8a7140' : '#cfc8d6'); grd.addColorStop(.5, night ? '#c9a55c' : '#e9e4ee'); grd.addColorStop(1, night ? '#7a6136' : '#bcb4c6');
+  g.fillStyle = grd; g.fillRect(0, 0, W, H);
+  g.fillStyle = night ? 'rgba(60,40,10,.55)' : 'rgba(90,80,100,.5)';
+  g.font = 'bold 22px sans-serif'; g.textAlign = 'center';
+  for (let y = 30; y < H; y += 46) for (let x = (y / 46 % 2) * 40 + 20; x < W; x += 80) g.fillText('?', x, y);
+  g.font = 'bold 20px sans-serif'; g.fillStyle = night ? '#2a1a05' : '#5b5262';
+  g.fillText('刮開看看 ✨', W / 2, H / 2 + 7);
+  g.globalCompositeOperation = 'destination-out';
+  let done = false, moves = 0, last = null;
+  const reveal = async () => {
+    if (done) return; done = true;
+    cv.style.transition = 'opacity .5s'; cv.style.opacity = 0;
+    vibrate([20, 30, 60]);
+    if (c.rarity === 'SSR') { confetti(120, ['#f6d365', '#fda085', '#f093fb', '#8fd3f4']); } else confetti(50);
+    await col('cards').update(c.id, { scratched: true });
+    setTimeout(() => { const b = document.createElement('div'); b.className = 'btn-row'; b.innerHTML = '<button class="btn block" data-act="close">收進票夾</button>'; m.querySelector('.modal').appendChild(b); }, 400);
+  };
+  const scratchAt = (x, y) => {
+    g.lineWidth = 38; g.lineCap = 'round'; g.lineJoin = 'round';
+    g.beginPath();
+    if (last) g.moveTo(last.x, last.y); else g.moveTo(x - .1, y);
+    g.lineTo(x, y); g.stroke(); last = { x, y };
+    if (++moves % 8 === 0) {
+      const data = g.getImageData(0, 0, cv.width, cv.height).data;
+      let clear = 0, total = 0;
+      for (let i = 3; i < data.length; i += 4 * 40) { total++; if (data[i] === 0) clear++; }
+      if (clear / total > 0.45) reveal();
+    }
+  };
+  const pos = (e) => { const r = cv.getBoundingClientRect(); return { x: e.clientX - r.left, y: e.clientY - r.top }; };
+  let down = false;
+  cv.addEventListener('pointerdown', (e) => { down = true; last = null; cv.setPointerCapture(e.pointerId); const p = pos(e); scratchAt(p.x, p.y); });
+  cv.addEventListener('pointermove', (e) => { if (!down) return; const p = pos(e); scratchAt(p.x, p.y); });
+  cv.addEventListener('pointerup', () => { down = false; last = null; });
+  $('#sk', m).onclick = reveal;
+};
+
+// ---------- 打開卡片 / 兌換儀式 ----------
+ACT.openCard = (el) => {
+  const c = list('cards').find((x) => x.id === el.dataset.id); if (!c) return;
+  const rem = remaining(c), exp = isExpired(c);
+  const log = (c.log || []).filter((l) => l.how !== 'craft');
+  let why = '';
+  if (c.kind === 'collect') why = 'collect';
+  else if (c.owner !== me()) why = `這是 ${nick(c.owner)} 的票券`;
+  else if (rem === 0) why = '這張已經用完了';
+  else if (exp) why = '這張已經過期了 🥲';
+  else if (c.weekendOnly && !isWeekend()) why = '這張是週末限定，週六日才能用';
+  else if (c.mystery && !c.secret) why = `${nick(c.from)} 還沒寫好盲盒內容`;
+  const m = openModal(`${mhead(c.kind === 'collect' ? '💝 珍藏卡' : '票券')}
+    <div class="ritual" id="rt">
+      <div class="big-ticket">${ticketHTML(c, { act: '' })}<div class="big-stamp" id="bs">已兌換</div></div>
+      <div id="secret"></div>
+      ${why === 'collect' ? `<p class="muted">這是一張珍藏卡，收在「收藏冊」的 ${esc(c.series)}裡 💗</p>`
+        : why ? `<p class="muted">${esc(why)}</p>`
+        : `<button class="btn block hold-btn" id="hold"><span class="fill" id="hf"></span>✂️ 長按撕下票券</button>
+           <p class="small muted">撕下後 ${c.from === 'sys' ? '' : esc(nick(c.from)) + ' 會收到通知，'}記得當面兌現喔</p>`}
+    </div>
+    ${log.length && c.kind !== 'collect' ? `<h3 style="font-size:15px;margin-top:10px">兌換紀錄</h3>${log.map((l) => `<div class="list-row"><span>${l.how === 'birthday' ? '🎂 生日當天' : '✂️ 兌換'}</span><span class="when">${fmtFull(l.at)}</span></div>`).join('')}` : ''}`, { center: true });
+  const hold = $('#hold', m); if (!hold) return;
+  let t0 = 0, raf = 0, fired = false;
+  const DUR = 900;
+  const step = () => {
+    const p = Math.min(1, (performance.now() - t0) / DUR);
+    $('#hf', m).style.width = p * 100 + '%';
+    if (p >= 1) { fire(); return; }
+    raf = requestAnimationFrame(step);
+  };
+  const start = (e) => { e.preventDefault(); if (fired) return; t0 = performance.now(); vibrate(15); raf = requestAnimationFrame(step); };
+  const stop = () => { if (fired) return; cancelAnimationFrame(raf); $('#hf', m).style.width = 0; };
+  hold.addEventListener('pointerdown', start);
+  hold.addEventListener('pointerup', stop); hold.addEventListener('pointerleave', stop); hold.addEventListener('pointercancel', stop);
+  hold.addEventListener('contextmenu', (e) => e.preventDefault());
+  const fire = async () => {
+    fired = true;
+    hold.disabled = true;
+    vibrate([40, 60, 120]);
+    $('#rt', m).classList.add('tearing');
+    await sleep(500);
+    $('#bs', m).classList.add('go');
+    await sleep(350);
+    vibrate(80);
+    if (c.rarity === 'SSR' || c.rarity === 'SR') confetti(110); else confetti(50);
+    if (c.mystery) $('#secret', m).innerHTML = `<div class="secret-reveal">🎁 盲盒揭曉：${esc(c.secret)}</div>`;
+    hold.outerHTML = '<p style="font-weight:700">兌換成功！好好享受 💗</p><button class="btn block" data-act="close">完成</button>';
+    await col('cards').update(c.id, { used: (c.used || 0) + 1, log: [...(c.log || []), { at: now(), how: 'redeem' }] });
+    if (c.from !== me() && c.from !== 'sys') await notify(c.from, 'redeem', `${nick(me())} 使用了一張票券 ✂️`, c.mystery ? `神秘盲盒：${c.secret}` : c.title);
+  };
+};
+
+// 對方扭到盲盒時，由送卡的人寫內容
+ACT.writeSecret = async (el) => {
+  const c = list('cards').find((x) => x.id === el.dataset.id); if (!c) return;
+  closeAll();
+  const v = await promptBox('🎁 偷偷寫下盲盒內容', { placeholder: '對方兌換時才會看到…', value: c.secret || '', ok: '封存' });
+  if (!v) return;
+  await col('cards').update(c.id, { secret: v });
+  if (!c.secret) await notify(c.owner, 'mystery', '你的神秘盲盒準備好了 🎁');
+  toast('封存好了 🤫');
+};
+
+// ---------- 許願池 ----------
+function walletWish() {
+  const ws = list('wishes').sort((a, b) => (a.status === 'pending' ? -1 : 0) - (b.status === 'pending' ? -1 : 0) || b.at - a.at);
+  const theirs = ws.filter((w) => w.by !== me() && w.status === 'pending');
+  const rest = ws.filter((w) => !(w.by !== me() && w.status === 'pending'));
+  const st = { pending: '⏳ 等待中', ok: '✨ 實現了', no: '💤 下次吧' };
+  return `<div class="card center" style="background:linear-gradient(160deg,color-mix(in srgb,var(--r-sr) 22%,var(--card)),var(--card))">
+      <div style="font-size:46px">🌠</div><h3 style="justify-content:center">許願池</h3>
+      <p class="small muted" style="margin:0 0 10px">想要什麼票券，就對流星許願吧。${esc(nick(partner()))} 點頭，票券就會飛進你的票夾。</p>
+      <button class="btn" data-act="makeWish">許一個願</button></div>
+    ${theirs.length ? `<h3 style="margin:4px 2px 8px">${esc(nick(partner()))} 的願望</h3>${theirs.map((w) => `<div class="card"><div class="row"><span class="chip" style="color:var(--r-${w.rarity.toLowerCase()})">${w.rarity}</span><b class="grow" style="font-family:var(--serif)">${esc(w.title)}</b></div>
+      ${w.note ? `<p class="small muted" style="margin:6px 0 0">${esc(w.note)}</p>` : ''}
+      <div class="btn-row"><button class="btn ghost sm" data-act="wishNo" data-id="${w.id}">下次吧</button><button class="btn sm" data-act="wishOk" data-id="${w.id}">✨ 實現願望</button></div></div>`).join('')}` : ''}
+    ${rest.length ? `<h3 style="margin:10px 2px 8px">願望紀錄</h3>${rest.map((w) => `<div class="list-row"><span class="lr-i">${w.by === me() ? '🙋' : '💁'}</span><span class="grow">${esc(w.title)}<div class="small muted">${esc(nick(w.by))} · ${fmtDate(w.at)}</div></span><span class="small">${st[w.status]}</span></div>`).join('')}` : ''}`;
+}
+ACT.makeWish = () => {
+  if (!partner()) return toast('對方加入後才能許願');
+  cardEditor({ title: '🌠 許一個願' }, async (t) => {
+    await col('wishes').add({ by: me(), title: t.title, desc: t.desc, rarity: t.rarity, spice: t.spice, status: 'pending', at: now() });
+    await notify(partner(), 'wish', '有人在許願池許了願 🌠');
+    toast('願望送出了 🌠');
+  });
+};
+ACT.wishOk = async (el) => {
+  const w = list('wishes').find((x) => x.id === el.dataset.id); if (!w) return;
+  await giveCard(w.by, { title: w.title, desc: w.desc, rarity: w.rarity, spice: w.spice });
+  await col('wishes').update(w.id, { status: 'ok', doneAt: now() });
+  await notify(w.by, 'wish', '你的願望實現了 ✨');
+  confetti(60); toast('願望實現了 ✨');
+};
+ACT.wishNo = async (el) => {
+  if (!(await confirmBox('這次先不要？'))) return;
+  await col('wishes').update(el.dataset.id, { status: 'no' });
+  await notify(list('wishes').find((x) => x.id === el.dataset.id)?.by, 'wish', '你的一個願望要等下次了 💤');
+};
+
+// ---------- 合成 ----------
+function craftable() {
+  return list('cards').filter((c) => c.owner === me() && c.scratched && c.kind !== 'collect' && !c.mystery && remaining(c) > 0 && !isExpired(c));
+}
+function walletCraft() {
+  const cs = craftable();
+  const n = D.CRAFT_COST;
+  return `<div class="card center"><div style="font-size:46px">⚗️</div><h3 style="justify-content:center">合成工坊</h3>
+    <p class="small muted" style="margin:0">${n} 張同級的票券，可以合成 1 張高一級的隨機票券（從卡池抽，由 ${esc(nick(partner()))} 兌現）</p></div>
+    ${['N', 'R', 'SR'].map((r, i) => {
+      const units = sum(cs.filter((c) => c.rarity === r), remaining);
+      const to = D.RARITY_ORDER[i + 1];
+      return `<div class="card"><div class="row">
+        <span class="chip" style="color:var(--r-${r.toLowerCase()});font-size:14px">${r} ×${units}</span>
+        <span class="grow center" style="font-size:20px">→</span>
+        <span class="chip" style="color:var(--r-${to.toLowerCase()});font-size:14px">${to} ×1</span>
+        <button class="btn sm" data-act="craft" data-r="${r}" ${units >= n && partner() ? '' : 'disabled'}>合成</button></div></div>`;
+    }).join('')}
+    <p class="small muted center">合成會用掉 ${n} 張票券，剩最多張的會優先用掉</p>`;
+}
+ACT.craft = async (el) => {
+  const r = el.dataset.r, to = D.RARITY_ORDER[rarityRank(r) + 1];
+  const cs = craftable().filter((c) => c.rarity === r).sort((a, b) => remaining(b) - remaining(a));
+  const take = []; let need = D.CRAFT_COST;
+  for (const c of cs) { while (need > 0 && remaining(c) - take.filter((t) => t.id === c.id).length > 0) { take.push(c); need--; } }
+  if (need > 0) return toast('數量不夠');
+  const names = [...new Set(take.map((c) => c.title))].join('、');
+  if (!(await confirmBox(`要用掉這 ${D.CRAFT_COST} 張 ${r} 票券嗎？\n${names}`, '合成！'))) return;
+  const grouped = {};
+  take.forEach((c) => grouped[c.id] = (grouped[c.id] || 0) + 1);
+  for (const [id, k] of Object.entries(grouped)) {
+    const c = list('cards').find((x) => x.id === id);
+    await col('cards').update(id, { used: (c.used || 0) + k, log: [...(c.log || []), ...Array.from({ length: k }, () => ({ at: now(), how: 'craft' }))] });
+  }
+  const tpl = drawFromPool(to, true);
+  const m = openModal(`<div class="center" style="padding:20px 0"><div style="font-size:70px;animation:spin 1s linear infinite">⚗️</div><h2>合成中…</h2></div>`, { center: true });
+  await sleep(1300);
+  closeModal(m);
+  const id = await giveCard(me(), tpl, { from: tpl.by && tpl.by !== 'sys' && tpl.by !== me() ? tpl.by : (partner() || 'sys') });
+  await col('gacha').add({ uid: me(), rarity: tpl.rarity, title: tpl.title, how: 'craft', at: now() });
+  if (tpl.mystery) await notify(partner(), 'mystery', '有一張神秘盲盒等你寫內容 🎁');
+  toast(`合成成功！得到一張 ${to} 刮刮卡`);
+  setTimeout(() => ACT.scratch({ dataset: { id } }), 500);
+};
+
+// ---------- 收藏冊 ----------
+function seriesCollected(c) { return c.kind === 'collect' || (c.log || []).some((l) => l.how !== 'craft'); }
+function walletBook() {
+  const all = list('cards').filter((c) => c.series);
+  const series = {};
+  all.forEach((c) => (series[c.series] ||= []).push(c));
+  const order = [D.BIRTHDAY_SERIES, '節日系列', '旅行系列', ...Object.keys(series)].filter((v, i, a) => a.indexOf(v) === i && series[v]);
+  if (!order.length) return '<div class="empty"><span class="big">📖</span>收藏冊還是空的<br>生日卡、節日限定卡、旅行限定卡都會收在這裡</div>';
+  return order.map((name) => {
+    const cs = series[name].sort((a, b) => (a.kind === 'collect' ? 1 : 0) - (b.kind === 'collect' ? 1 : 0) || rarityRank(a.rarity) - rarityRank(b.rarity));
+    const got = cs.filter(seriesCollected).length;
+    const isB = name === D.BIRTHDAY_SERIES;
+    const full = got === cs.length;
+    return `<div class="book-cover ${isB && !full ? 'locked' : ''}">
+        <div class="small" style="opacity:.8">${isB ? '25 歲生日限定' : '限定收藏'}</div>
+        <h2>${esc(name)}</h2>
+        ${isB ? `<div class="slogan">${full ? '「' + D.BIRTHDAY_SLOGAN + '」' : '「把每張卡都用過一次，就會解鎖」'}</div>` : ''}
+        <div class="prog">收集進度 ${got} / ${cs.length}${isB && !full ? ' · 每張卡至少兌換一次就算收集到' : ''}</div>
+      </div>
+      ${cs.map((c) => `<div style="${seriesCollected(c) ? '' : 'filter:grayscale(.85);opacity:.55'}">${ticketHTML(c, { showFrom: false, showOwner: c.owner !== me() })}</div>`).join('')}`;
+  }).join('<div style="height:14px"></div>');
+}
+// ============================================================
+//  🎰 遊樂區：扭蛋、命運轉盤、吃什麼、真心話大冒險、默契問答、對戰、集點章、每週任務
+// ============================================================
+
+function rollRarity() {
+  const tot = sum(D.RARITY_ORDER, (r) => D.RARITY[r].weight);
+  let x = Math.random() * tot;
+  for (const r of D.RARITY_ORDER) { x -= D.RARITY[r].weight; if (x <= 0) return r; }
+  return 'N';
+}
+function drawFromPool(rarity, exact = false) {
+  const lv = spiceLevel();
+  const pool = list('pool').filter((p) => (p.spice || 1) <= lv);
+  let r = rarityRank(rarity);
+  while (r >= 0) {
+    const cand = pool.filter((p) => p.rarity === D.RARITY_ORDER[r]);
+    if (cand.length) { const p = pick(cand); return { title: p.title, desc: p.desc || '', rarity: exact ? rarity : p.rarity, spice: p.spice || 1, mystery: !!p.mystery, by: p.by }; }
+    r--;
+  }
+  return { title: '抱抱一次', desc: '卡池空空的，先抱一下', rarity, spice: 1, by: 'sys' };
+}
+
+PAGES.play = {
+  html() {
+    const p = partner();
+    const q = todayQuiz();
+    const quizNew = q ? !(q.answers || {})[me()] : true;
+    const fateUsed = (S.couple.spins || {})[me()] === weekKey();
+    const bt = activeBattle();
+    return `<div class="page-title"><h2>🎰 遊樂區</h2><span>🪙 ${balance(me())} 點${tickets(me()) ? ` · 🎫 ${tickets(me())}` : ''}</span></div>
+    <div class="game-tiles">
+      <button class="game-tile wide" data-act="gacha" style="background:linear-gradient(135deg,color-mix(in srgb,var(--accent) 22%,var(--card)),var(--card))">
+        <span class="gi" style="font-size:44px">🎰</span><div class="grow"><b>扭蛋機</b><br><span>${D.POINTS.gachaCost} 點扭一次 · SSR 機率 ${D.RARITY.SSR.weight}%</span></div><span style="font-size:22px">›</span></button>
+      <button class="game-tile" data-act="fate"><span class="gi">🎡</span><b>命運轉盤</b><span>${fateUsed ? '這週轉過了' : '每週免費一次！'}</span>${fateUsed ? '' : '<span class="badge-dot">1</span>'}</button>
+      <button class="game-tile" data-act="food"><span class="gi">🍽️</span><b>今天吃什麼</b><span>選擇障礙救星</span></button>
+      <button class="game-tile" data-act="tod"><span class="gi">🎲</span><b>真心話大冒險</b><span>${D.SPICE[spiceLevel()].icon} 目前：${D.SPICE[spiceLevel()].label}</span></button>
+      <button class="game-tile" data-act="quiz"><span class="gi">🧠</span><b>默契問答</b><span>${quizNew ? '今天的題目來了' : (q && p && q.answers[p] ? '看結果' : '等對方作答')}</span>${quizNew ? '<span class="badge-dot">!</span>' : ''}</button>
+      <button class="game-tile wide" data-act="battle"><span class="gi">⚔️</span><div class="grow"><b>對戰挑戰</b><br><span>${bt ? `進行中：${esc(bt.task)}` : '一週內誰先完成？輸的人發卡'}</span></div><span style="font-size:22px">›</span></button>
+    </div>
+    ${stampCardHTML()}
+    ${weeklyHTML()}`;
+  },
+};
+
+// ---------- 扭蛋機 ----------
+ACT.gacha = () => {
+  const balls = Array.from({ length: 14 }, (_, i) => {
+    const c = pick(['#ff6f91', '#ffc75f', '#845ec2', '#4fd1c5', '#5a9bf0', '#f9a8d4', '#a3e635']);
+    return `<div class="gm-ball" style="--c:${c};left:${8 + (i % 5) * 36 + (Math.floor(i / 5) % 2) * 16}px;top:${110 - Math.floor(i / 5) * 34 + Math.random() * 6}px;transform:rotate(${Math.random() * 360}deg)"></div>`;
+  }).join('');
+  const m = openModal(`${mhead('🎰 扭蛋機')}
+    <div class="gacha-machine" id="gm"><div class="gm-dome">${balls}</div><div class="gm-base"><div class="gm-knob" id="kn"></div><div class="gm-slot"></div><div class="gm-out" id="go"></div></div></div>
+    <div id="gres"></div>
+    <div id="gbtns">
+      <div class="btn-row"><button class="btn" id="g-pt">扭一次（${D.POINTS.gachaCost} 點）</button>${tickets(me()) ? `<button class="btn gold" id="g-tk">用扭蛋券 🎫${tickets(me())}</button>` : ''}</div>
+      <p class="center small muted">我的點數：🪙 ${balance(me())} · 機率 N ${D.RARITY.N.weight}% / R ${D.RARITY.R.weight}% / SR ${D.RARITY.SR.weight}% / SSR ${D.RARITY.SSR.weight}%</p>
+    </div>`, { center: true });
+  const go = async (useTicket) => {
+    if (useTicket) { if (tickets(me()) < 1) return toast('沒有扭蛋券'); }
+    else if (balance(me()) < D.POINTS.gachaCost) return toast(`點數不夠，還差 ${D.POINTS.gachaCost - balance(me())} 點`);
+    $('#gbtns', m).innerHTML = '';
+    if (useTicket) await addTicket(me(), -1); else await addPoints(me(), -D.POINTS.gachaCost, '扭蛋');
+    const rarity = rollRarity();
+    const tpl = drawFromPool(rarity, true);
+    const R = D.RARITY[rarity];
+    $('#kn', m).style.transform = 'rotate(540deg)';
+    vibrate(30);
+    await sleep(700);
+    $('#gm', m).classList.add('shake');
+    vibrate([20, 30, 20, 30, 20]);
+    await sleep(750);
+    const out = $('#go', m);
+    out.style.setProperty('--c', { N: '#5fbf9a', R: '#5a9bf0', SR: '#a66bf0', SSR: '#f6d365' }[rarity]);
+    out.classList.add('drop');
+    await sleep(800);
+    const from = tpl.by && tpl.by !== 'sys' && tpl.by !== me() ? tpl.by : (partner() || 'sys');
+    const id = await giveCard(me(), tpl, { from, scratched: true });
+    await col('gacha').add({ uid: me(), rarity, title: tpl.title, how: 'gacha', at: now() });
+    if (tpl.mystery && partner()) await notify(partner(), 'mystery', '有一張神秘盲盒等你寫內容 🎁');
+    let rays = null;
+    if (rarity === 'SSR') { rays = document.createElement('div'); rays.className = 'ssr-rays'; document.body.appendChild(rays); confetti(150, ['#f6d365', '#fda085', '#f093fb', '#8fd3f4', '#fff']); vibrate([60, 40, 60, 40, 200]); }
+    else if (rarity === 'SR') confetti(80, ['#a66bf0', '#d6b4ff', '#fff']);
+    const card = { id, ...cardDoc(tpl, me(), from), scratched: true };
+    $('#gres', m).innerHTML = `<div class="center" style="font-family:var(--serif);font-weight:900;font-size:${rarity === 'SSR' ? 30 : 22}px;color:${R.color}">${rarity === 'SSR' ? '✨ SSR 傳說降臨 ✨' : rarity === 'SR' ? '稀有！SR' : rarity + ' · ' + R.label}</div>
+      <div class="reveal-card rarity-burst" style="--bc:${R.color};margin:10px 0">${ticketHTML(card, { act: '' })}</div>
+      ${tpl.mystery ? `<p class="small muted center">${esc(nick(partner()))} 會偷偷幫你寫盲盒內容 🎁</p>` : ''}
+      <div class="btn-row"><button class="btn ghost" id="g-again">再扭一次</button><button class="btn" data-act="close">收下</button></div>`;
+    $('#g-again', m).onclick = () => { rays && rays.remove(); closeModal(m); ACT.gacha(); };
+    m._onClose = () => rays && rays.remove();
+  };
+  $('#g-pt', m).onclick = () => go(false);
+  $('#g-tk', m) && ($('#g-tk', m).onclick = () => go(true));
+};
+
+// ---------- 轉盤元件 ----------
+const WHEEL_COLORS = ['#ff8fab', '#ffc75f', '#9b8cf5', '#5fd3bc', '#ff9671', '#7ab8ff', '#f9a8d4', '#b7e36b', '#ffb4a2', '#c4a1ff', '#80deea', '#ffd54f'];
+function wheelSVG(labels) {
+  const n = labels.length, seg = 360 / n, R = 150, cx = 150, cy = 150;
+  const pt = (a, r) => [cx + r * Math.sin(a * Math.PI / 180), cy - r * Math.cos(a * Math.PI / 180)];
+  const fs = n > 10 ? 11 : n > 7 ? 13 : 15;
+  let s = `<svg viewBox="0 0 300 300" id="wh"><circle cx="150" cy="150" r="149" fill="#fff"/>`;
+  labels.forEach((l, i) => {
+    const a0 = i * seg, a1 = (i + 1) * seg;
+    const [x0, y0] = pt(a0, R - 4), [x1, y1] = pt(a1, R - 4);
+    s += `<path d="M150 150 L${x0} ${y0} A${R - 4} ${R - 4} 0 ${seg > 180 ? 1 : 0} 1 ${x1} ${y1} Z" fill="${WHEEL_COLORS[i % WHEEL_COLORS.length]}" stroke="#fff" stroke-width="2"/>`;
+    const mid = a0 + seg / 2, [tx, ty] = pt(mid, R * 0.6);
+    const txt = l.length > 6 ? l.slice(0, 6) + '…' : l;
+    s += `<text x="${tx}" y="${ty}" transform="rotate(${mid - 90} ${tx} ${ty})" text-anchor="middle" dominant-baseline="middle" font-size="${fs}" font-weight="800" fill="#3b2330" font-family="sans-serif">${esc(txt)}</text>`;
+  });
+  return s + '</svg>';
+}
+function spinTo(svg, n, idx) {
+  const seg = 360 / n;
+  const prev = +(svg.dataset.rot || 0);
+  const jitter = (Math.random() - 0.5) * seg * 0.7;
+  let target = 360 - (idx + 0.5) * seg + jitter;
+  const base = Math.ceil(prev / 360) * 360 + 360 * 6;
+  const rot = base + ((target % 360) + 360) % 360;
+  svg.dataset.rot = rot;
+  svg.style.transform = `rotate(${rot}deg)`;
+  return sleep(4300);
+}
+function weightedIndex(ws) { let x = Math.random() * sum(ws, (w) => w); for (let i = 0; i < ws.length; i++) { x -= ws[i]; if (x <= 0) return i; } return 0; }
+
+// ---------- 命運轉盤 ----------
+ACT.fate = () => {
+  const used = (S.couple.spins || {})[me()] === weekKey();
+  const W = D.FATE_WHEEL;
+  const m = openModal(`${mhead('🎡 命運轉盤')}
+    <p class="center small muted" style="margin:0">每週免費轉一次，看看這週的運氣</p>
+    <div class="wheel-wrap"><div class="wheel-pointer"></div>${wheelSVG(W.map((x) => x.label))}<div class="wheel-hub">🎡</div></div>
+    <div id="fres"></div>
+    <button class="btn block" id="fgo" ${used ? 'disabled' : ''}>${used ? '這週已經轉過了，下週一再來' : '轉！'}</button>`, { center: true });
+  $('#fgo', m).onclick = async () => {
+    $('#fgo', m).disabled = true;
+    const ok = await S.store.coupleTx(S.cid, (c) => ((c.spins || {})[me()] === weekKey() ? null : { [`spins.${me()}`]: weekKey() }));
+    if (!ok) return toast('這週已經轉過了');
+    const idx = weightedIndex([20, 10, 12, 18, 20, 10, 8, 4]);
+    vibrate(20);
+    await spinTo($('#wh', m), W.length, idx);
+    const r = W[idx];
+    let msg = '';
+    if (r.type === 'points') { await addPoints(me(), r.value, '命運轉盤'); msg = `獲得 ${r.value} 點 🪙`; }
+    if (r.type === 'ticket') { await addTicket(me(), 1); msg = '獲得一張扭蛋券 🎫'; }
+    if (r.type === 'hug') { msg = `去抱 ${nick(partner())} 10 秒 🤗`; await notify(partner(), 'card', `${nick(me())} 轉到了抱抱，準備被抱 🤗`); }
+    if (r.type === 'card') {
+      const tpl = drawFromPool(r.value, true);
+      const from = partner() || 'sys';
+      await giveCard(me(), tpl, { from, scratched: true });
+      if (tpl.mystery) await notify(partner(), 'mystery', '有一張神秘盲盒等你寫內容 🎁');
+      msg = `獲得 ${r.value} 卡「${tpl.mystery ? '神秘盲盒' : tpl.title}」🎟️`;
+    }
+    confetti(60);
+    $('#fres', m).innerHTML = `<div class="prompt-card">${esc(msg)}</div>`;
+    $('#fgo', m).textContent = '下週再來轉 👋';
+  };
+};
+
+// ---------- 今天吃什麼 ----------
+ACT.food = () => {
+  const foods = S.couple.food && S.couple.food.length ? S.couple.food : D.DEFAULT_FOOD;
+  const m = openModal(`${mhead('🍽️ 今天吃什麼')}
+    <div class="wheel-wrap"><div class="wheel-pointer"></div>${wheelSVG(foods)}<div class="wheel-hub">🍽️</div></div>
+    <div id="fdres"></div>
+    <div class="btn-row"><button class="btn ghost" id="fed">編輯選項</button><button class="btn" id="fsp">轉！</button></div>`, { center: true });
+  $('#fsp', m).onclick = async () => {
+    $('#fsp', m).disabled = true;
+    const idx = Math.floor(Math.random() * foods.length);
+    await spinTo($('#wh', m), foods.length, idx);
+    $('#fdres', m).innerHTML = `<div class="prompt-card">今天就吃「${esc(foods[idx])}」！</div>
+      ${partner() ? '<button class="btn ghost block mt" id="ftell">告訴對方</button>' : ''}`;
+    $('#fsp', m).disabled = false; $('#fsp', m).textContent = '不滿意，再轉一次';
+    $('#ftell', m) && ($('#ftell', m).onclick = async () => { await notify(partner(), 'card', `今天吃什麼？轉盤說：${foods[idx]} 🍽️`); toast('傳過去了'); });
+  };
+  $('#fed', m).onclick = async () => {
+    const v = await promptBox('一行一個選項', { multiline: true, value: foods.join('\n'), ok: '儲存' });
+    if (!v) return;
+    const arr = v.split('\n').map((x) => x.trim()).filter(Boolean).slice(0, 16);
+    if (arr.length < 2) return toast('至少要兩個選項');
+    await S.store.updateCouple(S.cid, { food: arr });
+    closeModal(m); setTimeout(ACT.food, 200);
+  };
+};
+
+// ---------- 真心話大冒險 ----------
+ACT.tod = () => {
+  const max = spiceLevel();
+  let lv = Math.min(+(localStorage.getItem('park-tod-lv') || 1), max);
+  const m = openModal(`${mhead('🎲 真心話大冒險')}
+    <div class="seg" id="tlv">${[1, 2, 3].map((l) => `<button data-l="${l}" class="${l === lv ? 'on' : ''}" ${l > max ? 'disabled style="opacity:.4"' : ''}>${D.SPICE[l].icon} ${D.SPICE[l].label}${l > max ? ' 🔒' : ''}</button>`).join('')}</div>
+    ${max < 3 ? `<p class="small muted" style="margin:0">想解鎖更高等級？兩人都要到設定裡打開</p>` : ''}
+    <div class="dice" id="dc">🎲</div>
+    <div id="tres"></div>
+    <div class="btn-row"><button class="btn ghost" data-k="truth">真心話</button><button class="btn" data-k="rand">讓骰子決定</button><button class="btn ghost" data-k="dare">大冒險</button></div>`, { center: true });
+  $$('#tlv button', m).forEach((b) => b.onclick = () => { if (+b.dataset.l > max) return; lv = +b.dataset.l; localStorage.setItem('park-tod-lv', lv); $$('#tlv button', m).forEach((x) => x.classList.toggle('on', x === b)); });
+  $$('[data-k]', m).forEach((b) => b.onclick = async () => {
+    let k = b.dataset.k;
+    if (k === 'rand') k = Math.random() < .5 ? 'truth' : 'dare';
+    const dc = $('#dc', m);
+    dc.classList.remove('roll'); void dc.offsetWidth; dc.classList.add('roll');
+    vibrate([15, 30, 15, 30, 15]);
+    $('#tres', m).innerHTML = '';
+    await sleep(900);
+    const pool = [];
+    for (let l = 1; l <= lv; l++) pool.push(...(k === 'truth' ? D.TRUTH : D.DARE)[l].map((t) => ({ t, l })));
+    const pref = pool.filter((x) => x.l === lv);
+    const x = Math.random() < .65 && pref.length ? pick(pref) : pick(pool);
+    dc.textContent = k === 'truth' ? '💬' : '🔥';
+    $('#tres', m).innerHTML = `<div class="prompt-card"><div class="small muted" style="font-family:var(--sans)">${k === 'truth' ? '真心話' : '大冒險'} · ${D.SPICE[x.l].icon}</div>${esc(x.t)}</div>`;
+  });
+};
+
+// ---------- 默契問答 ----------
+function todayQuiz() { return list('quiz').find((x) => x.id === dkey()); }
+const quizIndex = () => hash(dkey() + (S.cid || '')) % D.QUIZ.length;
+ACT.quiz = () => {
+  const draw = (m) => {
+    const doc = todayQuiz();
+    const qi = doc ? doc.qi : quizIndex();
+    const Q = D.QUIZ[qi];
+    const a = doc?.answers || {};
+    const p = partner();
+    const mine = a[me()], theirs = p ? a[p] : undefined;
+    const both = mine !== undefined && theirs !== undefined;
+    const done = list('quiz').filter((x) => x.match !== undefined);
+    const rate = done.length ? Math.round(done.filter((x) => x.match).length / done.length * 100) : 0;
+    const html = `${mhead('🧠 默契問答')}
+      <p class="small muted" style="margin:0 0 8px">兩人各自作答，答案一樣兩人都拿 ${D.POINTS.quizMatch} 點。目前默契度 ${rate}%（${done.length} 題）</p>
+      <div style="font-family:var(--serif);font-size:20px;font-weight:800">${esc(Q.q)}</div>
+      ${Q.opts.map((o, i) => `<button class="quiz-opt ${both && mine === i ? 'mine' : ''} ${both && theirs === i ? 'theirs' : ''} ${!both && mine === i ? 'mine' : ''}" data-i="${i}" ${mine !== undefined ? 'disabled' : ''}>
+        ${esc(o)}<span class="tags">${both ? `${mine === i ? avatar(me()) : ''}${theirs === i ? avatar(p) : ''}` : mine === i ? '✓' : ''}</span></button>`).join('')}
+      <div class="mt center">${both ? (mine === theirs ? `<div class="prompt-card">💞 心有靈犀！兩人各 +${D.POINTS.quizMatch} 點</div>` : `<div class="prompt-card">😆 不一樣！聊聊為什麼吧（各 +${D.POINTS.quizMiss} 點）</div>`)
+        : mine !== undefined ? `<p class="muted">已作答，等 ${esc(nick(p))} 回答後揭曉 🔒</p>` : theirs !== undefined ? `<p class="muted">${esc(nick(p))} 已經答好了，換你！</p>` : ''}</div>`;
+    if (!m) m = openModal(html, { center: true }); else m.querySelector('.modal').innerHTML = html;
+    $$('[data-i]', m).forEach((b) => b.onclick = async () => {
+      const i = +b.dataset.i;
+      const id = dkey();
+      const cur = todayQuiz();
+      if (cur) await col('quiz').update(id, { [`answers.${me()}`]: i });
+      else await col('quiz').set(id, { qi, answers: { [me()]: i }, at: now() });
+      const th = p ? (cur?.answers || {})[p] : undefined;
+      if (th !== undefined) {
+        const match = th === i;
+        await col('quiz').update(id, { match });
+        const pts = match ? D.POINTS.quizMatch : D.POINTS.quizMiss;
+        await addPoints(me(), pts, '默契問答'); await addPoints(p, pts, '默契問答');
+        await notify(p, 'quiz', match ? '默契問答：心有靈犀 💞' : '默契問答結果出爐了 🧠');
+        if (match) confetti(70);
+      } else await notify(p, 'quiz', `${nick(me())} 答完今天的默契問答了，換你 🧠`);
+      setTimeout(() => draw(m), 250);
+    });
+    return m;
+  };
+  draw();
+};
+
+// ---------- 對戰挑戰 ----------
+function activeBattle() { return list('battles').find((b) => b.status === 'active' || b.status === 'claimed'); }
+ACT.battle = () => {
+  const b = activeBattle();
+  const p = partner();
+  const hist = list('battles').filter((x) => x.status === 'done' || x.status === 'draw').sort((a, b) => b.at - a.at);
+  const wins = (u) => hist.filter((x) => x.winner === u).length;
+  let body = '';
+  if (b) {
+    const left = b.deadline - now();
+    const over = left < 0;
+    body = `<div class="card center" style="background:linear-gradient(135deg,color-mix(in srgb,var(--accent) 18%,var(--card)),var(--card))">
+      <div style="font-size:44px">⚔️</div><h3 style="justify-content:center">${esc(b.task)}</h3>
+      <p class="small muted" style="margin:0">${esc(nick(b.by))} 發起 · ${over ? '時間到了！' : `剩 ${Math.ceil(left / 86400000)} 天`}</p>
+      <p class="small" style="margin:6px 0 0">輸的人要發一張卡給贏的人</p></div>
+      ${b.status === 'claimed'
+        ? (b.claimer === me() ? `<p class="center muted">等 ${esc(nick(p))} 確認中…</p>` : `<p class="center"><b>${esc(nick(b.claimer))}</b> 說自己完成了！</p><div class="btn-row"><button class="btn ghost" data-act="battleReject" data-id="${b.id}">還沒啦</button><button class="btn" data-act="battleJudge" data-id="${b.id}">確認對方贏了</button></div>`)
+        : over ? `<button class="btn ghost block" data-act="battleDraw" data-id="${b.id}">都沒完成，平手收場</button>`
+        : `<button class="btn block" data-act="battleClaim" data-id="${b.id}">🏁 我完成了！</button>`}`;
+  } else {
+    body = `<p class="small muted" style="margin-top:0">選一個挑戰，7 天內誰先完成誰贏，輸的人要發一張卡給贏的人。</p>
+      ${D.BATTLE_TASKS.map((t) => `<button class="quiz-opt" data-act="battleNew" data-t="${esc(t)}">${esc(t)}</button>`).join('')}
+      <button class="quiz-opt" data-act="battleNew" data-t="">✏️ 自己出題…</button>`;
+  }
+  closeAll();
+  openModal(`${mhead('⚔️ 對戰挑戰')}
+    <div class="row" style="justify-content:center;gap:18px;margin-bottom:12px;font-weight:800"><span>${avatar(me())} ${esc(nick(me()))} ${wins(me())} 勝</span><span class="muted">VS</span><span>${wins(p)} 勝 ${esc(nick(p))} ${avatar(p)}</span></div>
+    ${body}
+    ${hist.length ? `<h3 style="font-size:15px;margin-top:14px">對戰紀錄</h3>${hist.slice(0, 10).map((x) => `<div class="list-row"><span class="grow">${esc(x.task)}</span><span class="small">${x.status === 'draw' ? '🤝 平手' : '🏆 ' + esc(nick(x.winner))}</span><span class="when">${fmtDate(x.at)}</span></div>`).join('')}` : ''}`);
+};
+ACT.battleNew = async (el) => {
+  if (!partner()) return toast('對方加入後才能對戰');
+  let t = el.dataset.t;
+  if (!t) t = await promptBox('自己出題', { placeholder: '例如：先存到 5000 元' });
+  if (!t) return;
+  await col('battles').add({ task: t, by: me(), at: now(), deadline: now() + 7 * 86400000, status: 'active' });
+  await notify(partner(), 'battle', `${nick(me())} 向你發起挑戰 ⚔️`, t);
+  toast('挑戰開始！'); setTimeout(ACT.battle, 300);
+};
+ACT.battleClaim = async (el) => {
+  if (!(await confirmBox('確定完成了嗎？要對方確認才算贏喔'))) return;
+  await col('battles').update(el.dataset.id, { status: 'claimed', claimer: me(), claimedAt: now() });
+  await notify(partner(), 'battle', `${nick(me())} 說自己完成挑戰了，快去確認 ⚔️`);
+  setTimeout(ACT.battle, 300);
+};
+ACT.battleJudge = async (el) => {
+  const b = list('battles').find((x) => x.id === el.dataset.id); if (!b) return;
+  if (b.status !== 'claimed') return ACT.battle();
+  if (!(await confirmBox(`確認 ${nick(b.claimer)} 贏了？你要發一張卡給對方`, '願賭服輸'))) return;
+  await col('battles').update(b.id, { status: 'done', winner: b.claimer, loser: me(), paid: false, doneAt: now() });
+  await addPoints(b.claimer, 10, '對戰勝利');
+  await notify(b.claimer, 'battle', '你贏了挑戰！🏆 對方要發卡給你');
+  closeAll(); ACT.giveCard({ dataset: { battle: b.id } });
+};
+ACT.battleReject = async (el) => {
+  await col('battles').update(el.dataset.id, { status: 'active', claimer: null });
+  await notify(list('battles').find((x) => x.id === el.dataset.id)?.claimer, 'battle', '對方說你還沒完成挑戰 😏');
+  setTimeout(ACT.battle, 300);
+};
+ACT.battleDraw = async (el) => { await col('battles').update(el.dataset.id, { status: 'draw', doneAt: now() }); setTimeout(ACT.battle, 300); };
+ACT.battlePay = (el) => { closeAll(); ACT.giveCard({ dataset: { battle: el.dataset.id } }); };
+
+// ---------- 集點章 ----------
+const stampCount = (uid) => list('points').filter((p) => p.uid === uid && p.tag === 'stamp').length;
+function stampCardHTML() {
+  const n = stampCount(me());
+  const per = D.POINTS.stampsPerSheet;
+  const filled = n % per;
+  const recent = list('points').filter((p) => p.uid === me() && p.tag === 'stamp').sort((a, b) => b.at - a.at)[0];
+  return `<div class="card">
+    <h3>📮 集點章 <span class="sub">已集滿 ${Math.floor(n / per)} 張</span></h3>
+    <div class="stamp-sheet">${Array.from({ length: per }, (_, i) => `<div class="stamp-slot ${i < filled ? 'on' : ''}">${i < filled ? '💮' : i + 1}</div>`).join('')}</div>
+    <p class="small muted" style="margin:8px 0">集滿 ${per} 個章送一張扭蛋券 🎫${recent ? ` · 最近：${esc(recent.reason.replace('蓋章：', ''))}` : ''}</p>
+    <button class="btn block" data-act="giveStamp">幫 ${esc(nick(partner()))} 蓋一個章</button>
+  </div>`;
+}
+ACT.giveStamp = () => {
+  const p = partner(); if (!p) return toast('對方加入後才能蓋章');
+  const reasons = ['做家事 🧹', '好貼心 🥹', '哄我開心 🥰', '準時不遲到 ⏰', '煮飯給我吃 🍳', '今天好可愛 💕', '有乖乖 😇', '幫我很多忙 🙏'];
+  const m = openModal(`${mhead(`幫 ${esc(nick(p))} 蓋章`)}
+    <p class="small muted" style="margin-top:0">為什麼要蓋這個章？</p>
+    ${reasons.map((r) => `<button class="quiz-opt" data-r="${esc(r)}">${esc(r)}</button>`).join('')}
+    <button class="quiz-opt" data-r="">✏️ 自己寫…</button>`, { center: true });
+  $$('[data-r]', m).forEach((b) => b.onclick = async () => {
+    let r = b.dataset.r;
+    if (!r) { closeModal(m); r = await promptBox('蓋章的原因', { placeholder: '例如：幫我按摩' }); if (!r) return; }
+    else closeModal(m);
+    const before = stampCount(p);
+    await addPoints(p, D.POINTS.stamp, '蓋章：' + r, 'stamp');
+    await notify(p, 'stamp', `${nick(me())} 幫你蓋了一個章 📮`, r);
+    if ((before + 1) % D.POINTS.stampsPerSheet === 0) {
+      await addTicket(p, 1);
+      await notify(p, 'stamp', '集滿一張章卡！送你一張扭蛋券 🎫');
+    }
+    vibrate(50); toast('蓋好了 💮');
+  });
+};
+
+// ---------- 每週任務 ----------
+function weekTasks() { return shuffled(D.WEEKLY_TASKS, hash(weekKey() + (S.cid || ''))).slice(0, 3); }
+function weeklyHTML() {
+  const wk = weekKey(), p = partner();
+  const done = (i, u) => list('taskDone').some((x) => x.id === `${wk}_${i}_${u}`);
+  return `<div class="card"><h3>📋 每週任務 <span class="sub">完成一項 +${D.POINTS.weeklyTask} 點</span></h3>
+    ${weekTasks().map((t, i) => `<div class="task ${done(i, me()) ? 'done' : ''}">
+      <button class="ck" data-act="taskDo" data-i="${i}" ${done(i, me()) ? 'disabled' : ''}>${done(i, me()) ? '✓' : ''}</button>
+      <span class="tt">${esc(t)}</span><span class="small muted">${p && done(i, p) ? avatar(p) + '✓' : ''}</span></div>`).join('')}
+    <p class="small muted" style="margin:6px 0 0">每週一換新任務，誠實打勾喔 😇</p></div>`;
+}
+ACT.taskDo = async (el) => {
+  const i = +el.dataset.i, wk = weekKey();
+  const t = weekTasks()[i];
+  if (!(await confirmBox(`完成「${t}」了嗎？`, '完成！'))) return;
+  await col('taskDone').set(`${wk}_${i}_${me()}`, { uid: me(), week: wk, i, task: t, at: now() });
+  await addPoints(me(), D.POINTS.weeklyTask, '每週任務：' + t);
+  confetti(30); toast(`+${D.POINTS.weeklyTask} 點`);
+};
+// ============================================================
+//  🗺️ 旅行：旅行基金、足跡地圖
+// ============================================================
+
+PAGES.travel = {
+  html() {
+    const sub = S.sub.travel;
+    return `<div class="page-title"><h2>🗺️ 旅行</h2><span>去過 ${list('trips').length} 個地方</span></div>
+      <div class="seg">${[['fund', '💰 旅行基金'], ['map', '📍 足跡地圖']].map(([k, n]) => `<button class="${sub === k ? 'on' : ''}" data-act="sub" data-page="travel" data-sub="${k}">${n}</button>`).join('')}</div>
+      ${sub === 'map' ? travelMap() : travelFund()}`;
+  },
+  after(main) { if (S.sub.travel === 'map') mountMap(main); },
+};
+
+// ---------- 旅行基金 ----------
+const fundInfo = () => {
+  const f = S.couple.fund || { name: '旅行基金', goal: 30000, round: 1 };
+  const deps = list('deposits').filter((d) => (d.round || 1) === (f.round || 1));
+  return { f, deps, total: sum(deps, (d) => d.amt) };
+};
+function travelFund() {
+  const { f, deps, total } = fundInfo();
+  const pct = Math.min(100, Math.round(total / (f.goal || 1) * 100));
+  const ms = S.couple.members;
+  const past = {};
+  list('deposits').filter((d) => (d.round || 1) < (f.round || 1)).forEach((d) => (past[d.round || 1] ||= { total: 0, name: d.fundName || `第 ${d.round || 1} 期` }, past[d.round || 1].total += d.amt));
+  return `<div class="card center">
+      <span class="piggy" id="pig">🐷</span>
+      <h3 style="justify-content:center">${esc(f.name)} <button class="small muted" data-act="fundEdit">✏️</button></h3>
+      <div class="fund-num">$${money(total)} <span class="small muted">/ $${money(f.goal)}</span></div>
+      <div class="fund-bar"><div style="width:${pct}%"></div></div>
+      <div class="small muted">${pct >= 100 ? '🎉 存滿了！旅行限定券已經發到兩人的票夾' : `還差 $${money(Math.max(0, f.goal - total))} · 存滿會掉一張旅行限定卡 ✈️`}</div>
+      <div class="row mt" style="justify-content:center;gap:20px">${ms.map((u) => `<div><div style="font-size:22px">${avatar(u)}</div><b>$${money(sum(deps.filter((d) => d.uid === u), (d) => d.amt))}</b><div class="small muted">${esc(nick(u))}</div></div>`).join('')}</div>
+      <div class="btn-row">${f.rewarded ? '<button class="btn ghost" data-act="fundNew">開始新的基金</button>' : ''}<button class="btn" data-act="deposit">💰 存一筆</button></div>
+    </div>
+    <div class="card"><h3>存錢紀錄</h3>
+      ${deps.length ? deps.sort((a, b) => b.at - a.at).slice(0, 30).map((d) => `<div class="list-row"><span class="lr-i">${avatar(d.uid)}</span><span class="grow">${esc(d.note || '存進基金')}<div class="small muted">${esc(nick(d.uid))}</div></span><b style="color:${d.amt >= 0 ? 'var(--accent)' : 'var(--muted)'}">${d.amt >= 0 ? '+' : ''}$${money(d.amt)}</b><span class="when">${fmtDate(d.at)}</span></div>`).join('')
+        : '<div class="empty"><span class="big">🪙</span>存下第一筆，旅行就開始了</div>'}
+    </div>
+    ${Object.keys(past).length ? `<div class="card"><h3>以前的基金</h3>${Object.entries(past).map(([r, x]) => `<div class="list-row"><span class="grow">${esc(x.name)}</span><b>$${money(x.total)}</b></div>`).join('')}</div>` : ''}`;
+}
+ACT.deposit = () => {
+  const m = openModal(`${mhead('💰 存一筆')}
+    <label>金額</label><input id="dp-a" type="number" inputmode="numeric" placeholder="例如 500">
+    <div class="row wrap mt">${[100, 500, 1000, 2000].map((v) => `<button class="chip" data-v="${v}">$${v}</button>`).join('')}</div>
+    <label>備註（可以不寫）</label><input id="dp-n" maxlength="30" placeholder="例如：這個月的零用錢">
+    <div class="toggle mt"><label class="switch"><input type="checkbox" id="dp-w"><span></span></label><span class="small">這是提領（從基金拿出來）</span></div>
+    <button class="btn block mt" id="dp-ok">存進去</button>`, { center: true });
+  $$('[data-v]', m).forEach((b) => b.onclick = () => { $('#dp-a', m).value = b.dataset.v; });
+  $('#dp-ok', m).onclick = async () => {
+    let a = Math.round(+$('#dp-a', m).value);
+    if (!a || a <= 0) return toast('輸入金額');
+    if ($('#dp-w', m).checked) a = -a;
+    const { f } = fundInfo();
+    await col('deposits').add({ uid: me(), amt: a, note: $('#dp-n', m).value.trim(), round: f.round || 1, fundName: f.name, at: now() });
+    await notify(partner(), 'fund', a > 0 ? `${nick(me())} 存了 $${money(a)} 進旅行基金 🐷` : `${nick(me())} 從旅行基金領了 $${money(-a)}`);
+    closeModal(m);
+    const pig = $('#pig'); if (pig) { pig.classList.remove('bounce'); void pig.offsetWidth; pig.classList.add('bounce'); }
+    if (a > 0) { vibrate(30); confetti(24, ['#ffc75f', '#ffd36b', '#fff1a8']); }
+  };
+};
+ACT.fundEdit = async () => {
+  const { f } = fundInfo();
+  const m = openModal(`${mhead('編輯旅行基金')}
+    <label>基金名稱</label><input id="fe-n" value="${esc(f.name)}" maxlength="20">
+    <label>目標金額</label><input id="fe-g" type="number" value="${f.goal}">
+    <button class="btn block mt" id="fe-ok">儲存</button>`, { center: true });
+  $('#fe-ok', m).onclick = async () => {
+    const g = Math.round(+$('#fe-g', m).value);
+    if (!g || g <= 0) return toast('目標金額要大於 0');
+    await S.store.updateCouple(S.cid, { 'fund.name': $('#fe-n', m).value.trim() || f.name, 'fund.goal': g });
+    closeModal(m); setTimeout(checkFund, 300);
+  };
+};
+ACT.fundNew = async () => {
+  const name = await promptBox('新基金的名字', { placeholder: '例如：日本賞櫻基金', ok: '下一步' }); if (!name) return;
+  const g = Math.round(+(await promptBox('目標金額', { placeholder: '例如 50000' })) || 0);
+  if (!g) return;
+  const { f } = fundInfo();
+  await S.store.updateCouple(S.cid, { fund: { name, goal: g, round: (f.round || 1) + 1, rewarded: false } });
+  toast('新的基金開始囉 🐷');
+};
+async function checkFund() {
+  if (!S.couple || (S.couple.members || []).length < 2) return;
+  const { f, total } = fundInfo();
+  if (f.rewarded || total < f.goal) return;
+  const ok = await S.store.coupleTx(S.cid, (c) => (c.fund && !c.fund.rewarded ? { 'fund.rewarded': true, fundsDone: (c.fundsDone || 0) + 1 } : null));
+  if (!ok) return;
+  for (const u of S.couple.members) {
+    await col('cards').add(cardDoc({ ...D.TRAVEL_CARD, desc: `「${f.name}」存滿了！出發吧 ✈️` }, u, 'sys'));
+    await col('events').add({ to: u, by: 'sys', type: 'fund', text: '旅行基金存滿了！掉落一張旅行限定券 ✈️', at: now(), read: false });
+  }
+  confetti(140);
+}
+
+// ---------- 足跡地圖 ----------
+function travelMap() {
+  const ts = list('trips').sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+  return `<div class="card" style="padding:8px"><div id="map-slot"></div></div>
+    <button class="btn block" data-act="addTrip" style="margin-bottom:14px">📍 新增一個足跡</button>
+    ${ts.length ? ts.map((t) => `<div class="trip-item" data-act="openTrip" data-id="${t.id}">
+      <div class="cover" style="${t.cover ? `background-image:url(${t.cover})` : ''}">${t.cover ? '' : '📍'}</div>
+      <div class="grow"><b>${esc(t.name)}</b><div class="small muted">${esc(t.date || '')}</div><div class="small" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(t.note || '')}</div></div></div>`).join('')
+      : '<div class="empty"><span class="big">🧳</span>還沒有足跡，記下你們一起去過的地方吧</div>'}`;
+}
+function mountMap(main) {
+  const slot = $('#map-slot', main); if (!slot) return;
+  if (!window.L) { slot.outerHTML = '<div class="empty">地圖載入中…（如果一直沒出現，可能是網路問題）</div>'; setTimeout(() => window.L && render(), 1500); return; }
+  const fresh = !S.map;
+  if (fresh) {
+    S.mapEl = document.createElement('div'); S.mapEl.id = 'map';
+    slot.replaceWith(S.mapEl);
+    S.map = L.map(S.mapEl, { zoomControl: false, attributionControl: true }).setView([23.7, 121], 7);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 18, attribution: '© OpenStreetMap' }).addTo(S.map);
+    S.mapLayer = L.layerGroup().addTo(S.map);
+  } else slot.replaceWith(S.mapEl);
+  setTimeout(() => S.map && S.map.invalidateSize(), 60);
+  S.mapLayer.clearLayers();
+  const pts = [];
+  for (const t of list('trips')) {
+    if (t.lat == null) continue;
+    const icon = L.divIcon({ html: '<div style="font-size:28px;line-height:1;transform:translate(-4px,-22px)">📍</div>', className: '', iconSize: [20, 20] });
+    L.marker([t.lat, t.lng], { icon }).addTo(S.mapLayer)
+      .bindPopup(`${t.cover ? `<img src="${t.cover}">` : ''}<b>${esc(t.name)}</b><br><small>${esc(t.date || '')}</small>`);
+    pts.push([t.lat, t.lng]);
+  }
+  if (fresh && pts.length) S.map.fitBounds(pts, { padding: [30, 30], maxZoom: 11 });
+}
+
+function compressImage(file, max = 480) {
+  return new Promise((res, rej) => {
+    const img = new Image();
+    img.onload = () => {
+      const s = Math.min(1, max / Math.max(img.width, img.height));
+      const c = document.createElement('canvas');
+      c.width = Math.round(img.width * s); c.height = Math.round(img.height * s);
+      c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+      let q = 0.75, url = c.toDataURL('image/jpeg', q);
+      while (url.length > 250000 && q > 0.3) { q -= 0.1; url = c.toDataURL('image/jpeg', q); }
+      URL.revokeObjectURL(img.src);
+      res(url);
+    };
+    img.onerror = rej;
+    img.src = URL.createObjectURL(file);
+  });
+}
+
+ACT.addTrip = () => {
+  const t = { name: '', date: dkey(), note: '', cover: '', lat: null, lng: null };
+  const m = openModal(`${mhead('📍 新增足跡')}
+    <label>地點名稱</label>
+    <div class="row"><input id="tr-n" maxlength="30" placeholder="例如：京都・嵐山" class="grow"><button class="btn sm ghost" id="tr-s">🔍 找</button></div>
+    <label>在地圖上點一下標出位置（可以不標）</label>
+    <div class="mini-map" id="tr-map"></div>
+    <label>日期</label><input id="tr-d" type="date" value="${t.date}">
+    <label>封面照片（一張，會自動壓縮）</label>
+    <label class="photo-pick" id="tr-pp" style="margin:0">點這裡選照片<input type="file" accept="image/*" id="tr-f" class="hidden"></label>
+    <label>心得</label><textarea id="tr-t" maxlength="300" placeholder="這趟最難忘的是…"></textarea>
+    <button class="btn block mt" id="tr-ok">記下來 +${D.POINTS.trip} 點</button>`);
+  let mk = null, mm = null;
+  const setPt = (lat, lng) => {
+    t.lat = lat; t.lng = lng;
+    if (!mm) return;
+    if (mk) mk.setLatLng([lat, lng]); else mk = L.marker([lat, lng], { icon: L.divIcon({ html: '<div style="font-size:28px;transform:translate(-4px,-22px)">📍</div>', className: '', iconSize: [20, 20] }) }).addTo(mm);
+  };
+  setTimeout(() => {
+    if (!window.L) { $('#tr-map', m).outerHTML = '<p class="small muted">地圖載入失敗，先不標位置也可以</p>'; return; }
+    mm = L.map($('#tr-map', m), { zoomControl: false }).setView([23.7, 121], 6);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 18, attribution: '© OSM' }).addTo(mm);
+    mm.on('click', (e) => setPt(e.latlng.lat, e.latlng.lng));
+  }, 350);
+  $('#tr-s', m).onclick = async () => {
+    const q = $('#tr-n', m).value.trim(); if (!q) return toast('先輸入地點名稱');
+    try {
+      const r = await fetch(`https://nominatim.openstreetmap.org/search?format=json&limit=1&accept-language=zh-TW&q=${encodeURIComponent(q)}`);
+      const j = await r.json();
+      if (!j.length) return toast('找不到，直接在地圖上點吧');
+      const lat = +j[0].lat, lng = +j[0].lon;
+      setPt(lat, lng); mm && mm.setView([lat, lng], 11);
+    } catch (e) { toast('搜尋失敗，直接在地圖上點吧'); }
+  };
+  $('#tr-f', m).onchange = async (e) => {
+    const f = e.target.files[0]; if (!f) return;
+    try { t.cover = await compressImage(f); $('#tr-pp', m).style.backgroundImage = `url(${t.cover})`; $('#tr-pp', m).firstChild.textContent = ''; }
+    catch (err) { toast('照片讀取失敗'); }
+  };
+  $('#tr-ok', m).onclick = async () => {
+    t.name = $('#tr-n', m).value.trim(); t.date = $('#tr-d', m).value; t.note = $('#tr-t', m).value.trim();
+    if (!t.name) return toast('地點要有名字');
+    $('#tr-ok', m).disabled = true;
+    await col('trips').add({ ...t, by: me(), at: now() });
+    for (const u of S.couple.members) await addPoints(u, D.POINTS.trip, '旅行足跡：' + t.name);
+    await notify(partner(), 'trip', `${nick(me())} 新增了一個旅行足跡 🗺️`, t.name);
+    confetti(50); closeModal(m); toast('記下來了 📍');
+  };
+};
+ACT.openTrip = (el) => {
+  const t = list('trips').find((x) => x.id === el.dataset.id); if (!t) return;
+  const m = openModal(`${mhead('📍 ' + esc(t.name))}
+    ${t.cover ? `<img src="${t.cover}" style="width:100%;border-radius:16px;display:block">` : ''}
+    <p class="small muted">${esc(t.date || '')} · ${esc(nick(t.by))} 記錄</p>
+    ${t.note ? `<div class="letter">${esc(t.note)}</div>` : ''}
+    <div class="btn-row">${t.lat != null && S.map ? '<button class="btn ghost" id="tp-go">在地圖上看</button>' : ''}${t.by === me() ? '<button class="btn ghost" id="tp-del">刪除</button>' : ''}</div>`);
+  $('#tp-go', m) && ($('#tp-go', m).onclick = () => { closeModal(m); S.map.setView([t.lat, t.lng], 12); window.scrollTo({ top: 0, behavior: 'smooth' }); });
+  $('#tp-del', m) && ($('#tp-del', m).onclick = async () => { if (await confirmBox('刪除這個足跡？')) { await col('trips').remove(t.id); closeModal(m); } });
+};
+// ============================================================
+//  📖 回憶：年度清單、時間軸、時光膠囊、成就徽章、年度回顧
+// ============================================================
+
+PAGES.memory = {
+  html() {
+    const sub = S.sub.memory;
+    const tabs = [['goals', '🎯 年度清單'], ['timeline', '🕰️ 時間軸'], ['capsule', '⏳ 時光膠囊'], ['ach', '🏆 成就']];
+    return `<div class="page-title"><h2>📖 回憶</h2><span>第 ${money(daysTogether())} 天</span></div>
+      <button class="card" data-act="review" style="width:100%;text-align:left;display:flex;align-items:center;gap:12px;background:linear-gradient(135deg,#ff6f91,#845ec2);color:#fff">
+        <span style="font-size:36px">🎞️</span><span class="grow"><b style="font-family:var(--serif);font-size:17px">${new Date().getFullYear()} 年度回顧</b><br><span class="small" style="opacity:.9">看看我們這一年一起做了什麼</span></span><span style="font-size:22px">›</span></button>
+      <div class="seg">${tabs.map(([k, n]) => `<button class="${sub === k ? 'on' : ''}" data-act="sub" data-page="memory" data-sub="${k}">${n}</button>`).join('')}</div>
+      ${({ goals: memGoals, timeline: memTimeline, capsule: memCapsule, ach: memAch }[sub] || memGoals)()}`;
+  },
+};
+
+// ---------- 年度清單 ----------
+function memGoals() {
+  const y = S.goalYear || new Date().getFullYear();
+  const gs = list('goals').filter((g) => g.year === y).sort((a, b) => (a.done ? 1 : 0) - (b.done ? 1 : 0) || a.at - b.at);
+  const done = gs.filter((g) => g.done).length;
+  const years = [...new Set([new Date().getFullYear(), new Date().getFullYear() + 1, ...list('goals').map((g) => g.year)])].sort();
+  return `<div class="card">
+    <h3>🎯 ${y} 年想一起做的事 <span class="sub">${done} / ${gs.length}</span></h3>
+    <div class="fund-bar" style="height:10px;margin-top:0"><div style="width:${gs.length ? done / gs.length * 100 : 0}%"></div></div>
+    <div class="row mt"><input id="goal-in" class="grow" maxlength="40" placeholder="例如：一起去看極光"><button class="btn sm" data-act="goalAdd">新增</button></div>
+    <div class="mt">${gs.map((g) => `<div class="goal ${g.done ? 'done' : ''}"><button class="ck" data-act="goalToggle" data-id="${g.id}">${g.done ? '✓' : ''}</button>
+      <span class="tt">${esc(g.title)}${g.done ? `<div class="small muted">${fmtFull(g.doneAt)} 完成</div>` : ''}</span>
+      ${g.by === me() && !g.done ? `<button class="small muted" data-act="goalDel" data-id="${g.id}">✕</button>` : ''}</div>`).join('') || '<div class="empty">寫下今年想一起完成的事吧<br><span class="small">完成一項兩人各 +' + D.POINTS.goal + ' 點</span></div>'}</div>
+    <div class="seg mt">${years.map((x) => `<button class="${x === y ? 'on' : ''}" data-act="goalYear" data-y="${x}">${x}</button>`).join('')}</div>
+  </div>`;
+}
+ACT.goalYear = (el) => { S.goalYear = +el.dataset.y; render(); };
+ACT.goalAdd = async () => {
+  const i = $('#goal-in'); const v = i.value.trim(); if (!v) return toast('寫下一個目標');
+  i.value = ''; i.blur();
+  await col('goals').add({ year: S.goalYear || new Date().getFullYear(), title: v, done: false, by: me(), at: now() });
+  await notify(partner(), 'goal', `${nick(me())} 在年度清單加了一個目標 🎯`, v);
+};
+ACT.goalToggle = async (el) => {
+  const g = list('goals').find((x) => x.id === el.dataset.id); if (!g) return;
+  if (g.done) { if (await confirmBox('要取消「完成」嗎？')) await col('goals').update(g.id, { done: false, doneAt: 0 }); return; }
+  if (!(await confirmBox(`完成「${g.title}」了嗎？🎉`, '完成！'))) return;
+  await col('goals').update(g.id, { done: true, doneAt: now(), doneBy: me() });
+  if (!g.rewarded) {
+    for (const u of S.couple.members) await addPoints(u, D.POINTS.goal, '年度目標：' + g.title);
+    await col('goals').update(g.id, { rewarded: true });
+  }
+  await notify(partner(), 'goal', `年度目標完成：${g.title} 🎉`);
+  confetti(90);
+};
+ACT.goalDel = async (el) => { if (await confirmBox('刪掉這個目標？')) await col('goals').remove(el.dataset.id); };
+
+// ---------- 時間軸 ----------
+function timelineItems() {
+  const it = [];
+  const ann = S.couple.dates?.anniversary || D.DEFAULT_DATES.anniversary;
+  it.push({ at: parseD(ann).getTime(), icon: '💞', text: '我們在一起了' });
+  for (const t of list('trips')) it.push({ at: t.date ? parseD(t.date).getTime() : t.at, icon: '🗺️', text: `一起去了 ${t.name}`, sub: t.note });
+  for (const c of list('cards')) for (const l of c.log || []) {
+    if (l.how === 'craft') continue;
+    it.push({ at: l.at, icon: l.how === 'birthday' ? '🎂' : '✂️', text: `${nick(c.owner)} 用了「${c.mystery ? '神秘盲盒：' + c.secret : c.title}」` });
+  }
+  for (const g of list('goals')) if (g.done) it.push({ at: g.doneAt, icon: '🎯', text: `完成目標「${g.title}」` });
+  for (const b of list('battles')) if (b.status === 'done') it.push({ at: b.doneAt || b.at, icon: '⚔️', text: `${nick(b.winner)} 贏了挑戰「${b.task}」` });
+  for (const g of list('gacha')) if (g.rarity === 'SSR') it.push({ at: g.at, icon: '🌟', text: `${nick(g.uid)} ${g.how === 'craft' ? '合成' : '扭'}到 SSR「${g.title}」` });
+  for (const w of list('wishes')) if (w.status === 'ok') it.push({ at: w.doneAt || w.at, icon: '🌠', text: `${nick(w.by)} 的願望「${w.title}」實現了` });
+  for (const c of list('capsules')) if (c.firstOpenAt) it.push({ at: c.firstOpenAt, icon: '⏳', text: `打開了時光膠囊「${c.title}」` });
+  for (const n of list('notes')) if (n.found) it.push({ at: n.foundAt, icon: '💌', text: `${nick(n.to)} 找到了一張小紙條` });
+  return it.filter((x) => x.at).sort((a, b) => b.at - a.at);
+}
+function memTimeline() {
+  const it = timelineItems().slice(0, 300);
+  let lastM = '', out = '';
+  for (const x of it) {
+    const d = new Date(x.at), mk = `${d.getFullYear()} 年 ${d.getMonth() + 1} 月`;
+    if (mk !== lastM) { out += `<div class="tl-month">${mk}</div>`; lastM = mk; }
+    out += `<div class="tl-item"><div class="d">${d.getMonth() + 1}/${d.getDate()}</div>${x.icon} ${esc(x.text)}${x.sub ? `<div class="small muted">${esc(x.sub)}</div>` : ''}</div>`;
+  }
+  return `<div class="timeline">${out}</div>`;
+}
+
+// ---------- 時光膠囊 ----------
+function memCapsule() {
+  const cs = list('capsules').sort((a, b) => a.openAt - b.openAt);
+  return `<div class="card center"><div style="font-size:44px">⏳</div><h3 style="justify-content:center">時光膠囊</h3>
+      <p class="small muted" style="margin:0 0 10px">現在寫一封信，指定日期才打得開。寫的人自己也要等到那天才看得到喔。</p>
+      <button class="btn" data-act="capsuleNew">寫一封時光膠囊</button></div>
+    ${cs.map((c) => {
+      const open = c.openAt <= now();
+      const days = Math.ceil((c.openAt - now()) / 86400000);
+      const opened = (c.opened || {})[me()];
+      return `<div class="capsule ${open ? '' : 'locked'}" ${open ? `data-act="capsuleOpen" data-id="${c.id}"` : ''}>
+        <span class="ci">${open ? (opened ? '📖' : '💌') : '🔒'}</span>
+        <div class="grow"><b style="font-family:var(--serif)">${esc(c.title)}</b>
+          <div class="small muted">${esc(nick(c.by))} 寫給${c.to === 'both' ? '我們' : esc(nick(c.to))} · ${fmtFull(c.at)} 封存</div>
+          <div class="small" style="color:var(--accent);font-weight:700">${open ? (opened ? '已打開' : '可以打開了！') : `${fmtFull(c.openAt)} 開啟 · 還有 ${days} 天`}</div></div></div>`;
+    }).join('') || '<div class="empty">還沒有時光膠囊</div>'}`;
+}
+ACT.capsuleNew = () => {
+  const d = new Date(); d.setFullYear(d.getFullYear() + 1);
+  const m = openModal(`${mhead('⏳ 寫一封時光膠囊')}
+    <label>標題</label><input id="cp-t" maxlength="24" placeholder="例如：給一年後的我們">
+    <label>寫給</label><select id="cp-to"><option value="both">我們兩個</option><option value="partner">${esc(nick(partner()))}</option></select>
+    <label>什麼時候才能打開</label><input id="cp-d" type="date" value="${dkey(d)}" min="${dkey(new Date(now() + 86400000))}">
+    <div class="row wrap mt">${[['1 個月', 1], ['半年', 6], ['1 年', 12], ['下個週年', 0]].map(([n, v]) => `<button class="chip" data-m="${v}">${n}</button>`).join('')}</div>
+    <label>內容</label><textarea id="cp-b" style="min-height:160px" placeholder="想對未來說的話…"></textarea>
+    <button class="btn block mt" id="cp-ok">封存 🔒</button>`);
+  $$('[data-m]', m).forEach((b) => b.onclick = () => {
+    const v = +b.dataset.m; let x = new Date();
+    if (v) x.setMonth(x.getMonth() + v); else x = nextOf((S.couple.dates?.anniversary || D.DEFAULT_DATES.anniversary).slice(5)).date;
+    if (x <= new Date()) x.setFullYear(x.getFullYear() + 1);
+    $('#cp-d', m).value = dkey(x);
+  });
+  $('#cp-ok', m).onclick = async () => {
+    const title = $('#cp-t', m).value.trim(), body = $('#cp-b', m).value.trim(), date = $('#cp-d', m).value;
+    if (!title || !body || !date) return toast('標題、內容、日期都要填');
+    const openAt = parseD(date).getTime();
+    if (openAt <= now()) return toast('開啟日期要在未來');
+    const to = $('#cp-to', m).value === 'both' ? 'both' : partner();
+    await col('capsules').add({ by: me(), to, title, body, openAt, opened: {}, at: now() });
+    await notify(partner(), 'capsule', `${nick(me())} 封存了一封時光膠囊 ⏳`, `${fmtFull(openAt)} 才能打開`);
+    closeModal(m); toast('封存好了，到時候見 ⏳');
+  };
+};
+ACT.capsuleOpen = async (el) => {
+  const c = list('capsules').find((x) => x.id === el.dataset.id); if (!c || c.openAt > now()) return;
+  if (c.to !== 'both' && c.to !== me() && c.by !== me()) return;
+  const m = openModal(`<div class="center" id="cpo"><div class="envelope">💌</div><p class="muted">點一下打開</p></div>`, { center: true });
+  $('#cpo', m).onclick = async () => {
+    confetti(60);
+    m.querySelector('.modal').innerHTML = `${mhead(esc(c.title))}<div class="letter" style="animation:pop .5s">${esc(c.body)}</div>
+      <p class="small muted center">—— ${esc(nick(c.by))}，寫於 ${fmtFull(c.at)}</p>`;
+    const patch = { [`opened.${me()}`]: true };
+    if (!c.firstOpenAt) patch.firstOpenAt = now();
+    await col('capsules').update(c.id, patch);
+    if (c.by !== me() && !(c.opened || {})[me()]) await notify(c.by, 'capsule', '你的時光膠囊被打開了 ⏳');
+  };
+};
+
+// ---------- 成就 ----------
+function computeAch() {
+  const s = new Set();
+  const logs = list('cards').flatMap((c) => (c.log || []).filter((l) => l.how === 'redeem'));
+  if (logs.length >= 1) s.add('first_redeem');
+  if (logs.length >= 20) s.add('redeem_20');
+  const g = list('gacha');
+  if (g.some((x) => x.rarity === 'SSR')) s.add('first_ssr');
+  if (g.filter((x) => x.how === 'gacha').length >= 10) s.add('gacha_10');
+  if (g.some((x) => x.how === 'craft')) s.add('craft');
+  if ((S.couple.fundsDone || 0) >= 1) s.add('fund_full');
+  if (list('trips').length >= 3) s.add('trips_3');
+  if (list('trips').length >= 10) s.add('trips_10');
+  if (list('misses').length >= 100) s.add('miss_100');
+  if ((S.couple.members || []).some((u) => missStreak(u) >= 30)) s.add('miss_streak_30');
+  if (list('quiz').filter((x) => x.match).length >= 10) s.add('quiz_10');
+  const ms = S.couple.members || [];
+  if (ms.length === 2 && list('daily').filter((d) => d.answers && ms.every((u) => d.answers[u])).length >= 30) s.add('daily_30');
+  if (list('goals').filter((x) => x.done).length >= 5) s.add('goals_5');
+  if (list('capsules').some((c) => c.firstOpenAt)) s.add('capsule');
+  if (list('notes').filter((n) => n.found).length >= 5) s.add('notes_5');
+  if (list('battles').some((b) => b.status === 'done')) s.add('battle_win');
+  if (ms.some((u) => stampCount(u) >= D.POINTS.stampsPerSheet)) s.add('stamp_sheet');
+  if (list('wishes').some((w) => w.status === 'ok')) s.add('wish');
+  return s;
+}
+let achTimer = null;
+function scheduleAchievements() {
+  clearTimeout(achTimer);
+  achTimer = setTimeout(() => {
+    if (!S.couple || COLS.some((c) => !S.d[c])) return;
+    const got = computeAch();
+    const key = 'park-ach-' + S.cid + '-' + me();
+    const raw = localStorage.getItem(key);
+    if (raw == null) { localStorage.setItem(key, JSON.stringify([...got])); return; }
+    const seen = new Set(JSON.parse(raw));
+    const fresh = [...got].filter((x) => !seen.has(x));
+    if (!fresh.length) return;
+    fresh.forEach((id, i) => setTimeout(() => { const a = D.ACHIEVEMENTS.find((x) => x.id === id); if (a) { toast(`🏆 解鎖成就：${a.icon} ${a.name}`); confetti(60, ['#f6d365', '#ffc75f', '#fff']); } }, i * 1200));
+    localStorage.setItem(key, JSON.stringify([...got]));
+  }, 1500);
+}
+function memAch() {
+  const got = computeAch();
+  return `<div class="card center"><div class="fund-num">${got.size} / ${D.ACHIEVEMENTS.length}</div><div class="small muted">我們一起解鎖的成就</div></div>
+    <div class="ach-grid">${D.ACHIEVEMENTS.map((a) => `<div class="ach ${got.has(a.id) ? '' : 'locked'}"><div class="ai">${a.icon}</div><b>${a.name}</b><span>${a.desc}</span></div>`).join('')}</div>`;
+}
+
+// ---------- 年度回顧 ----------
+ACT.review = () => {
+  const Y = new Date().getFullYear();
+  const inY = (ts) => ts && new Date(ts).getFullYear() === Y;
+  const ms = S.couple.members, p = partner();
+  const redeems = list('cards').flatMap((c) => (c.log || []).filter((l) => l.how === 'redeem' && inY(l.at)).map(() => c));
+  const cnt = {}; redeems.forEach((c) => cnt[c.title] = (cnt[c.title] || 0) + 1);
+  const top = Object.entries(cnt).sort((a, b) => b[1] - a[1])[0];
+  const gacha = list('gacha').filter((g) => inY(g.at));
+  const trips = list('trips').filter((t) => (t.date || '').startsWith(String(Y)));
+  const goals = list('goals').filter((g) => g.year === Y);
+  const misses = list('misses').filter((x) => inY(x.at));
+  const quiz = list('quiz').filter((q) => q.id.startsWith(String(Y)) && q.match !== undefined);
+  const qrate = quiz.length ? Math.round(quiz.filter((q) => q.match).length / quiz.length * 100) : 0;
+  const daily = list('daily').filter((d) => d.id.startsWith(String(Y)) && d.answers && ms.every((u) => d.answers[u]));
+  const stamps = list('points').filter((x) => x.tag === 'stamp' && inY(x.at));
+  const yEnd = Math.min(now(), new Date(Y, 11, 31).getTime());
+  const annT = parseD(S.couple.dates?.anniversary || D.DEFAULT_DATES.anniversary).getTime();
+  const daysAtEnd = Math.floor((yEnd - annT) / 86400000) + 1;
+  const slides = [
+    { bg: 'linear-gradient(160deg,#ff6f91,#845ec2)', i: '🎡', n: Y, t: '這一年的我們', s: `${nick(me())} & ${nick(p)}<br>往右點，一起回顧 →` },
+    { bg: 'linear-gradient(160deg,#ff9671,#ff6f91)', i: '🎟️', n: redeems.length, t: '張票券被兌換', s: top ? `最常用的是「${esc(top[0])}」<br>一共用了 ${top[1]} 次` : '明年多用一點吧 😉' },
+    { bg: 'linear-gradient(160deg,#845ec2,#2c73d2)', i: '🎰', n: gacha.length, t: '次扭蛋和合成', s: `扭出 ${gacha.filter((g) => g.rarity === 'SSR').length} 張 SSR、${gacha.filter((g) => g.rarity === 'SR').length} 張 SR` },
+    { bg: 'linear-gradient(160deg,#00c9a7,#2c73d2)', i: '🗺️', n: trips.length, t: '個一起去過的地方', s: trips.length ? trips.slice(0, 8).map((t) => esc(t.name)).join('・') : '明年一起去更多地方吧 ✈️' },
+    { bg: 'linear-gradient(160deg,#ffc75f,#ff9671)', i: '🎯', n: `${goals.filter((g) => g.done).length}/${goals.length}`, t: '個年度目標完成', s: goals.filter((g) => g.done).slice(0, 6).map((g) => '✓ ' + esc(g.title)).join('<br>') || '寫下明年的目標吧' },
+    { bg: 'linear-gradient(160deg,#ff6f91,#ffc2d1)', i: '💗', n: money(misses.length), t: '次「想你」', s: ms.map((u) => `${esc(nick(u))} 想了 ${misses.filter((x) => x.by === u).length} 次`).join('<br>') },
+    { bg: 'linear-gradient(160deg,#4b4453,#845ec2)', i: '🧠', n: qrate + '%', t: '默契度', s: `一起答了 ${quiz.length} 題默契問答<br>${daily.length} 題每日一問<br>互相蓋了 ${stamps.length} 個章` },
+    { bg: 'linear-gradient(160deg,#c42e52,#3a0f1d)', i: '🏠', n: `第 ${money(daysAtEnd)} 天`, t: D.BIRTHDAY_SLOGAN, s: `${Y + 1} 年也請多多指教 💞` },
+  ];
+  let k = 0;
+  const el = document.createElement('div');
+  el.className = 'story';
+  const draw = () => {
+    const s = slides[k];
+    el.style.background = s.bg;
+    el.innerHTML = `<div class="bars">${slides.map((_, i) => `<div class="${i <= k ? 'on' : ''}"></div>`).join('')}</div>
+      <button class="story-close">✕</button>
+      <div class="slide"><div class="si">${s.i}</div><div class="sn">${s.n}</div><div class="st">${esc(s.t)}</div><div class="ss">${s.s}</div></div>
+      <div class="tapzones"><div data-d="-1"></div><div data-d="1"></div></div>`;
+    $('.story-close', el).onclick = () => el.remove();
+    $$('[data-d]', el).forEach((z) => z.onclick = () => {
+      k += +z.dataset.d;
+      if (k >= slides.length) { el.remove(); return; }
+      k = Math.max(0, k); draw();
+      if (k === slides.length - 1) confetti(100);
+    });
+  };
+  draw();
+  document.body.appendChild(el);
+};
+// ============================================================
+//  啟動
+// ============================================================
+boot();
