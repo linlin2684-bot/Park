@@ -1909,16 +1909,30 @@ ACT.food = () => {
 };
 
 // ---------- 真心話大冒險 ----------
+// 把題目裡的「我／對方」換成真正的暱稱，開頭加上回答的人
+//   「我」= 出題的人（另一個人），「我們」不換，引號「」裡的字不換
+function personalize(text, asker, answerer) {
+  const out = text.split(/(「[^」]*」)/).map((seg) => (seg.startsWith('「') ? seg
+    : seg.replace(/對方/g, asker).replace(/我(?!們)/g, asker))).join('');
+  return `${answerer}，${out}`;
+}
 ACT.tod = () => {
   const max = spiceLevel();
+  const ms = (S.couple.members || []).slice();
+  let turn = ms.includes(localStorage.getItem('park-tod-turn')) ? localStorage.getItem('park-tod-turn') : me();
+  const other = (u) => ms.find((x) => x !== u) || u;
   let lv = Math.min(+(localStorage.getItem('park-tod-lv') || 1), max);
   const m = openModal(`${mhead('🎲 真心話大冒險')}
     <div class="seg" id="tlv">${[1, 2, 3].map((l) => `<button data-l="${l}" class="${l === lv ? 'on' : ''}" ${l > max ? 'disabled style="opacity:.4"' : ''}>${D.SPICE[l].icon} ${D.SPICE[l].label}${l > max ? ' 🔒' : ''}</button>`).join('')}</div>
     ${max < 3 ? `<p class="small muted" style="margin:0">想解鎖更高等級？兩人都要到設定裡打開</p>` : ''}
+    ${ms.length > 1 ? `<div class="row" style="justify-content:center;gap:8px;margin-top:10px"><span class="small muted">輪到</span>
+      <div class="seg" id="tturn" style="padding:0">${ms.map((u) => `<button data-u="${u}" class="${u === turn ? 'on' : ''}">${avatar(u)} ${esc(nick(u))}</button>`).join('')}</div></div>` : ''}
     <div class="dice" id="dc">🎲</div>
     <div id="tres"></div>
     <div class="btn-row"><button class="btn ghost" data-k="truth">真心話</button><button class="btn" data-k="rand">讓骰子決定</button><button class="btn ghost" data-k="dare">大冒險</button></div>`, { center: true });
   $$('#tlv button', m).forEach((b) => b.onclick = () => { if (+b.dataset.l > max) return; lv = +b.dataset.l; localStorage.setItem('park-tod-lv', lv); $$('#tlv button', m).forEach((x) => x.classList.toggle('on', x === b)); });
+  const setTurn = (u) => { turn = u; localStorage.setItem('park-tod-turn', u); $$('#tturn button', m).forEach((x) => x.classList.toggle('on', x.dataset.u === u)); };
+  $$('#tturn button', m).forEach((b) => b.onclick = () => setTurn(b.dataset.u));
   $$('[data-k]', m).forEach((b) => b.onclick = async () => {
     let k = b.dataset.k;
     if (k === 'rand') k = Math.random() < .5 ? 'truth' : 'dare';
@@ -1932,8 +1946,10 @@ ACT.tod = () => {
     const pref = pool.filter((x) => x.l === lv);
     const x = Math.random() < .65 && pref.length ? pick(pref) : pick(pool);
     dc.textContent = k === 'truth' ? '💬' : '🔥';
+    const answerer = turn, asker = other(turn);
     const show = (x) => {
-      $('#tres', m).innerHTML = `<div class="prompt-card"><div class="small muted" style="font-family:var(--sans)">${k === 'truth' ? '真心話' : '大冒險'} · ${D.SPICE[x.l].icon}</div>${esc(x.t)}</div>
+      const txt = ms.length > 1 ? personalize(x.t, nick(asker), nick(answerer)) : x.t;
+      $('#tres', m).innerHTML = `<div class="prompt-card"><div class="small muted" style="font-family:var(--sans)">${k === 'truth' ? '真心話' : '大冒險'} · ${D.SPICE[x.l].icon} · ${esc(nick(answerer))} ${k === 'truth' ? '回答' : '挑戰'}</div>${esc(txt)}</div>
         <div class="center"><button class="link" id="t-swap" style="margin-top:8px">換一題（兩個人都同意才換）</button></div>`;
       $('#t-swap', m).onclick = async () => {
         if (!(await confirmBox('兩個人都同意換一題嗎？', '都同意，換！'))) return;
@@ -1943,6 +1959,7 @@ ACT.tod = () => {
       };
     };
     show(x);
+    if (ms.length > 1) setTurn(asker); // 下一輪換另一個人
   });
 };
 
