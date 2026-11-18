@@ -340,8 +340,13 @@ function enterCouple(cid) {
     render();
   }));
   for (const name of COLS) {
-    S.unsubs.push(col(name).watch((arr) => { S.d[name] = arr; onData(name); render(); }));
+    S.unsubs.push(col(name).watch((arr) => { S.d[name] = arr; onData(name); if (name === 'pool') cleanPool(arr); render(); }));
   }
+}
+
+// 把已經從預設卡池拿掉的卡，從現有空間的卡池刪掉（自己新增的不會動）
+async function cleanPool(arr) {
+  for (const p of arr) if (p.by === 'sys' && D.POOL_REMOVED.includes(p.title)) await col('pool').remove(p.id);
 }
 
 function onData(name) {
@@ -1315,14 +1320,16 @@ const WHEEL_COLORS = ['#ff8fab', '#ffc75f', '#9b8cf5', '#5fd3bc', '#ff9671', '#7
 function wheelSVG(labels) {
   const n = labels.length, seg = 360 / n, R = 150, cx = 150, cy = 150;
   const pt = (a, r) => [cx + r * Math.sin(a * Math.PI / 180), cy - r * Math.cos(a * Math.PI / 180)];
-  const fs = n > 10 ? 11 : n > 7 ? 13 : 15;
+  const base = n > 10 ? 11 : n > 7 ? 13 : 15;
   let s = `<svg viewBox="0 0 300 300" id="wh"><circle cx="150" cy="150" r="149" fill="#fff"/>`;
   labels.forEach((l, i) => {
     const a0 = i * seg, a1 = (i + 1) * seg;
     const [x0, y0] = pt(a0, R - 4), [x1, y1] = pt(a1, R - 4);
     s += `<path d="M150 150 L${x0} ${y0} A${R - 4} ${R - 4} 0 ${seg > 180 ? 1 : 0} 1 ${x1} ${y1} Z" fill="${WHEEL_COLORS[i % WHEEL_COLORS.length]}" stroke="#fff" stroke-width="2"/>`;
     const mid = a0 + seg / 2, [tx, ty] = pt(mid, R * 0.6);
-    const txt = l.length > 6 ? l.slice(0, 6) + '…' : l;
+    // 字太長就縮小字體，超過 9 個字才截斷
+    const txt = l.length > 9 ? l.slice(0, 8) + '…' : l;
+    const fs = txt.length > 5 ? Math.max(9, Math.round(base * 5 / txt.length)) : base;
     s += `<text x="${tx}" y="${ty}" transform="rotate(${mid - 90} ${tx} ${ty})" text-anchor="middle" dominant-baseline="middle" font-size="${fs}" font-weight="800" fill="#3b2330" font-family="sans-serif">${esc(txt)}</text>`;
   });
   return s + '</svg>';

@@ -68,8 +68,6 @@ export const POOL = [
   { title: '撒嬌無限一小時', rarity: 'N', spice: 1, desc: '這一小時內撒嬌不設上限' },
   { title: '電影你選', rarity: 'N', spice: 1, desc: '恐怖片也陪你看' },
   { title: '宵夜外送員', rarity: 'N', spice: 1, desc: '半夜嘴饞，我去買' },
-  { title: '吹頭髮服務', rarity: 'N', spice: 1, desc: '吹到全乾' },
-  { title: '一日司機', rarity: 'R', spice: 1, desc: '隨叫隨到' },
   { title: '約會全包', rarity: 'SR', spice: 1, desc: '行程、餐廳、買單，我全包' },
   { title: '說好日', rarity: 'SSR', spice: 1, desc: '一整天，你說什麼我都說好' },
   // 曖昧
@@ -86,6 +84,9 @@ export const POOL = [
   // 神秘盲盒（扭到時會由對方偷偷寫內容）
   { title: '神秘盲盒', rarity: 'SSR', spice: 1, mystery: true, desc: '對方偷偷寫好的驚喜，兌換時才揭曉' },
 ];
+
+// 以前放在卡池、後來拿掉的預設卡（app 啟動時會自動從卡池清掉）
+export const POOL_REMOVED = ['吹頭髮服務', '一日司機'];
 
 // ---------- 節日限定卡 ----------
 export const HOLIDAY_CARDS = {
