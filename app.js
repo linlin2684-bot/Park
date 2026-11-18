@@ -1526,6 +1526,23 @@ function rollRarity() {
   for (const r of D.RARITY_ORDER) { x -= D.RARITY[r].weight; if (x <= 0) return r; }
   return 'N';
 }
+// 保底：依照自己扭蛋紀錄，算出連續幾抽沒出某個稀有度以上
+function pitySince(minRarity) {
+  const min = rarityRank(minRarity);
+  const mine = list('gacha').filter((g) => g.uid === me() && g.how === 'gacha').sort((a, b) => b.at - a.at);
+  let n = 0;
+  for (const g of mine) { if (rarityRank(g.rarity) >= min) break; n++; }
+  return n;
+}
+function rollWithPity() {
+  let r = rollRarity();
+  const pickFrom = (rs) => { const tot = sum(rs, (x) => D.RARITY[x].weight); let v = Math.random() * tot; for (const x of rs) { v -= D.RARITY[x].weight; if (v <= 0) return x; } return rs[0]; };
+  if (pitySince('SSR') + 1 >= D.PITY.SSR) return 'SSR';
+  if (pitySince('SR') + 1 >= D.PITY.SR && rarityRank(r) < rarityRank('SR')) return pickFrom(['SR', 'SSR']);
+  if (pitySince('R') + 1 >= D.PITY.R && r === 'N') return pickFrom(['R', 'SR', 'SSR']);
+  return r;
+}
+
 function drawFromPool(rarity, exact = false) {
   const lv = spiceLevel();
   const pool = list('pool').filter((p) => (p.spice || 1) <= lv);
@@ -1578,7 +1595,7 @@ ACT.gacha = () => {
     else if (balance(me()) < D.POINTS.gachaCost) return toast(`點數不夠，還差 ${D.POINTS.gachaCost - balance(me())} 點`);
     $('#gbtns', m).innerHTML = '';
     if (useTicket) await addTicket(me(), -1); else await addPoints(me(), -D.POINTS.gachaCost, '扭蛋');
-    const rarity = rollRarity();
+    const rarity = rollWithPity();
     const tpl = drawFromPool(rarity, true);
     const R = D.RARITY[rarity];
     $('#kn', m).style.transform = 'rotate(540deg)';

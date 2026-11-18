@@ -12,6 +12,10 @@ export const RARITY = {
 };
 export const RARITY_ORDER = ['N', 'R', 'SR', 'SSR'];
 
+// 扭蛋保底（偷偷生效，不顯示進度）：連續幾抽沒出，下一抽一定出
+//   R 以上：5 抽內一定出；SR 以上：8 抽內一定出；SSR：15 抽內一定出（約一個半月）
+export const PITY = { R: 5, SR: 8, SSR: 15 };
+
 export const SPICE = {
   1: { label: '甜蜜', icon: '🍬' },
   2: { label: '曖昧', icon: '🌙' },
