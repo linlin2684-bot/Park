@@ -581,3 +581,19 @@ input[type="date"]::-webkit-date-and-time-value { text-align: left; }
 
 .pool-row { cursor: pointer; }
 .pool-row:active { background: var(--card2); }
+
+/* 節日／紀念限定配色 */
+.emb-F-queen     { --e-bg: #fbf2f0; --e-ink: #8a3a49; --e-acc: #e2b2a6; }
+.emb-F-king      { --e-bg: #f0f2f7; --e-ink: #22365f; --e-acc: #c9a65a; }
+.emb-F-anniv     { --e-bg: #f9f2ea; --e-ink: #6c1f36; --e-acc: #d4ae68; }
+.emb-F-valentine { --e-bg: #fdf1f3; --e-ink: #a2253f; --e-acc: #eeaab8; }
+.emb-F-xmas      { --e-bg: #eff5f0; --e-ink: #1e5038; --e-acc: #c6a04e; }
+.emb-F-newyear   { --e-bg: #fcf3ec; --e-ink: #9e2f1f; --e-acc: #d8a443; }
+.emb-F-travel    { --e-bg: #eef6f6; --e-ink: #1f5962; --e-acc: #93c2c3; }
+html[data-theme="night"] .emb-F-queen     { --e-bg: #2a151a; --e-ink: #f2cbc4; --e-acc: #8b4e57; }
+html[data-theme="night"] .emb-F-king      { --e-bg: #121a2c; --e-ink: #e7d49d; --e-acc: #4a5e8e; }
+html[data-theme="night"] .emb-F-anniv     { --e-bg: #22101a; --e-ink: #efd3a0; --e-acc: #7a2f48; }
+html[data-theme="night"] .emb-F-valentine { --e-bg: #2b1018; --e-ink: #f6c2cd; --e-acc: #8b3046; }
+html[data-theme="night"] .emb-F-xmas      { --e-bg: #0f1f17; --e-ink: #e3cd8f; --e-acc: #2f6a4c; }
+html[data-theme="night"] .emb-F-newyear   { --e-bg: #29120c; --e-ink: #f2c66d; --e-acc: #8b3624; }
+html[data-theme="night"] .emb-F-travel    { --e-bg: #0f1f22; --e-ink: #bfe3e2; --e-acc: #2f6a70; }

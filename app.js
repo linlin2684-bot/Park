@@ -83,7 +83,7 @@ function cardDoc(tpl, owner, from, extra = {}) {
     title: tpl.title, desc: tpl.desc || '', rarity: tpl.rarity || 'N',
     owner, from, qty: tpl.qty || 1, used,
     series: tpl.series || '', kind: tpl.kind || 'card',
-    mystery: !!tpl.mystery, secret: tpl.secret || '', spice: tpl.spice || 1, mark: tpl.mark || '',
+    mystery: !!tpl.mystery, secret: tpl.secret || '', spice: tpl.spice || 1, mark: tpl.mark || '', fest: tpl.fest || '',
     expiresAt: tpl.expiresAt || 0, weekendOnly: !!tpl.weekendOnly,
     scratched: false, at: now(),
     log: Array.from({ length: used }, () => ({ at: now(), how: 'birthday' })),
@@ -959,7 +959,7 @@ function embChar(title) {
   return cs.find((x) => !EMB_SKIP.has(x)) || cs[0] || Array.from(title.replace(/\s/g, ''))[0] || '?';
 }
 
-function embPalette(c) { return c.kind === 'collect' ? 'C' : (c.rarity || 'N'); }
+function embPalette(c) { const fk = festKey(c); return fk ? 'F-' + fk : c.kind === 'collect' ? 'C' : (c.rarity || 'N'); }
 function embSeed(c, hide) {
   const title = hide ? '神秘盲盒' : (c.title || '?');
   const h = hash(title);
@@ -1026,35 +1026,37 @@ function emblemSVG(c, hide = false) {
   const tl = Array.from(title).length;
   const tfs = Math.min(17, Math.floor(150 / Math.max(tl, 1)));
   const R = D.RARITY[c.rarity] || D.RARITY.N;
+  const fk = hide ? '' : festKey(c), F = FESTS[fk];
   const corner = (x, y, sx, sy) => `<path d="M${x} ${y + sy * 14} A14 14 0 0 ${sx * sy > 0 ? 1 : 0} ${x + sx * 14} ${y}" class="e-ink-s" stroke-width=".8"/><circle cx="${x + sx * 4}" cy="${y + sy * 4}" r="1.6" class="e-ink-f"/>`;
   return `<svg viewBox="0 0 200 240" class="emb-svg" xmlns="http://www.w3.org/2000/svg">
-    <defs>${embPattern(seed.kind, id)}</defs>
+    <defs>${F ? festPattern(F.pat, id) : embPattern(seed.kind, id)}</defs>
     <rect width="200" height="240" class="e-bg"/>
-    <rect width="200" height="240" fill="url(#${id})" opacity=".55"/>
+    <rect width="200" height="240" fill="url(#${id})" opacity="${F ? '.75' : '.55'}"/>
     <rect x="8" y="8" width="184" height="224" rx="10" class="e-ink-s" stroke-width=".9"/>
     <rect x="12.5" y="12.5" width="175" height="215" rx="7" class="e-acc-s" stroke-width=".6"/>
     ${corner(12.5, 12.5, 1, 1)}${corner(187.5, 12.5, -1, 1)}${corner(12.5, 227.5, 1, -1)}${corner(187.5, 227.5, -1, -1)}
     <rect x="62" y="20" width="76" height="14" rx="7" class="e-bg"/>
-    <text x="100" y="30" text-anchor="middle" font-size="7" letter-spacing="2.5" class="e-ink-f e-small">兩人遊樂園</text>
+    <text x="100" y="30" text-anchor="middle" font-size="7" letter-spacing="2.5" class="e-ink-f e-small">${F ? F.label : '兩人遊樂園'}</text>
     <circle cx="100" cy="106" r="68" class="e-bg" opacity=".9"/>
-    ${embMedallion(100, 106, seed)}
+    ${F ? festMedallion(100, 106, fk, c) : embMedallion(100, 106, seed)}
     <rect x="22" y="182" width="156" height="34" class="e-bg"/>
     <line x1="30" y1="182" x2="170" y2="182" class="e-ink-s" stroke-width=".7"/><line x1="30" y1="216" x2="170" y2="216" class="e-ink-s" stroke-width=".7"/>
     <circle cx="26" cy="182" r="1.5" class="e-ink-f"/><circle cx="174" cy="182" r="1.5" class="e-ink-f"/><circle cx="26" cy="216" r="1.5" class="e-ink-f"/><circle cx="174" cy="216" r="1.5" class="e-ink-f"/>
     <text x="100" y="${199 + tfs * 0.36}" text-anchor="middle" font-size="${tfs}" class="e-ink-f e-title">${esc(title)}</text>
-    <text x="100" y="226" text-anchor="middle" font-size="6.5" letter-spacing="1.8" class="e-ink-f e-small">${c.kind === 'collect' ? '珍藏' : R.name + ' · ' + R.label} · ${EMB_NAMES[seed.kind]} · No.${seed.no}</text>
+    <text x="100" y="226" text-anchor="middle" font-size="6.5" letter-spacing="1.8" class="e-ink-f e-small">${F ? `${F.foot} · ${R.name} · ${new Date(c.at || now()).getFullYear()}` : `${c.kind === 'collect' ? '珍藏' : R.name + ' · ' + R.label} · ${EMB_NAMES[seed.kind]} · No.${seed.no}`}</text>
   </svg>`;
 }
 
 // 小徽章（票夾列表用）
 function emblemMini(c, hide = false) {
   const seed = embSeed(c, hide);
+  const fk = hide ? '' : festKey(c);
   const id = 'ep' + (++embSeq);
   return `<svg viewBox="0 0 130 130" class="emb-mini" xmlns="http://www.w3.org/2000/svg">
-    <defs>${embPattern(seed.kind, id, 0.7)}<clipPath id="${id}c"><circle cx="65" cy="65" r="64"/></clipPath></defs>
+    <defs>${fk ? festPattern(FESTS[fk].pat, id, 0.7) : embPattern(seed.kind, id, 0.7)}<clipPath id="${id}c"><circle cx="65" cy="65" r="64"/></clipPath></defs>
     <circle cx="65" cy="65" r="64" class="e-bg"/>
     <rect width="130" height="130" fill="url(#${id})" opacity=".5" clip-path="url(#${id}c)"/>
-    ${embMedallion(65, 65, seed, 46)}
+    ${fk ? festMedallion(65, 65, fk, c, 46) : embMedallion(65, 65, seed, 46)}
   </svg>`;
 }
 
@@ -1062,8 +1064,9 @@ function emblemMini(c, hide = false) {
 function emblemBackSVG(c, hide = false) {
   const seed = embSeed(c, hide);
   const id = 'ep' + (++embSeq);
+  const fk = hide ? '' : festKey(c);
   return `<svg viewBox="0 0 200 300" preserveAspectRatio="xMidYMid slice" class="emb-back" xmlns="http://www.w3.org/2000/svg">
-    <defs>${embPattern(seed.kind, id)}</defs>
+    <defs>${fk ? festPattern(FESTS[fk].pat, id) : embPattern(seed.kind, id)}</defs>
     <rect width="200" height="300" class="e-bg"/><rect width="200" height="300" fill="url(#${id})" opacity=".7"/>
     <rect x="8" y="8" width="184" height="284" rx="10" class="e-ink-s" stroke-width=".9"/>
     <rect x="12.5" y="12.5" width="175" height="275" rx="7" class="e-acc-s" stroke-width=".6"/>
@@ -1139,6 +1142,126 @@ function attachCardFX(m) {
     }
   });
   return () => { alive = false; cancelAnimationFrame(raf); window.removeEventListener('deviceorientation', onOrient); };
+}
+// ============================================================
+//  節日／紀念限定圖騰：線描意象、收斂配色
+// ============================================================
+
+const FEST_BY_TITLE = {
+  壽星女王券: 'queen', 壽星國王券: 'king', 週年紀念券: 'anniv', 情人節限定券: 'valentine',
+  聖誕交換券: 'xmas', 新年第一張券: 'newyear', 旅行出發券: 'travel',
+};
+const FESTS = {
+  queen:     { label: '壽 星 限 定', foot: '生日限定', pat: 'sparkle' },
+  king:      { label: '壽 星 限 定', foot: '生日限定', pat: 'sparkle' },
+  anniv:     { label: '週 年 限 定', foot: '週年紀念', pat: 'rings' },
+  valentine: { label: '情 人 節 限 定', foot: '情人節限定', pat: 'hearts' },
+  xmas:      { label: '聖 誕 限 定', foot: '聖誕限定', pat: 'snow' },
+  newyear:   { label: '新 年 限 定', foot: '新年限定', pat: 'plum' },
+  travel:    { label: '旅 行 限 定', foot: '旅行系列', pat: 'grid' },
+};
+function festKey(c) { return c && (c.fest || FEST_BY_TITLE[c.title]) || ''; }
+
+// 節日底紋（淡淡的，不搶主角）
+function festPattern(kind, id, s = 1) {
+  const u = (n) => +(n * s).toFixed(2);
+  const P = (w, h, body) => `<pattern id="${id}" width="${u(w)}" height="${u(h)}" patternUnits="userSpaceOnUse">${body}</pattern>`;
+  const star = (x, y, r) => `<path d="M${u(x)} ${u(y - r)} L${u(x + r * .28)} ${u(y - r * .28)} L${u(x + r)} ${u(y)} L${u(x + r * .28)} ${u(y + r * .28)} L${u(x)} ${u(y + r)} L${u(x - r * .28)} ${u(y + r * .28)} L${u(x - r)} ${u(y)} L${u(x - r * .28)} ${u(y - r * .28)} Z" class="e-acc-f"/>`;
+  if (kind === 'sparkle') return P(28, 28, star(7, 7, 3.2) + `<circle cx="${u(21)}" cy="${u(20)}" r="${u(.9)}" class="e-acc-f"/>`);
+  if (kind === 'rings') return P(26, 26, `<circle cx="${u(9)}" cy="${u(9)}" r="${u(3.6)}" class="e-acc-s" stroke-width="${.6 * s}"/><circle cx="${u(13)}" cy="${u(9)}" r="${u(3.6)}" class="e-acc-s" stroke-width="${.6 * s}"/><circle cx="${u(21)}" cy="${u(21)}" r="${u(.8)}" class="e-acc-f"/>`);
+  if (kind === 'hearts') {
+    const h = (x, y, k) => `<path transform="translate(${u(x)} ${u(y)}) scale(${(k * s).toFixed(2)})" d="M0 4 C-4 1 -6 -1 -6 -3 C-6 -5 -4 -6 -2.5 -6 C-1.2 -6 -.4 -5 0 -4 C.4 -5 1.2 -6 2.5 -6 C4 -6 6 -5 6 -3 C6 -1 4 1 0 4 Z" class="e-acc-s" stroke-width="${(.7 / k).toFixed(2)}"/>`;
+    return P(30, 28, h(9, 9, .75) + `<circle cx="${u(23)}" cy="${u(21)}" r="${u(.8)}" class="e-acc-f"/>`);
+  }
+  if (kind === 'snow') return P(22, 22, `<circle cx="${u(5)}" cy="${u(5)}" r="${u(1.1)}" class="e-acc-f"/><circle cx="${u(16)}" cy="${u(11)}" r="${u(.7)}" class="e-acc-f"/><circle cx="${u(9)}" cy="${u(18)}" r="${u(.9)}" class="e-acc-f"/>`);
+  if (kind === 'plum') {
+    const fl = (x, y) => Array.from({ length: 5 }, (_, i) => { const a = i * 72 * Math.PI / 180; return `<circle cx="${u(x + Math.sin(a) * 2.4)}" cy="${u(y - Math.cos(a) * 2.4)}" r="${u(1.5)}" class="e-acc-f"/>`; }).join('');
+    return P(30, 30, fl(8, 8) + `<circle cx="${u(23)}" cy="${u(22)}" r="${u(.8)}" class="e-acc-f"/>`);
+  }
+  return P(22, 22, `<line x1="0" y1="${u(11)}" x2="${u(22)}" y2="${u(11)}" class="e-acc-s" stroke-width="${.45 * s}"/><line x1="${u(11)}" y1="0" x2="${u(11)}" y2="${u(22)}" class="e-acc-s" stroke-width="${.45 * s}" stroke-dasharray="${u(1.5)} ${u(2)}"/>`);
+}
+
+// 中央意象（以 0,0 為中心，半徑約 38）
+function festMotif(key, c) {
+  const ink = (d, w = 1.4, extra = '') => `<path d="${d}" class="e-ink-s" stroke-width="${w}" stroke-linecap="round" stroke-linejoin="round" ${extra}/>`;
+  const pt = (deg, r) => [Math.sin(deg * Math.PI / 180) * r, -Math.cos(deg * Math.PI / 180) * r];
+  if (key === 'queen' || key === 'king') {
+    let s = '';
+    // 月桂枝
+    for (const side of [-1, 1]) {
+      const arc = [];
+      for (let i = 0; i <= 6; i++) {
+        const deg = side < 0 ? 205 + i * 16 : 155 - i * 16;
+        const [x, y] = pt(deg, 37);
+        arc.push([x, y]);
+        const rot = deg + (side < 0 ? 60 : -60);
+        s += `<ellipse cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" rx="5.2" ry="2.1" transform="rotate(${rot - 90} ${x.toFixed(1)} ${y.toFixed(1)})" class="e-acc-f e-ink-s" stroke-width=".6"/>`;
+      }
+      s += ink('M' + arc.map(([x, y]) => `${x.toFixed(1)} ${y.toFixed(1)}`).join(' L'), .8);
+    }
+    // 皇冠
+    s += `<path d="M-24 12 L24 12 L28 -8 L13 2 L0 -20 L-13 2 L-28 -8 Z" class="e-bg e-ink-s" stroke-width="1.6" stroke-linejoin="round"/>`;
+    s += ink('M-22 18 L22 18', 1.6);
+    s += `<circle cx="-28" cy="-11" r="2.6" class="e-acc-f e-ink-s" stroke-width="1"/><circle cx="28" cy="-11" r="2.6" class="e-acc-f e-ink-s" stroke-width="1"/>`;
+    if (key === 'king') s += ink('M0 -33 L0 -21 M-4.5 -28 L4.5 -28', 1.5);
+    else s += `<circle cx="0" cy="-23" r="2.8" class="e-acc-f e-ink-s" stroke-width="1"/>`;
+    if (key === 'queen') s += `<path transform="translate(0 6) scale(.62)" d="M0 4 C-4 1 -6 -1 -6 -3 C-6 -5 -4 -6 -2.5 -6 C-1.2 -6 -.4 -5 0 -4 C.4 -5 1.2 -6 2.5 -6 C4 -6 6 -5 6 -3 C6 -1 4 1 0 4 Z" class="e-ink-f"/><circle cx="-12" cy="6" r="1.6" class="e-ink-f"/><circle cx="12" cy="6" r="1.6" class="e-ink-f"/>`;
+    else s += `<circle cx="-12" cy="6" r="1.8" class="e-ink-f"/><circle cx="0" cy="6" r="2.2" class="e-acc-f e-ink-s" stroke-width=".8"/><circle cx="12" cy="6" r="1.8" class="e-ink-f"/>`;
+    return s;
+  }
+  if (key === 'anniv') {
+    const start = +((S.couple?.dates?.anniversary || D.DEFAULT_DATES.anniversary).slice(0, 4));
+    const yr = new Date(c.at || now()).getFullYear() - start;
+    return `<circle cx="-9" cy="0" r="15" class="e-ink-s" stroke-width="2"/>
+      <circle cx="9" cy="0" r="15" class="e-acc-s" stroke-width="2"/>
+      <path d="M-9 -15 A15 15 0 0 1 3.2 -8.7" class="e-ink-s" stroke-width="2" fill="none"/>
+      <path d="M0 -34 L1.8 -27.8 L8 -26 L1.8 -24.2 L0 -18 L-1.8 -24.2 L-8 -26 L-1.8 -27.8 Z" class="e-ink-f"/>
+      <circle cx="-14" cy="-26" r="1" class="e-ink-f"/><circle cx="14" cy="-26" r="1" class="e-ink-f"/>
+      <text x="0" y="30" text-anchor="middle" font-size="9" letter-spacing="2" class="e-ink-f e-small">${yr > 0 ? `第 ${yr} 年` : '紀念日'}</text>`;
+  }
+  if (key === 'valentine') {
+    return `<path d="M0 6 C0 14 -1.5 22 0 34" class="e-ink-s" stroke-width="1.4" stroke-linecap="round"/>
+      <path d="M0 19 C5 13 12 12 16 14 C12 20 6 21 0 19 Z" class="e-acc-f e-ink-s" stroke-width=".8"/>
+      <path d="M0 26 C-5 20 -12 19 -16 21 C-12 27 -6 28 0 26 Z" class="e-acc-f e-ink-s" stroke-width=".8"/>
+      <path d="M-15 -9 C-16 -19 -8 -27 0 -25 C8 -27 16 -19 15 -9 C14 0 7 6 0 6 C-7 6 -14 0 -15 -9 Z" class="e-bg e-ink-s" stroke-width="1.5" stroke-linejoin="round"/>
+      <path d="M-15 -9 C-10 -4 -4 -5 0 -10 C4 -5 10 -4 15 -9" class="e-ink-s" stroke-width="1.2" fill="none" stroke-linecap="round"/>
+      <path d="M-10 -11 C-10 -18 -4 -21 0 -19 C4 -21 10 -18 10 -11" class="e-acc-s" stroke-width="1.1" fill="none" stroke-linecap="round"/>
+      <path d="M-4.5 -13 C-4 -17 3 -17.5 4.5 -14 C5.5 -11 2 -9 -0.5 -10.5 C-2.5 -12 -0.5 -14.5 1.5 -13.5" class="e-ink-s" stroke-width="1.2" fill="none" stroke-linecap="round"/>
+      <path d="M-8 -1 C-4 2 4 2 8 -1" class="e-acc-s" stroke-width="1" fill="none" stroke-linecap="round"/>`;
+  }
+  if (key === 'xmas') {
+    let s = '';
+    for (let i = 0; i < 6; i++) {
+      s += `<g transform="rotate(${i * 60})">${ink('M0 -6 L0 -32 M0 -14 L-7 -21 M0 -14 L7 -21 M0 -23 L-5 -28 M0 -23 L5 -28', 1.4)}<circle cx="0" cy="-35" r="1.7" class="e-acc-f"/></g>`;
+    }
+    s += `<polygon points="${Array.from({ length: 6 }, (_, i) => pt(i * 60, 6).map((v) => v.toFixed(2)).join(',')).join(' ')}" class="e-bg e-ink-s" stroke-width="1.3"/><circle cx="0" cy="0" r="1.6" class="e-acc-f"/>`;
+    return s;
+  }
+  if (key === 'newyear') {
+    let s = '';
+    for (let i = 0; i < 24; i++) { const [x1, y1] = pt(i * 15, 27), [x2, y2] = pt(i * 15, i % 2 ? 31 : 36); s += `<line x1="${x1.toFixed(1)}" y1="${y1.toFixed(1)}" x2="${x2.toFixed(1)}" y2="${y2.toFixed(1)}" class="e-acc-s" stroke-width="1.1" stroke-linecap="round"/>`; }
+    for (let i = 0; i < 5; i++) { const [x, y] = pt(i * 72, 11); s += `<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="9.5" class="e-bg e-ink-s" stroke-width="1.3"/>`; }
+    for (let i = 0; i < 5; i++) { const [x, y] = pt(i * 72 + 36, 8.5); s += `<line x1="0" y1="0" x2="${x.toFixed(1)}" y2="${y.toFixed(1)}" class="e-ink-s" stroke-width=".8"/><circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="1.3" class="e-ink-f"/>`; }
+    s += `<circle cx="0" cy="0" r="3.4" class="e-acc-f e-ink-s" stroke-width=".8"/>`;
+    return s;
+  }
+  // travel：羅盤
+  const pts = (r1, r2, off) => Array.from({ length: 8 }, (_, i) => pt(off + i * 45, i % 2 ? r2 : r1).map((v) => v.toFixed(2)).join(',')).join(' ');
+  return `<circle cx="0" cy="0" r="26" class="e-acc-s" stroke-width="1" stroke-dasharray="2 3"/>
+    <polygon points="${pts(22, 5, 45)}" class="e-bg e-acc-s" stroke-width="1"/>
+    <polygon points="${pts(34, 5.5, 0)}" class="e-bg e-ink-s" stroke-width="1.3" stroke-linejoin="round"/>
+    ${[0, 90, 180, 270].map((d) => { const [x1, y1] = pt(d, 34), [x2, y2] = pt(d + 45, 5.5); return `<polygon points="${x1.toFixed(2)},${y1.toFixed(2)} ${x2.toFixed(2)},${y2.toFixed(2)} 0,0" class="e-ink-f"/>`; }).join('')}
+    <circle cx="0" cy="0" r="2.4" class="e-bg e-ink-s" stroke-width="1"/>
+    <text x="0" y="-38" text-anchor="middle" font-size="7" class="e-ink-f e-small">N</text>`;
+}
+
+// 節日徽章外圈
+function festMedallion(cx, cy, key, c, r = 50) {
+  const k = r / 50;
+  let s = `<circle cx="${cx}" cy="${cy}" r="${50 * k}" class="e-bg e-ink-s" stroke-width="${1.4 * k}"/><circle cx="${cx}" cy="${cy}" r="${45.5 * k}" class="e-acc-s" stroke-width="${.8 * k}"/>`;
+  for (let i = 0; i < 12; i++) { const a = i * 30 * Math.PI / 180; s += `<circle cx="${(cx + Math.sin(a) * 55 * k).toFixed(1)}" cy="${(cy - Math.cos(a) * 55 * k).toFixed(1)}" r="${(i % 3 ? .9 : 1.6) * k}" class="e-ink-f"/>`; }
+  s += `<g transform="translate(${cx} ${cy}) scale(${(k * 1.05).toFixed(3)})">${festMotif(key, c)}</g>`;
+  return s;
 }
 // ============================================================
 //  🎟️ 票夾：我的卡、刮刮卡、兌換儀式、發卡、許願池、合成、收藏冊
@@ -1997,7 +2120,7 @@ async function checkFund() {
   const ok = await S.store.coupleTx(S.cid, (c) => (c.fund && !c.fund.rewarded ? { 'fund.rewarded': true, fundsDone: (c.fundsDone || 0) + 1 } : null));
   if (!ok) return;
   for (const u of S.couple.members) {
-    await col('cards').add(cardDoc({ ...D.TRAVEL_CARD, desc: `「${f.name}」存滿了！出發吧 ✈️` }, u, 'sys'));
+    await col('cards').add(cardDoc({ ...D.TRAVEL_CARD, desc: `「${f.name}」存滿了，出發吧` }, u, 'sys'));
     await col('events').add({ to: u, by: 'sys', type: 'fund', text: '旅行基金存滿了！掉落一張旅行限定券 ✈️', at: now(), read: false });
   }
   confetti(140);

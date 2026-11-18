@@ -94,14 +94,14 @@ export const POOL_REMOVED = ['吹頭髮服務', '一日司機'];
 
 // ---------- 節日限定卡 ----------
 export const HOLIDAY_CARDS = {
-  herBirthday: { title: '壽星女王券', rarity: 'SSR', desc: '今天妳是女王，所有願望一律批准 👑', series: '節日系列' },
-  hisBirthday: { title: '壽星國王券', rarity: 'SSR', desc: '今天你是國王，所有願望一律批准 👑', series: '節日系列' },
-  anniversary: { title: '週年紀念券', rarity: 'SSR', desc: '謝謝你又陪我走了一年 💞', series: '節日系列' },
-  valentine:   { title: '情人節限定券', rarity: 'SR', desc: '今天要特別甜', series: '節日系列' },
-  christmas:   { title: '聖誕交換券', rarity: 'SR', desc: '換一個擁抱和一個願望 🎄', series: '節日系列' },
-  newyear:     { title: '新年第一張券', rarity: 'SR', desc: '新的一年也請多指教 🎆', series: '節日系列' },
+  herBirthday: { title: '壽星女王券', rarity: 'SSR', fest: 'queen', desc: '今天妳是女王，所有願望一律批准', series: '節日系列' },
+  hisBirthday: { title: '壽星國王券', rarity: 'SSR', fest: 'king', desc: '今天你是國王，所有願望一律批准', series: '節日系列' },
+  anniversary: { title: '週年紀念券', rarity: 'SSR', fest: 'anniv', desc: '謝謝你又陪我走了一年', series: '節日系列' },
+  valentine:   { title: '情人節限定券', rarity: 'SR', fest: 'valentine', desc: '今天要特別甜', series: '節日系列' },
+  christmas:   { title: '聖誕交換券', rarity: 'SR', fest: 'xmas', desc: '換一個擁抱和一個願望', series: '節日系列' },
+  newyear:     { title: '新年第一張券', rarity: 'SR', fest: 'newyear', desc: '新的一年也請多指教', series: '節日系列' },
 };
-export const TRAVEL_CARD = { title: '旅行出發券', rarity: 'SSR', desc: '基金存滿了！出發吧 ✈️', series: '旅行系列' };
+export const TRAVEL_CARD = { title: '旅行出發券', rarity: 'SSR', fest: 'travel', desc: '基金存滿了，出發吧', series: '旅行系列' };
 
 // ---------- 每週任務（每週自動挑 3 個） ----------
 export const WEEKLY_TASKS = [
