@@ -13,7 +13,7 @@ const S = {
   unsubs: [], started: Date.now(), seenEvents: new Set(), deferRender: false,
 };
 const COLS = ['cards', 'events', 'points', 'pool', 'wishes', 'taskDone', 'battles', 'quiz', 'daily',
-  'deposits', 'trips', 'goals', 'capsules', 'notes', 'misses', 'gacha'];
+  'deposits', 'trips', 'goals', 'capsules', 'notes', 'misses', 'gacha', 'memories'];
 
 // ---------- 小工具 ----------
 const $ = (s, r = document) => r.querySelector(s);
@@ -2442,18 +2442,66 @@ function timelineItems() {
   for (const w of list('wishes')) if (w.status === 'ok') it.push({ at: w.doneAt || w.at, icon: '🌠', text: `${nick(w.by)} 的願望「${w.title}」實現了` });
   for (const c of list('capsules')) if (c.firstOpenAt) it.push({ at: c.firstOpenAt, icon: '⏳', text: `打開了時光膠囊「${c.title}」` });
   for (const n of list('notes')) if (n.found) it.push({ at: n.foundAt, icon: '💌', text: `${nick(n.to)} 找到了一張小紙條` });
+  for (const mm of list('memories')) it.push({ at: mm.date ? parseD(mm.date).getTime() : mm.at, icon: (MEM_KINDS.find((k) => k.id === mm.kind) || MEM_KINDS[MEM_KINDS.length - 1]).icon, text: mm.title, sub: mm.note, cover: mm.cover, mid: mm.id });
   return it.filter((x) => x.at).sort((a, b) => b.at - a.at);
 }
+const MEM_KINDS = [
+  { id: 'anniv', icon: '💞', label: '紀念日' }, { id: 'first', icon: '✨', label: '第一次' }, { id: 'date', icon: '🍽️', label: '約會' },
+  { id: 'trip', icon: '✈️', label: '旅行' }, { id: 'life', icon: '🏠', label: '生活' }, { id: 'gift', icon: '🎁', label: '驚喜' },
+  { id: 'music', icon: '🎻', label: '音樂' }, { id: 'other', icon: '📸', label: '其他' },
+];
+const MEM_SUGGEST = [
+  ['第一次見面', 'first'], ['第一次約會', 'first'], ['告白', 'anniv'], ['第一次牽手', 'first'], ['第一次出國', 'trip'],
+  ['搬到一起住', 'life'], ['見家長', 'life'], ['第一次的小提琴演奏', 'music'], ['第一次吵架又和好', 'life'], ['最難忘的驚喜', 'gift'],
+];
 function memTimeline() {
-  const it = timelineItems().slice(0, 300);
+  const it = timelineItems().slice(0, 400);
   let lastM = '', out = '';
   for (const x of it) {
     const d = new Date(x.at), mk = `${d.getFullYear()} 年 ${d.getMonth() + 1} 月`;
     if (mk !== lastM) { out += `<div class="tl-month">${mk}</div>`; lastM = mk; }
-    out += `<div class="tl-item"><div class="d">${d.getMonth() + 1}/${d.getDate()}</div>${x.icon} ${esc(x.text)}${x.sub ? `<div class="small muted">${esc(x.sub)}</div>` : ''}</div>`;
+    out += `<div class="tl-item ${x.mid ? 'tl-mine' : ''}" ${x.mid ? `data-act="editMemory" data-id="${x.mid}"` : ''}>
+      ${x.cover ? `<div class="tl-cover" style="background-image:url(${x.cover})"></div>` : ''}
+      <div class="d">${d.getMonth() + 1}/${d.getDate()}${x.mid ? ' · 點一下可以編輯' : ''}</div>${x.icon} ${esc(x.text)}${x.sub ? `<div class="small muted" style="white-space:pre-wrap">${esc(x.sub)}</div>` : ''}</div>`;
   }
-  return `<div class="timeline">${out}</div>`;
+  return `<button class="btn block" data-act="editMemory" style="margin-bottom:10px">＋ 新增一段回憶</button>
+    <p class="small muted center" style="margin:0 0 6px">旅行、兌換、目標這些會自動記錄；以前的重要時刻可以自己補上</p>
+    <div class="timeline">${out}</div>`;
 }
+ACT.editMemory = (el) => {
+  const mm = el?.dataset?.id ? list('memories').find((x) => x.id === el.dataset.id) : null;
+  const t = mm ? { ...mm } : { title: '', date: dkey(), kind: 'other', note: '', cover: '' };
+  const m = openModal(`${mhead(mm ? '編輯回憶' : '新增一段回憶')}
+    ${mm ? '' : `<div class="row wrap" style="gap:6px">${MEM_SUGGEST.map(([n, k]) => `<button class="chip" data-sg="${esc(n)}" data-k="${k}">${esc(n)}</button>`).join('')}</div>`}
+    <label>標題</label><input id="mm-t" maxlength="30" value="${esc(t.title)}" placeholder="例如：第一次約會">
+    <label>日期</label><input id="mm-d" type="date" value="${esc(t.date || dkey())}">
+    <label>類型</label>
+    <div class="seg" id="mm-k" style="flex-wrap:wrap">${MEM_KINDS.map((k) => `<button data-k="${k.id}" class="${t.kind === k.id ? 'on' : ''}">${k.icon} ${k.label}</button>`).join('')}</div>
+    <label>想記下來的話（可以不寫）</label><textarea id="mm-n" maxlength="500" placeholder="那天發生了什麼…">${esc(t.note || '')}</textarea>
+    <label>照片（一張，會自動壓縮）</label>
+    <label class="photo-pick" id="mm-pp" style="margin:0;${t.cover ? `background-image:url(${t.cover})` : ''}">${t.cover ? '' : '點這裡選照片'}<input type="file" accept="image/*" id="mm-f" class="hidden"></label>
+    ${t.cover ? '<button class="link small" id="mm-rm" style="margin-top:6px">移除照片</button>' : ''}
+    <button class="btn block mt" id="mm-ok">${mm ? '儲存' : '記下來'}</button>
+    ${mm ? '<button class="btn ghost block mt" id="mm-del" style="color:#d4405f">刪除這段回憶</button>' : ''}`);
+  const setKind = (k) => { t.kind = k; $$('#mm-k button', m).forEach((b) => b.classList.toggle('on', b.dataset.k === k)); };
+  $$('#mm-k button', m).forEach((b) => b.onclick = () => setKind(b.dataset.k));
+  $$('[data-sg]', m).forEach((b) => b.onclick = () => { $('#mm-t', m).value = b.dataset.sg; setKind(b.dataset.k); });
+  $('#mm-f', m).onchange = async (e) => {
+    const f = e.target.files[0]; if (!f) return;
+    try { t.cover = await compressImage(f); const pp = $('#mm-pp', m); pp.style.backgroundImage = `url(${t.cover})`; pp.firstChild.textContent = ''; }
+    catch (err) { toast('照片讀取失敗'); }
+  };
+  $('#mm-rm', m) && ($('#mm-rm', m).onclick = () => { t.cover = ''; const pp = $('#mm-pp', m); pp.style.backgroundImage = ''; pp.firstChild.textContent = '點這裡選照片'; $('#mm-rm', m).remove(); });
+  $('#mm-ok', m).onclick = async () => {
+    const title = $('#mm-t', m).value.trim(); if (!title) return toast('寫一個標題');
+    const data = { title, date: $('#mm-d', m).value || dkey(), kind: t.kind || 'other', note: $('#mm-n', m).value.trim(), cover: t.cover || '' };
+    $('#mm-ok', m).disabled = true;
+    if (mm) await col('memories').update(mm.id, data);
+    else { await col('memories').add({ ...data, by: me(), at: now() }); await notify(partner(), 'trip', `${nick(me())} 在時間軸寫下一段回憶 🕰️`, title); }
+    closeModal(m); toast(mm ? '改好了' : '記下來了 🕰️');
+  };
+  $('#mm-del', m) && ($('#mm-del', m).onclick = async () => { if (await confirmBox('刪掉這段回憶？')) { await col('memories').remove(mm.id); closeModal(m); } });
+};
 
 // ---------- 時光膠囊 ----------
 function memCapsule() {
@@ -2514,30 +2562,41 @@ ACT.capsuleOpen = async (el) => {
 };
 
 // ---------- 成就 ----------
-function computeAch() {
-  const s = new Set();
-  const logs = list('cards').flatMap((c) => (c.log || []).filter((l) => l.how === 'redeem'));
-  if (logs.length >= 1) s.add('first_redeem');
-  if (logs.length >= 20) s.add('redeem_20');
-  const g = list('gacha');
-  if (g.some((x) => x.rarity === 'SSR')) s.add('first_ssr');
-  if (g.filter((x) => x.how === 'gacha').length >= 10) s.add('gacha_10');
-  if (g.some((x) => x.how === 'craft')) s.add('craft');
-  if ((S.couple.fundsDone || 0) >= 1) s.add('fund_full');
-  if (list('trips').length >= 3) s.add('trips_3');
-  if (list('trips').length >= 10) s.add('trips_10');
-  if (list('misses').length >= 100) s.add('miss_100');
-  if ((S.couple.members || []).some((u) => missStreak(u) >= 30)) s.add('miss_streak_30');
-  if (list('quiz').filter((x) => x.match).length >= 10) s.add('quiz_10');
+function achMetrics() {
   const ms = S.couple.members || [];
-  if (ms.length === 2 && list('daily').filter((d) => d.answers && ms.every((u) => d.answers[u])).length >= 30) s.add('daily_30');
-  if (list('goals').filter((x) => x.done).length >= 5) s.add('goals_5');
-  if (list('capsules').some((c) => c.firstOpenAt)) s.add('capsule');
-  if (list('notes').filter((n) => n.found).length >= 5) s.add('notes_5');
-  if (list('battles').some((b) => b.status === 'done')) s.add('battle_win');
-  if (ms.some((u) => stampCount(u) >= D.POINTS.stampsPerSheet)) s.add('stamp_sheet');
-  if (list('wishes').some((w) => w.status === 'ok')) s.add('wish');
-  return s;
+  const cards = list('cards');
+  const g = list('gacha');
+  const bday = cards.filter((c) => c.series === D.BIRTHDAY_SERIES);
+  return {
+    redeem: cards.reduce((n, c) => n + (c.log || []).filter((l) => l.how === 'redeem').length, 0),
+    given: cards.filter((c) => ms.includes(c.from) && c.from !== c.owner && !c.series).length,
+    gacha: g.filter((x) => x.how === 'gacha').length,
+    ssr: g.filter((x) => x.rarity === 'SSR').length,
+    craft: g.filter((x) => x.how === 'craft').length,
+    wish: list('wishes').filter((w) => w.status === 'ok').length,
+    sheets: Math.max(0, ...ms.map((u) => Math.floor(stampCount(u) / D.POINTS.stampsPerSheet))),
+    weekly: list('taskDone').length,
+    battles: list('battles').filter((b) => b.status === 'done').length,
+    quiz: list('quiz').filter((x) => x.match).length,
+    daily: ms.length === 2 ? list('daily').filter((d) => d.answers && ms.every((u) => d.answers[u])).length : 0,
+    miss: list('misses').length,
+    missStreak: Math.max(0, ...ms.map((u) => missStreak(u))),
+    notesFound: list('notes').filter((n) => n.found).length,
+    notesWritten: list('notes').length,
+    capOpened: list('capsules').filter((c) => c.firstOpenAt).length,
+    capWritten: list('capsules').length,
+    trips: list('trips').length,
+    funds: S.couple.fundsDone || 0,
+    goals: list('goals').filter((x) => x.done).length,
+    memories: list('memories').length,
+    days: daysTogether(),
+    holidays: new Set(cards.filter((c) => c.series === '節日系列').map((c) => festKey(c)).filter((k) => k && k !== 'travel')).size,
+    birthdayBook: bday.length && bday.every(seriesCollected) ? 1 : 0,
+  };
+}
+function computeAch() {
+  const m = achMetrics();
+  return new Set(D.ACHIEVEMENTS.filter((a) => (m[a.m] || 0) >= a.goal).map((a) => a.id));
 }
 let achTimer = null;
 function scheduleAchievements() {
@@ -2551,14 +2610,36 @@ function scheduleAchievements() {
     const seen = new Set(JSON.parse(raw));
     const fresh = [...got].filter((x) => !seen.has(x));
     if (!fresh.length) return;
-    fresh.forEach((id, i) => setTimeout(() => { const a = D.ACHIEVEMENTS.find((x) => x.id === id); if (a) { toast(`🏆 解鎖成就：${a.icon} ${a.name}`); confetti(60, ['#f6d365', '#ffc75f', '#fff']); } }, i * 1200));
+    fresh.forEach((id, i) => setTimeout(() => { const a = D.ACHIEVEMENTS.find((x) => x.id === id); if (a) { toast(`🏆 解鎖成就：${a.name}（${{ b: '銅', s: '銀', g: '金' }[a.tier]}）`); confetti(60, ['#f6d365', '#ffc75f', '#fff']); } }, i * 1200));
     localStorage.setItem(key, JSON.stringify([...got]));
   }, 1500);
 }
+// 成就徽章：銅／銀／金，用和卡片一樣的徽章外框
+function achBadge(a, unlocked) {
+  const shape = { b: 0, s: 1, g: 2 }[a.tier];
+  const id = 'ab' + (++embSeq);
+  return `<svg viewBox="0 0 130 130" class="ach-badge" xmlns="http://www.w3.org/2000/svg">
+    <defs>${embPattern(['dots', 'lattice', 'seigaiha'][shape], id, 0.6)}<clipPath id="${id}c"><circle cx="65" cy="65" r="64"/></clipPath></defs>
+    <circle cx="65" cy="65" r="64" class="e-bg"/>
+    <rect width="130" height="130" fill="url(#${id})" opacity=".45" clip-path="url(#${id}c)"/>
+    ${embMedallion(65, 65, { shape, ch: a.mark }, 44)}
+    ${a.tier === 'g' && unlocked ? '<path d="M65 2 L67.5 8 L74 9 L69 13 L70.5 19.5 L65 16 L59.5 19.5 L61 13 L56 9 L62.5 8 Z" class="e-ink-f"/>' : ''}
+  </svg>`;
+}
 function memAch() {
+  const m = achMetrics();
   const got = computeAch();
-  return `<div class="card center"><div class="fund-num">${got.size} / ${D.ACHIEVEMENTS.length}</div><div class="small muted">我們一起解鎖的成就</div></div>
-    <div class="ach-grid">${D.ACHIEVEMENTS.map((a) => `<div class="ach ${got.has(a.id) ? '' : 'locked'}"><div class="ai">${a.icon}</div><b>${a.name}</b><span>${a.desc}</span></div>`).join('')}</div>`;
+  const tiers = { b: '銅', s: '銀', g: '金' };
+  const cnt = (t) => D.ACHIEVEMENTS.filter((a) => a.tier === t && got.has(a.id)).length;
+  const tot = (t) => D.ACHIEVEMENTS.filter((a) => a.tier === t).length;
+  const sorted = [...D.ACHIEVEMENTS].sort((a, b) => (got.has(b.id) ? 1 : 0) - (got.has(a.id) ? 1 : 0));
+  return `<div class="card center"><div class="fund-num">${got.size} / ${D.ACHIEVEMENTS.length}</div><div class="small muted">我們一起解鎖的成就</div>
+      <div class="row" style="justify-content:center;gap:16px;margin-top:8px">${['g', 's', 'b'].map((t) => `<span class="ach-tier t-${t}">${tiers[t]} ${cnt(t)}/${tot(t)}</span>`).join('')}</div></div>
+    <div class="ach-grid">${sorted.map((a) => {
+      const ok = got.has(a.id), v = Math.min(m[a.m] || 0, a.goal);
+      return `<div class="ach ach-${a.tier} ${ok ? '' : 'locked'}">${achBadge(a, ok)}<b>${esc(a.name)}</b><span>${esc(a.desc)}</span>
+        ${ok ? `<span class="ach-tier t-${a.tier}">${tiers[a.tier]}</span>` : a.goal > 1 ? `<div class="ach-prog"><div style="width:${v / a.goal * 100}%"></div></div><span>${money(v)} / ${money(a.goal)}</span>` : ''}</div>`;
+    }).join('')}</div>`;
 }
 
 // ---------- 年度回顧 ----------
