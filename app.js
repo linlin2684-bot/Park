@@ -672,14 +672,14 @@ ACT.poolManager = () => {
       <div class="mt">${pool.map((p) => `<div class="list-row pool-row" data-edit="${p.id}">
         <div class="emb-${p.rarity}" style="width:44px;height:44px;flex:none">${emblemMini(p)}</div>
         <div class="grow"><div><span style="color:var(--r-${p.rarity.toLowerCase()});font-weight:800;font-family:var(--serif)">${p.rarity}</span>　<b>${esc(p.title)}</b></div>
-          <div class="small muted">${esc(p.desc || '')}${p.desc ? ' · ' : ''}${D.SPICE[p.spice || 1].label}${p.mystery ? ' · 神秘盲盒' : ''}</div></div>
+          <div class="small muted">${esc(p.desc || '')}${p.desc ? ' · ' : ''}${D.SPICE[p.spice || 1].label}${p.mystery ? ' · 神秘盲盒' : ''}${poolGiver(p) ? ` · 只限${poolGiver(p) === 'him' ? '男生' : '女生'}兌現` : ''}</div></div>
         <span class="muted" style="font-size:18px">›</span></div>`).join('')}</div>`;
     if (!m) m = openModal(html); else m.querySelector('.modal').innerHTML = html;
     $('#pm-add', m).onclick = () => cardEditor({ title: '新增到卡池', pool: true }, async (t) => { await col('pool').add({ ...t, by: me(), at: now() }); toast('加進卡池了'); setTimeout(() => draw(m), 300); });
     $$('[data-edit]', m).forEach((row) => row.onclick = () => {
       const p = list('pool').find((x) => x.id === row.dataset.edit); if (!p) return;
-      cardEditor({ title: '編輯卡池的卡', pool: true, preset: { title: p.title, desc: p.desc || '', rarity: p.rarity, spice: p.spice || 1, mystery: !!p.mystery, mark: p.mark || '' }, onDelete: async () => { await col('pool').remove(p.id); toast('從卡池刪掉了'); setTimeout(() => draw(m), 300); } },
-        async (t) => { await col('pool').update(p.id, { title: t.title, desc: t.desc, rarity: t.rarity, spice: t.spice, mystery: t.mystery, mark: t.mark || '' }); toast('改好了'); setTimeout(() => draw(m), 300); });
+      cardEditor({ title: '編輯卡池的卡', pool: true, preset: { title: p.title, desc: p.desc || '', rarity: p.rarity, spice: p.spice || 1, mystery: !!p.mystery, mark: p.mark || '', giver: poolGiver(p) }, onDelete: async () => { await col('pool').remove(p.id); toast('從卡池刪掉了'); setTimeout(() => draw(m), 300); } },
+        async (t) => { await col('pool').update(p.id, { title: t.title, desc: t.desc, rarity: t.rarity, spice: t.spice, mystery: t.mystery, mark: t.mark || '', giver: t.giver || '' }); toast('改好了'); setTimeout(() => draw(m), 300); });
     });
     return m;
   };
@@ -700,6 +700,7 @@ function cardEditor({ title, pool = false, give = false, preset = {}, onDelete =
     <div class="rarity-pick" id="ce-r">${D.RARITY_ORDER.map((r) => `<button data-r="${r}" style="--rc:var(--r-${r.toLowerCase()})" class="${t.rarity === r ? 'on' : ''}">${r}</button>`).join('')}</div>
     <label>尺度</label>
     <div class="seg" id="ce-s">${[1, 2, 3].map((l) => `<button data-l="${l}" class="${t.spice === l ? 'on' : ''}">${D.SPICE[l].icon} ${D.SPICE[l].label}</button>`).join('')}</div>
+    ${pool ? `<label>誰來兌現</label><select id="ce-g"><option value="">兩個人都可以</option><option value="him">只有男生能兌現（只有女生扭得到）</option><option value="her">只有女生能兌現（只有男生扭得到）</option></select>` : ''}
     ${give ? `<div class="row"><div class="grow"><label>張數</label><input id="ce-q" type="number" min="1" max="20" value="${t.qty}"></div>
       <div class="grow"><label>限時</label><select id="ce-l"><option value="none">不限時</option><option value="7d">7 天內有效</option><option value="weekend">週末限定</option><option value="today">今天限定</option></select></div></div>` : ''}
     <div class="toggle mt"><label class="switch"><input type="checkbox" id="ce-m" ${t.mystery ? 'checked' : ''}><span></span></label><span class="small">🎁 神秘盲盒（內容先藏起來，兌換時才揭曉）</span></div>
@@ -718,9 +719,11 @@ function cardEditor({ title, pool = false, give = false, preset = {}, onDelete =
   $$('#ce-s button', m).forEach((b) => b.onclick = () => { t.spice = +b.dataset.l; $$('#ce-s button', m).forEach((x) => x.classList.toggle('on', x === b)); });
   $('#ce-m', m).onchange = (e) => { if (give) $('#ce-sw', m).classList.toggle('hidden', !e.target.checked); };
   if (give && preset.limit) $('#ce-l', m).value = preset.limit;
+  if (pool && $('#ce-g', m)) $('#ce-g', m).value = preset.giver || '';
   $('#ce-ok', m).onclick = async () => {
     t.title = $('#ce-t', m).value.trim(); t.desc = $('#ce-d', m).value.trim(); t.mystery = $('#ce-m', m).checked; t.mark = Array.from($('#ce-k', m).value.trim())[0] || '';
     if (!t.title) return toast('卡片要有名稱');
+    if (pool && $('#ce-g', m)) t.giver = $('#ce-g', m).value;
     if (give) {
       t.qty = Math.max(1, Math.min(20, +$('#ce-q', m).value || 1));
       t.secret = t.mystery ? $('#ce-sec', m).value.trim() : '';
@@ -785,6 +788,11 @@ function homeTodos() {
     if (b.status === 'claimed' && b.claimer !== me()) t.push({ icon: '⚔️', text: `${nick(b.claimer)} 說自己完成挑戰「${b.task}」了`, act: 'battleJudge', id: b.id, btn: '確認' });
     if (b.status === 'done' && b.loser === me() && !b.paid) t.push({ icon: '🏳️', text: `挑戰輸了，要發一張卡給 ${nick(b.winner)}`, act: 'battlePay', id: b.id, btn: '發卡' });
   }
+  for (const c of list('cards').filter((c) => c.owner === p && c.swapReq)) {
+    t.push({ icon: '🔄', text: `${nick(p)} 想把「${c.title}」換一張`, act: 'swapJudge', id: c.id, btn: '看看' });
+  }
+  const tr = S.couple.taskSwapReq;
+  if (tr && tr.by !== me() && tr.wk === weekKey()) t.push({ icon: '🔄', text: `${nick(tr.by)} 想換掉每週任務「${weekTasks()[tr.i] || ''}」`, act: 'tab', tab: 'play', btn: '去看' });
   const caps = list('capsules').filter((c) => c.openAt <= now() && !(c.opened || {})[me()]).length;
   if (caps) t.push({ icon: '⏳', text: `有 ${caps} 封時光膠囊可以打開了`, act: 'goCapsule', btn: '打開' });
   return t;
@@ -814,7 +822,7 @@ PAGES.home = {
     </div>
 
     ${todos.length ? `<div class="card"><h3>📌 待辦</h3>${todos.map((t) => `<div class="todo-item"><span class="ti">${t.icon}</span><span class="grow">${esc(t.text)}</span>
-      <button class="btn sm" data-act="${t.act}" ${t.id ? `data-id="${t.id}"` : ''}>${t.btn}</button></div>`).join('')}</div>` : ''}
+      <button class="btn sm" data-act="${t.act}" ${t.id ? `data-id="${t.id}"` : ''} ${t.tab ? `data-tab="${t.tab}"` : ''}>${t.btn}</button></div>`).join('')}</div>` : ''}
 
     <div class="card">
       <h3>🌦️ 心情天氣 <span class="sub">點自己的換心情</span></h3>
@@ -1506,6 +1514,8 @@ ACT.openCard = (el) => {
         : why ? `<p class="muted center">${esc(why)}</p>`
         : `<button class="btn block hold-btn" id="hold"><span class="fill" id="hf"></span>長按兌換這張票券</button>
            <p class="small muted center">${c.from === 'sys' ? '' : esc(nick(c.from)) + ' 會收到通知，'}記得當面兌現喔</p>`}
+      ${canSwap(c) ? (c.swapReq ? `<p class="small center" style="color:var(--accent)">已經申請換卡，等 ${esc(nick(partner()))} 同意…</p><button class="btn ghost block" data-act="swapCancel" data-id="${c.id}">取消申請</button>`
+        : `<button class="btn ghost block mt" data-act="swapReq" data-id="${c.id}">不想要這張？申請換一張</button>`) : ''}
       ${c.from === me() && c.from !== 'sys' ? `<button class="btn ghost block mt" data-act="editCard" data-id="${c.id}">編輯卡名和說明</button>` : ''}
     </div>`, { center: true, onClose: () => stop() });
   stop = attachCardFX(m);
@@ -1539,6 +1549,40 @@ ACT.openCard = (el) => {
     hold.outerHTML = '<p class="center" style="font-weight:700">兌換成功！好好享受</p><button class="btn block" data-act="close">完成</button>';
     await col('cards').update(c.id, { used: (c.used || 0) + 1, log: [...(c.log || []), { at: now(), how: 'redeem' }] });
     if (c.from !== me() && c.from !== 'sys') await notify(c.from, 'redeem', `${nick(me())} 使用了一張票券 ✂️`, c.mystery ? `神秘盲盒：${c.secret}` : c.title);
+  };
+};
+
+// ---------- 換卡（要對方同意） ----------
+// 可以換：自己的、一次都還沒用過、不是系列卡／收藏卡／盲盒
+function canSwap(c) {
+  return c.owner === me() && partner() && c.kind !== 'collect' && !c.series && !c.mystery && (c.used || 0) === 0 && !isExpired(c);
+}
+ACT.swapReq = async (el) => {
+  const c = list('cards').find((x) => x.id === el.dataset.id); if (!c) return;
+  if (!(await confirmBox(`想把「${c.title}」換成另一張 ${c.rarity} 卡嗎？\n要 ${nick(partner())} 同意才會換`, '送出申請'))) return;
+  await col('cards').update(c.id, { swapReq: { at: now() } });
+  await notify(partner(), 'card', `${nick(me())} 想換一張票券`, c.title);
+  closeAll(); toast('申請送出了，等對方同意');
+};
+ACT.swapCancel = async (el) => { await col('cards').update(el.dataset.id, { swapReq: null }); closeAll(); toast('取消了'); };
+ACT.swapJudge = (el) => {
+  const c = list('cards').find((x) => x.id === el.dataset.id); if (!c || !c.swapReq) return;
+  const m = openModal(`${mhead('換卡申請')}
+    <p class="small muted" style="margin-top:0">${esc(nick(c.owner))} 不太想要這張，想換成另一張隨機的 ${c.rarity} 卡：</p>
+    ${ticketHTML(c, { act: '', showFrom: false })}
+    <div class="btn-row"><button class="btn ghost" id="sj-no">想留著</button><button class="btn" id="sj-ok">同意換</button></div>`, { center: true });
+  $('#sj-ok', m).onclick = async () => {
+    $('#sj-ok', m).disabled = true;
+    const tpl = drawFromPool(c.rarity, true, c.title);
+    await giveCard(c.owner, { ...tpl, qty: c.qty || 1 }, { from: me() });
+    await col('cards').remove(c.id);
+    await notify(c.owner, 'card', '換卡成功，去刮開新的票券吧 🎟️');
+    closeModal(m); toast('換好了');
+  };
+  $('#sj-no', m).onclick = async () => {
+    await col('cards').update(c.id, { swapReq: null });
+    await notify(c.owner, 'card', '對方想讓你留著這張 😏', c.title);
+    closeModal(m);
   };
 };
 
@@ -1683,9 +1727,14 @@ function rollWithPity() {
   return r;
 }
 
-function drawFromPool(rarity, exact = false) {
+// 卡池裡標記「只能由誰兌現」的卡（舊空間的卡沒有欄位，就用卡名對照）
+const GIVER_BY_TITLE = Object.fromEntries(D.POOL.filter((p) => p.giver).map((p) => [p.title, p.giver]));
+const poolGiver = (p) => (p.giver !== undefined ? p.giver : GIVER_BY_TITLE[p.title] || '');
+function drawFromPool(rarity, exact = false, exclude = '') {
   const lv = spiceLevel();
-  const pool = list('pool').filter((p) => (p.spice || 1) <= lv);
+  const ful = partner();
+  const role = ful ? prof(ful).role : '';
+  const pool = list('pool').filter((p) => (p.spice || 1) <= lv && p.title !== exclude && (!poolGiver(p) || !role || poolGiver(p) === role));
   let r = rarityRank(rarity);
   while (r >= 0) {
     const cand = pool.filter((p) => p.rarity === D.RARITY_ORDER[r]);
@@ -1883,7 +1932,17 @@ ACT.tod = () => {
     const pref = pool.filter((x) => x.l === lv);
     const x = Math.random() < .65 && pref.length ? pick(pref) : pick(pool);
     dc.textContent = k === 'truth' ? '💬' : '🔥';
-    $('#tres', m).innerHTML = `<div class="prompt-card"><div class="small muted" style="font-family:var(--sans)">${k === 'truth' ? '真心話' : '大冒險'} · ${D.SPICE[x.l].icon}</div>${esc(x.t)}</div>`;
+    const show = (x) => {
+      $('#tres', m).innerHTML = `<div class="prompt-card"><div class="small muted" style="font-family:var(--sans)">${k === 'truth' ? '真心話' : '大冒險'} · ${D.SPICE[x.l].icon}</div>${esc(x.t)}</div>
+        <div class="center"><button class="link" id="t-swap" style="margin-top:8px">換一題（兩個人都同意才換）</button></div>`;
+      $('#t-swap', m).onclick = async () => {
+        if (!(await confirmBox('兩個人都同意換一題嗎？', '都同意，換！'))) return;
+        const rest = pool.filter((y) => y.t !== x.t);
+        const p2 = rest.filter((y) => y.l === lv);
+        show(Math.random() < .65 && p2.length ? pick(p2) : pick(rest));
+      };
+    };
+    show(x);
   });
 };
 
@@ -2030,16 +2089,56 @@ ACT.giveStamp = () => {
 };
 
 // ---------- 每週任務 ----------
-function weekTasks() { return shuffled(D.WEEKLY_TASKS, hash(weekKey() + (S.cid || ''))).slice(0, 3); }
+function weekTaskIdx() {
+  const wk = weekKey();
+  const base = shuffled(D.WEEKLY_TASKS.map((_, i) => i), hash(wk + (S.cid || ''))).slice(0, 3);
+  const ov = (S.couple?.taskOverride || {})[wk] || {};
+  return base.map((v, i) => (ov[i] != null ? ov[i] : v));
+}
+function weekTasks() { return weekTaskIdx().map((i) => D.WEEKLY_TASKS[i] || ''); }
 function weeklyHTML() {
   const wk = weekKey(), p = partner();
   const done = (i, u) => list('taskDone').some((x) => x.id === `${wk}_${i}_${u}`);
   return `<div class="card"><h3>📋 每週任務 <span class="sub">完成一項 +${D.POINTS.weeklyTask} 點</span></h3>
-    ${weekTasks().map((t, i) => `<div class="task ${done(i, me()) ? 'done' : ''}">
+    ${weekTasks().map((t, i) => {
+      const req = S.couple.taskSwapReq;
+      const pending = req && req.wk === wk && req.i === i;
+      const anyDone = done(i, me()) || (p && done(i, p));
+      return `<div class="task ${done(i, me()) ? 'done' : ''}">
       <button class="ck" data-act="taskDo" data-i="${i}" ${done(i, me()) ? 'disabled' : ''}>${done(i, me()) ? '✓' : ''}</button>
-      <span class="tt">${esc(t)}</span><span class="small muted">${p && done(i, p) ? avatar(p) + '✓' : ''}</span></div>`).join('')}
+      <span class="tt">${esc(t)}${pending ? `<div class="small" style="color:var(--accent)">${req.by === me() ? '等對方同意換這項…' : esc(nick(req.by)) + ' 想換掉這項'}</div>` : ''}</span>
+      <span class="small muted">${p && done(i, p) ? avatar(p) + '✓' : ''}</span>
+      ${pending && req.by !== me() ? `<button class="btn sm ghost" data-act="taskSwapNo">不要</button><button class="btn sm" data-act="taskSwapOk">同意</button>`
+        : pending ? `<button class="small muted" data-act="taskSwapNo">取消</button>`
+        : !anyDone && p && !req ? `<button class="small muted" data-act="taskSwapReq" data-i="${i}">換</button>` : ''}</div>`;
+    }).join('')}
     <p class="small muted" style="margin:6px 0 0">每週一換新任務，誠實打勾喔 😇</p></div>`;
 }
+ACT.taskSwapReq = async (el) => {
+  const i = +el.dataset.i;
+  if (!(await confirmBox(`想把「${weekTasks()[i]}」換掉嗎？\n要 ${nick(partner())} 同意才會換`, '送出申請'))) return;
+  await S.store.updateCouple(S.cid, { taskSwapReq: { wk: weekKey(), i, by: me(), at: now() } });
+  await notify(partner(), 'battle', `${nick(me())} 想換掉一項每週任務`, weekTasks()[i]);
+  toast('申請送出了');
+};
+ACT.taskSwapOk = async () => {
+  const req = S.couple.taskSwapReq; if (!req) return;
+  const wk = weekKey();
+  if (req.wk !== wk) { await S.store.updateCouple(S.cid, { taskSwapReq: null }); return; }
+  const cur = new Set(weekTaskIdx());
+  const used = new Set(Object.values((S.couple.taskOverride || {})[wk] || {}));
+  const cand = D.WEEKLY_TASKS.map((_, i) => i).filter((i) => !cur.has(i) && !used.has(i));
+  const ni = pick(cand.length ? cand : D.WEEKLY_TASKS.map((_, i) => i).filter((i) => !cur.has(i)));
+  await S.store.updateCouple(S.cid, { [`taskOverride.${wk}.${req.i}`]: ni, taskSwapReq: null });
+  await notify(req.by, 'battle', '對方同意了，每週任務換好了', D.WEEKLY_TASKS[ni]);
+  toast('換好了：' + D.WEEKLY_TASKS[ni]);
+};
+ACT.taskSwapNo = async () => {
+  const req = S.couple.taskSwapReq; if (!req) return;
+  await S.store.updateCouple(S.cid, { taskSwapReq: null });
+  if (req.by !== me()) await notify(req.by, 'battle', '對方想留著這項任務 😏');
+};
+
 ACT.taskDo = async (el) => {
   const i = +el.dataset.i, wk = weekKey();
   const t = weekTasks()[i];
