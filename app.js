@@ -83,7 +83,7 @@ function cardDoc(tpl, owner, from, extra = {}) {
     title: tpl.title, desc: tpl.desc || '', rarity: tpl.rarity || 'N',
     owner, from, qty: tpl.qty || 1, used,
     series: tpl.series || '', kind: tpl.kind || 'card',
-    mystery: !!tpl.mystery, secret: tpl.secret || '', spice: tpl.spice || 1,
+    mystery: !!tpl.mystery, secret: tpl.secret || '', spice: tpl.spice || 1, mark: tpl.mark || '',
     expiresAt: tpl.expiresAt || 0, weekendOnly: !!tpl.weekendOnly,
     scratched: false, at: now(),
     log: Array.from({ length: used }, () => ({ at: now(), how: 'birthday' })),
@@ -662,10 +662,14 @@ ACT.poolManager = () => {
 
 // 共用：卡片編輯器
 function cardEditor({ title, pool = false, give = false, preset = {} }, onSave) {
-  const t = { title: '', desc: '', rarity: 'N', spice: 1, qty: 1, mystery: false, secret: '', limit: 'none', ...preset };
+  const t = { title: '', desc: '', rarity: 'N', spice: 1, qty: 1, mystery: false, secret: '', limit: 'none', mark: '', ...preset };
   const m = openModal(`${mhead(esc(title))}
     <label>卡片名稱</label><input id="ce-t" maxlength="24" value="${esc(t.title)}" placeholder="例如：按摩 15 分鐘">
     <label>說明（可以不寫）</label><input id="ce-d" maxlength="60" value="${esc(t.desc)}" placeholder="一句話補充">
+    <div class="row" style="align-items:flex-end">
+      <div class="grow"><label>代表字（可不填，不填會自動挑）</label><input id="ce-k" maxlength="4" value="${esc(t.mark)}" placeholder="一個字，例如：擁" style="font-family:var(--serif);font-size:18px;font-weight:800"></div>
+      <div class="emb-${t.rarity}" id="ce-pv" style="width:60px;height:60px;flex:none">${emblemMini(t)}</div>
+    </div>
     <label>稀有度</label>
     <div class="rarity-pick" id="ce-r">${D.RARITY_ORDER.map((r) => `<button data-r="${r}" style="--rc:var(--r-${r.toLowerCase()})" class="${t.rarity === r ? 'on' : ''}">${r}</button>`).join('')}</div>
     <label>尺度</label>
@@ -675,12 +679,19 @@ function cardEditor({ title, pool = false, give = false, preset = {} }, onSave) 
     <div class="toggle mt"><label class="switch"><input type="checkbox" id="ce-m" ${t.mystery ? 'checked' : ''}><span></span></label><span class="small">🎁 神秘盲盒（內容先藏起來，兌換時才揭曉）</span></div>
     <div id="ce-sw" class="${t.mystery && give ? '' : 'hidden'}"><label>盲盒裡的真正內容</label><input id="ce-sec" maxlength="60" placeholder="兌換時才會顯示" value="${esc(t.secret)}"></div>
     <button class="btn block mt" id="ce-ok">${give ? '送出 💌' : '儲存'}</button>`);
-  $$('#ce-r button', m).forEach((b) => b.onclick = () => { t.rarity = b.dataset.r; $$('#ce-r button', m).forEach((x) => x.classList.toggle('on', x === b)); });
+  const preview = () => {
+    const pv = $('#ce-pv', m); if (!pv) return;
+    pv.className = 'emb-' + t.rarity;
+    pv.innerHTML = emblemMini({ title: $('#ce-t', m).value.trim() || '新卡', rarity: t.rarity, mark: $('#ce-k', m).value.trim() });
+  };
+  $('#ce-t', m).addEventListener('input', preview);
+  $('#ce-k', m).addEventListener('input', preview);
+  $$('#ce-r button', m).forEach((b) => b.onclick = () => { t.rarity = b.dataset.r; $$('#ce-r button', m).forEach((x) => x.classList.toggle('on', x === b)); preview(); });
   $$('#ce-s button', m).forEach((b) => b.onclick = () => { t.spice = +b.dataset.l; $$('#ce-s button', m).forEach((x) => x.classList.toggle('on', x === b)); });
   $('#ce-m', m).onchange = (e) => { if (give) $('#ce-sw', m).classList.toggle('hidden', !e.target.checked); };
   if (give && preset.limit) $('#ce-l', m).value = preset.limit;
   $('#ce-ok', m).onclick = async () => {
-    t.title = $('#ce-t', m).value.trim(); t.desc = $('#ce-d', m).value.trim(); t.mystery = $('#ce-m', m).checked;
+    t.title = $('#ce-t', m).value.trim(); t.desc = $('#ce-d', m).value.trim(); t.mystery = $('#ce-m', m).checked; t.mark = Array.from($('#ce-k', m).value.trim())[0] || '';
     if (!t.title) return toast('卡片要有名稱');
     if (give) {
       t.qty = Math.max(1, Math.min(20, +$('#ce-q', m).value || 1));
@@ -1205,11 +1216,12 @@ ACT.editCard = (el) => {
   const m = openModal(`${mhead('編輯票券')}
     <label>卡片名稱</label><input id="ec-t" maxlength="24" value="${esc(c.title)}">
     <label>說明</label><textarea id="ec-d" maxlength="80" style="min-height:70px">${esc(c.desc || '')}</textarea>
+    <label>代表字（可不填，不填會自動挑）</label><input id="ec-k" maxlength="4" value="${esc(c.mark || '')}" placeholder="一個字" style="font-family:var(--serif);font-size:18px;font-weight:800">
     <p class="small muted">改了之後，對方的票夾也會一起更新</p>
     <button class="btn block" id="ec-ok">儲存</button>`, { center: true });
   $('#ec-ok', m).onclick = async () => {
     const t = $('#ec-t', m).value.trim(); if (!t) return toast('卡片要有名稱');
-    await col('cards').update(c.id, { title: t, desc: $('#ec-d', m).value.trim() });
+    await col('cards').update(c.id, { title: t, desc: $('#ec-d', m).value.trim(), mark: Array.from($('#ec-k', m).value.trim())[0] || '' });
     closeModal(m); toast('改好了');
   };
 };
@@ -1408,14 +1420,14 @@ function walletWish() {
 ACT.makeWish = () => {
   if (!partner()) return toast('對方加入後才能許願');
   cardEditor({ title: '🌠 許一個願' }, async (t) => {
-    await col('wishes').add({ by: me(), title: t.title, desc: t.desc, rarity: t.rarity, spice: t.spice, status: 'pending', at: now() });
+    await col('wishes').add({ by: me(), title: t.title, desc: t.desc, rarity: t.rarity, spice: t.spice, mark: t.mark || '', status: 'pending', at: now() });
     await notify(partner(), 'wish', '有人在許願池許了願 🌠');
     toast('願望送出了 🌠');
   });
 };
 ACT.wishOk = async (el) => {
   const w = list('wishes').find((x) => x.id === el.dataset.id); if (!w) return;
-  await giveCard(w.by, { title: w.title, desc: w.desc, rarity: w.rarity, spice: w.spice });
+  await giveCard(w.by, { title: w.title, desc: w.desc, rarity: w.rarity, spice: w.spice, mark: w.mark || '' });
   await col('wishes').update(w.id, { status: 'ok', doneAt: now() });
   await notify(w.by, 'wish', '你的願望實現了 ✨');
   sendAnimation(w, w.by);
@@ -1509,7 +1521,7 @@ function drawFromPool(rarity, exact = false) {
   let r = rarityRank(rarity);
   while (r >= 0) {
     const cand = pool.filter((p) => p.rarity === D.RARITY_ORDER[r]);
-    if (cand.length) { const p = pick(cand); return { title: p.title, desc: p.desc || '', rarity: exact ? rarity : p.rarity, spice: p.spice || 1, mystery: !!p.mystery, by: p.by }; }
+    if (cand.length) { const p = pick(cand); return { title: p.title, desc: p.desc || '', rarity: exact ? rarity : p.rarity, spice: p.spice || 1, mystery: !!p.mystery, mark: p.mark || '', by: p.by }; }
     r--;
   }
   return { title: '抱抱一次', desc: '卡池空空的，先抱一下', rarity, spice: 1, by: 'sys' };
