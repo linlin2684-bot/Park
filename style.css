@@ -578,3 +578,6 @@ html[data-theme="night"] .fc.SSR .holo { opacity: .2; mix-blend-mode: screen; }
 /* iPhone 日期欄位不要超出邊框 */
 input[type="date"] { -webkit-appearance: none; appearance: none; display: block; min-width: 0; max-width: 100%; min-height: 44px; text-align: left; }
 input[type="date"]::-webkit-date-and-time-value { text-align: left; }
+
+.pool-row { cursor: pointer; }
+.pool-row:active { background: var(--card2); }

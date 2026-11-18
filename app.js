@@ -648,23 +648,29 @@ ACT.settings = () => {
 
 ACT.poolManager = () => {
   const draw = (m) => {
-    const pool = list('pool').sort((a, b) => D.RARITY_ORDER.indexOf(a.rarity) - D.RARITY_ORDER.indexOf(b.rarity));
-    const html = `${mhead('🎰 扭蛋卡池')}
-      <p class="small muted" style="margin-top:0">扭蛋時會從這裡隨機抽一張。抽到的卡由對方負責兌現，你們都可以新增。</p>
+    const pool = list('pool').sort((a, b) => D.RARITY_ORDER.indexOf(a.rarity) - D.RARITY_ORDER.indexOf(b.rarity) || (a.at || 0) - (b.at || 0));
+    const html = `${mhead('扭蛋卡池')}
+      <p class="small muted" style="margin-top:0">扭蛋時會從這裡隨機抽一張，抽到的卡由對方負責兌現。點一張卡就能編輯，你們兩個都可以新增。</p>
       <button class="btn block" id="pm-add">＋ 新增一張到卡池</button>
-      <div class="mt">${pool.map((p) => `<div class="list-row"><span class="chip" style="color:var(--r-${p.rarity.toLowerCase()})">${p.rarity}</span>
-        <span class="grow">${esc(p.title)} <span class="small muted">${D.SPICE[p.spice || 1].icon}${p.mystery ? ' 🎁' : ''}</span></span>
-        <button class="small muted" data-del="${p.id}">刪除</button></div>`).join('')}</div>`;
+      <div class="mt">${pool.map((p) => `<div class="list-row pool-row" data-edit="${p.id}">
+        <div class="emb-${p.rarity}" style="width:44px;height:44px;flex:none">${emblemMini(p)}</div>
+        <div class="grow"><div><span style="color:var(--r-${p.rarity.toLowerCase()});font-weight:800;font-family:var(--serif)">${p.rarity}</span>　<b>${esc(p.title)}</b></div>
+          <div class="small muted">${esc(p.desc || '')}${p.desc ? ' · ' : ''}${D.SPICE[p.spice || 1].label}${p.mystery ? ' · 神秘盲盒' : ''}</div></div>
+        <span class="muted" style="font-size:18px">›</span></div>`).join('')}</div>`;
     if (!m) m = openModal(html); else m.querySelector('.modal').innerHTML = html;
     $('#pm-add', m).onclick = () => cardEditor({ title: '新增到卡池', pool: true }, async (t) => { await col('pool').add({ ...t, by: me(), at: now() }); toast('加進卡池了'); setTimeout(() => draw(m), 300); });
-    $$('[data-del]', m).forEach((b) => b.onclick = async () => { if (await confirmBox('從卡池刪掉這張？')) { await col('pool').remove(b.dataset.del); setTimeout(() => draw(m), 200); } });
+    $$('[data-edit]', m).forEach((row) => row.onclick = () => {
+      const p = list('pool').find((x) => x.id === row.dataset.edit); if (!p) return;
+      cardEditor({ title: '編輯卡池的卡', pool: true, preset: { title: p.title, desc: p.desc || '', rarity: p.rarity, spice: p.spice || 1, mystery: !!p.mystery, mark: p.mark || '' }, onDelete: async () => { await col('pool').remove(p.id); toast('從卡池刪掉了'); setTimeout(() => draw(m), 300); } },
+        async (t) => { await col('pool').update(p.id, { title: t.title, desc: t.desc, rarity: t.rarity, spice: t.spice, mystery: t.mystery, mark: t.mark || '' }); toast('改好了'); setTimeout(() => draw(m), 300); });
+    });
     return m;
   };
   draw();
 };
 
 // 共用：卡片編輯器
-function cardEditor({ title, pool = false, give = false, preset = {} }, onSave) {
+function cardEditor({ title, pool = false, give = false, preset = {}, onDelete = null }, onSave) {
   const t = { title: '', desc: '', rarity: 'N', spice: 1, qty: 1, mystery: false, secret: '', limit: 'none', mark: '', ...preset };
   const m = openModal(`${mhead(esc(title))}
     <label>卡片名稱</label><input id="ce-t" maxlength="24" value="${esc(t.title)}" placeholder="例如：按摩 15 分鐘">
@@ -681,7 +687,9 @@ function cardEditor({ title, pool = false, give = false, preset = {} }, onSave) 
       <div class="grow"><label>限時</label><select id="ce-l"><option value="none">不限時</option><option value="7d">7 天內有效</option><option value="weekend">週末限定</option><option value="today">今天限定</option></select></div></div>` : ''}
     <div class="toggle mt"><label class="switch"><input type="checkbox" id="ce-m" ${t.mystery ? 'checked' : ''}><span></span></label><span class="small">🎁 神秘盲盒（內容先藏起來，兌換時才揭曉）</span></div>
     <div id="ce-sw" class="${t.mystery && give ? '' : 'hidden'}"><label>盲盒裡的真正內容</label><input id="ce-sec" maxlength="60" placeholder="兌換時才會顯示" value="${esc(t.secret)}"></div>
-    <button class="btn block mt" id="ce-ok">${give ? '送出 💌' : '儲存'}</button>`);
+    <button class="btn block mt" id="ce-ok">${give ? '送出 💌' : '儲存'}</button>
+    ${onDelete ? '<button class="btn ghost block mt" id="ce-del" style="color:#d4405f">從卡池刪除</button>' : ''}`);
+  if (onDelete) $('#ce-del', m).onclick = async () => { if (await confirmBox('確定要從卡池刪掉這張？')) { closeModal(m); await onDelete(); } };
   const preview = () => {
     const pv = $('#ce-pv', m); if (!pv) return;
     pv.className = 'emb-' + t.rarity;
