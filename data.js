@@ -28,29 +28,29 @@ export const DEFAULT_DATES = {
 // ---------- 生日系列：她送他的生日卡（對方加入時自動放進他的票夾） ----------
 // used = 已經用掉幾張（生日當天用掉的）
 export const BIRTHDAY_CARDS = [
-  { title: '打鼻子', rarity: 'N', qty: 5, desc: '輕輕的，不准生氣' },
+  { title: '打鼻子', rarity: 'N', qty: 5, desc: '（🐰排球兔排隊中⋯⋯）' },
   { title: '吹頭髮服務', rarity: 'N', qty: 10, desc: '吹到全乾，附贈頭皮按摩' },
   { title: '做家事券', rarity: 'N', qty: 10, desc: '指定一項家事，我來做' },
   { title: '洗碗券', rarity: 'N', qty: 10, desc: '今天的碗都交給我' },
   { title: '背我走10步', rarity: 'N', qty: 1, desc: '一、二、三……要數出來喔' },
-  { title: '抱我轉10圈', rarity: 'N', qty: 1, desc: '轉完不准把我丟下' },
+  { title: '抱我轉10圈', rarity: 'N', qty: 1, desc: '嘿嘿' },
   { title: '一日司機', rarity: 'R', qty: 10, desc: '想去哪就去哪，司機隨叫隨到' },
   { title: '換我煮一道菜', rarity: 'R', qty: 1, desc: '你要吃完 🍳' },
-  { title: '挑禮物', rarity: 'R', qty: 1, used: 1, desc: '生日禮物你來挑' },
+  { title: '挑禮物', rarity: 'R', qty: 1, used: 1, desc: '💝' },
   { title: '吃蛋糕', rarity: 'R', qty: 1, used: 1, desc: '🎂' },
-  { title: '睡前加碼', rarity: 'SR', qty: 5, spice: 2, desc: '睡前，再多一點點' },
-  { title: '角色扮演', rarity: 'SR', qty: 5, spice: 3, desc: '劇本你寫，我來演' },
+  { title: '睡前加碼', rarity: 'SR', qty: 5, spice: 2, desc: '先不要睡😽' },
+  { title: '角色扮演', rarity: 'SR', qty: 5, spice: 3, desc: '服裝、台詞、劇情你決定' },
   { title: '今天我主動', rarity: 'SR', qty: 2, spice: 3, desc: '（心情好時）' },
   { title: '免死金牌', rarity: 'SR', qty: 1, desc: '吵架時拿出來，我先笑' },
-  { title: '你教我拉一個音', rarity: 'SR', qty: 1, desc: '老師請多指教 🎻' },
-  { title: '拉生日快樂給自己', rarity: 'SSR', qty: 1, used: 1, desc: '壽星限定演奏會' },
-  { title: '唱生日快樂給你聽', rarity: 'SSR', qty: 1, used: 1, desc: '換我唱給你聽' },
-  { title: '拍一張25歲的你和我的合照', rarity: 'SSR', qty: 1, used: 1, desc: '📸 25歲的我們' },
+  { title: '你教我拉一個音', rarity: 'SR', qty: 1, desc: '一對一私人小提琴課' },
+  { title: '拉生日快樂給自己', rarity: 'SSR', qty: 1, used: 1, desc: '壽星的專屬演奏會' },
+  { title: '唱生日快樂給你聽', rarity: 'SSR', qty: 1, used: 1, desc: '還好唱（走音版）' },
+  { title: '拍一張25歲的你和我的合照', rarity: 'SSR', qty: 1, used: 1, desc: '這張要放進相框' },
 ];
 
 // 生日系列收藏卡（不能兌換，只能收藏）
 export const BIRTHDAY_COLLECTIBLES = [
-  { title: '25歲生日感言', desc: '寫給 25 歲的你' },
+  { title: '25歲生日感言', desc: '🎤' },
   { title: '中獎了！', desc: '獎品是一個好寶！（已領取）' },
   { title: '以後每個生日', desc: '我都想在你身邊' },
   { title: '謝謝你', desc: '謝謝你出現在我生命中' },
