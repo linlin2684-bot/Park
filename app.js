@@ -985,6 +985,45 @@ ACT.openSent = (el) => {
     ${c.mystery && remaining(c) > 0 ? '<button class="btn ghost block mt" data-act="writeSecret" data-id="' + c.id + '">改寫盲盒內容</button>' : ''}`);
 };
 
+// ---------- 送卡動畫：裝信封 → 封蠟 → 飛走 ----------
+async function sendAnimation(t, to) {
+  const R = D.RARITY[t.rarity] || D.RARITY.N;
+  const el = document.createElement('div');
+  el.className = 'send-anim';
+  el.innerHTML = `<div class="sa-stage" id="sa-st">
+      <div class="sa-flap" id="sa-fl"></div>
+      <div class="sa-env-back"></div>
+      <div class="sa-card" id="sa-cd" style="--rc:${R.color}"><div class="sa-stub" style="${t.rarity === 'SSR' ? 'background:var(--ssr-grad);color:#4a2508' : ''}">${R.name}</div>
+        <div class="sa-body">${t.mystery ? '🎁 神秘盲盒' : esc(t.title)}</div></div>
+      <div class="sa-env-front"></div>
+      <div class="sa-seal" id="sa-sl">💗</div>
+    </div>
+    <div class="sa-text" id="sa-tx">送給 ${esc(nick(to))} 了 💌<small>等對方刮開吧</small></div>`;
+  document.body.appendChild(el);
+  let skip = false;
+  el.onclick = () => { skip = true; };
+  const wait = (ms) => (skip ? Promise.resolve() : sleep(ms));
+  await wait(250);
+  $('#sa-cd', el).classList.add('in'); vibrate(15);
+  await wait(650);
+  $('#sa-fl', el).classList.add('closed');
+  await wait(450);
+  $('#sa-sl', el).classList.add('on'); vibrate(40);
+  await wait(500);
+  $('#sa-st', el).classList.add('wiggle');
+  await wait(700);
+  const r = $('#sa-st', el).getBoundingClientRect();
+  $('#sa-st', el).classList.remove('wiggle');
+  $('#sa-st', el).classList.add('fly'); vibrate([20, 30, 60]);
+  for (let i = 0; i < 4; i++) setTimeout(() => floaty(r.left + r.width / 2 + i * 40, r.top - i * 90), i * 160);
+  await wait(800);
+  $('#sa-tx', el).classList.add('on');
+  await wait(1300);
+  el.style.transition = 'opacity .3s'; el.style.opacity = 0;
+  await sleep(300);
+  el.remove();
+}
+
 // ---------- 發卡 ----------
 ACT.giveCard = (el) => {
   if (!partner()) return toast('對方加入後才能發卡');
@@ -992,7 +1031,7 @@ ACT.giveCard = (el) => {
   cardEditor({ title: `💌 發卡給 ${nick(partner())}`, give: true }, async (t) => {
     await giveCard(partner(), t);
     if (battleId) await col('battles').update(battleId, { paid: true });
-    confetti(36); toast(`送出了！等 ${nick(partner())} 刮開 💌`);
+    sendAnimation(t, partner());
   });
 };
 
@@ -1146,7 +1185,7 @@ ACT.wishOk = async (el) => {
   await giveCard(w.by, { title: w.title, desc: w.desc, rarity: w.rarity, spice: w.spice });
   await col('wishes').update(w.id, { status: 'ok', doneAt: now() });
   await notify(w.by, 'wish', '你的願望實現了 ✨');
-  confetti(60); toast('願望實現了 ✨');
+  sendAnimation(w, w.by);
 };
 ACT.wishNo = async (el) => {
   if (!(await confirmBox('這次先不要？'))) return;

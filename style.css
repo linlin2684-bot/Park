@@ -482,3 +482,26 @@ html[data-theme="night"] .book-cover { background: linear-gradient(150deg, #5c1a
 .leaflet-popup-content { font-family: var(--sans); }
 .leaflet-popup-content img { width: 140px; border-radius: 8px; display: block; margin-bottom: 4px; }
 html[data-theme="night"] .leaflet-tile-pane { filter: brightness(.72) contrast(1.08) sepia(.35) hue-rotate(-18deg) saturate(1.2); }
+
+/* ---------- 送卡動畫：裝信封 → 封蠟 → 飛走 ---------- */
+.send-anim { position: fixed; inset: 0; z-index: 500; display: flex; flex-direction: column; align-items: center; justify-content: center; background: rgba(20, 8, 14, .6); backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px); animation: fadein .25s; }
+.sa-stage { position: relative; width: 240px; height: 150px; margin-top: 80px; transition: transform 1s cubic-bezier(.5, -0.3, .7, .2), opacity .9s ease-in; }
+.sa-env-back, .sa-env-front, .sa-flap { position: absolute; left: 0; width: 100%; border-radius: 10px; }
+.sa-env-back { top: 0; height: 100%; background: var(--env-back, #f2b8c6); z-index: 1; }
+.sa-env-front { top: 0; height: 100%; z-index: 3; background: var(--env-front, #ffd6df); clip-path: polygon(0 0, 50% 52%, 100% 0, 100% 100%, 0 100%); box-shadow: 0 10px 30px rgba(0, 0, 0, .25); }
+.sa-flap { top: 0; height: 62%; z-index: 0; background: var(--env-flap, #f7a8bb); clip-path: polygon(0 0, 100% 0, 50% 100%); transform-origin: 50% 0; transform: rotateX(180deg); transition: transform .45s ease-in-out; }
+.sa-flap.closed { transform: rotateX(0deg); z-index: 4; }
+.sa-card { position: absolute; left: 18px; right: 18px; top: -96px; height: 120px; z-index: 2; border-radius: 12px; background: var(--card); box-shadow: 0 6px 18px rgba(0, 0, 0, .2); display: flex; overflow: hidden; transition: top .6s cubic-bezier(.5, 0, .3, 1.2); }
+.sa-card.in { top: 14px; }
+.sa-card .sa-stub { width: 46px; flex: none; display: grid; place-items: center; color: #fff; font-family: var(--serif); font-weight: 900; font-size: 15px; background: var(--rc); }
+.sa-card .sa-body { flex: 1; padding: 12px; font-family: var(--serif); font-weight: 800; font-size: 16px; color: var(--ink); display: flex; align-items: center; }
+.sa-seal { position: absolute; left: 50%; top: 50%; z-index: 5; width: 46px; height: 46px; margin: -18px 0 0 -23px; border-radius: 50%; display: grid; place-items: center; font-size: 22px; background: radial-gradient(circle at 35% 30%, #e0475f, #a3122e); box-shadow: 0 3px 8px rgba(0, 0, 0, .35), inset 0 -3px 6px rgba(0, 0, 0, .25); transform: scale(0); }
+.sa-seal.on { animation: sealpop .45s cubic-bezier(.3, 1.8, .5, 1) forwards; }
+@keyframes sealpop { 0% { transform: scale(2.2) rotate(-30deg); opacity: 0; } 100% { transform: scale(1) rotate(0); opacity: 1; } }
+.sa-stage.fly { transform: translate(170px, -460px) rotate(-24deg) scale(.35); opacity: 0; }
+.sa-stage.wiggle { animation: envwiggle .35s ease-in-out 2; }
+@keyframes envwiggle { 0%, 100% { transform: rotate(0); } 25% { transform: rotate(-4deg); } 75% { transform: rotate(4deg); } }
+.sa-text { margin-top: 40px; color: #fff; font-family: var(--serif); font-size: 22px; font-weight: 800; opacity: 0; transform: translateY(10px); transition: all .4s; text-align: center; }
+.sa-text.on { opacity: 1; transform: none; }
+.sa-text small { display: block; font-family: var(--sans); font-size: 13px; font-weight: 500; opacity: .8; margin-top: 4px; }
+html[data-theme="night"] .send-anim { --env-back: #6e1d33; --env-front: #8a2a44; --env-flap: #a3364f; }
