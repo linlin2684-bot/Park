@@ -505,3 +505,72 @@ html[data-theme="night"] .leaflet-tile-pane { filter: brightness(.72) contrast(1
 .sa-text.on { opacity: 1; transform: none; }
 .sa-text small { display: block; font-family: var(--sans); font-size: 13px; font-weight: 500; opacity: .8; margin-top: 4px; }
 html[data-theme="night"] .send-anim { --env-back: #6e1d33; --env-front: #8a2a44; --env-flap: #a3364f; }
+
+/* ============================================================
+   圖騰配色（白天／夜晚）
+   ============================================================ */
+.emb-N   { --e-bg: #f1f7f2; --e-ink: #2f6b55; --e-acc: #9fcbb4; }
+.emb-R   { --e-bg: #eef3fa; --e-ink: #2f5486; --e-acc: #9db9e0; }
+.emb-SR  { --e-bg: #f4eefa; --e-ink: #5e3489; --e-acc: #c3a6e4; }
+.emb-SSR { --e-bg: #fbf5e6; --e-ink: #7d500c; --e-acc: #dfb663; }
+.emb-C   { --e-bg: #fcf0f3; --e-ink: #8f2c4a; --e-acc: #eba9bc; }
+html[data-theme="night"] .emb-N   { --e-bg: #18261f; --e-ink: #b6e3cc; --e-acc: #3f725d; }
+html[data-theme="night"] .emb-R   { --e-bg: #161e2c; --e-ink: #bfd5f5; --e-acc: #415f8d; }
+html[data-theme="night"] .emb-SR  { --e-bg: #20172b; --e-ink: #e0ccf7; --e-acc: #6d4b96; }
+html[data-theme="night"] .emb-SSR { --e-bg: #261d0f; --e-ink: #f2d796; --e-acc: #94702a; }
+html[data-theme="night"] .emb-C   { --e-bg: #2a141b; --e-ink: #f6c8d4; --e-acc: #93445c; }
+.e-bg { fill: var(--e-bg); }
+.e-ink-f { fill: var(--e-ink); }
+.e-ink-s { stroke: var(--e-ink); fill: none; }
+.e-acc-s { stroke: var(--e-acc); fill: none; }
+.e-acc-f { fill: var(--e-acc); }
+.e-bg.e-ink-s, .e-bg.e-acc-s { fill: var(--e-bg); }
+.e-char, .e-title { font-family: var(--serif); font-weight: 900; }
+.e-small { font-family: var(--serif); font-weight: 700; }
+
+/* 票夾列表：右側小徽章 */
+.ticket { overflow: hidden; }
+.ticket .t-emb { width: 70px; flex: none; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; padding: 8px 10px 8px 0; }
+.ticket .t-emb .emb-mini { width: 52px; height: 52px; filter: drop-shadow(0 2px 4px rgba(0, 0, 0, .12)); }
+.ticket .t-emb .q { font-family: var(--serif); font-weight: 900; font-size: 12.5px; color: var(--rc); line-height: 1; }
+.ticket .t-emb .q small { color: var(--muted); font-weight: 600; }
+.ticket .stamp-used { right: 84px; }
+.ticket.SR::after, .ticket.SSR::after { content: ""; position: absolute; inset: 0; pointer-events: none; background: linear-gradient(105deg, transparent 35%, rgba(255, 255, 255, .38) 48%, transparent 60%); background-size: 260% 100%; animation: tsheen 5.5s ease-in-out infinite; mix-blend-mode: soft-light; }
+.ticket.SSR::after { background: linear-gradient(105deg, transparent 30%, rgba(255, 220, 150, .55) 42%, rgba(255, 170, 220, .45) 50%, rgba(160, 210, 255, .5) 58%, transparent 70%); background-size: 260% 100%; mix-blend-mode: overlay; animation-duration: 4s; }
+@keyframes tsheen { 0%, 55% { background-position: 130% 0; } 100% { background-position: -30% 0; } }
+
+/* ============================================================
+   翻牌大卡
+   ============================================================ */
+.fc-wrap { perspective: 1100px; width: 264px; max-width: 76vw; aspect-ratio: 264 / 400; margin: 4px auto 14px; }
+.fc-tilt { width: 100%; height: 100%; transform: rotateX(var(--rx, 0deg)) rotateY(var(--ry, 0deg)); transition: transform .12s linear; transform-style: preserve-3d; }
+.fc { position: relative; width: 100%; height: 100%; transform-style: preserve-3d; transition: transform .75s cubic-bezier(.3, 1.25, .5, 1); cursor: pointer; }
+.fc.flipped { transform: rotateY(180deg); }
+.fc.punch { animation: punch .45s cubic-bezier(.3, 1.6, .5, 1); }
+@keyframes punch { 0% { transform: scale(1); } 35% { transform: scale(.94) rotate(-1.5deg); } 100% { transform: scale(1); } }
+.fc-face { position: absolute; inset: 0; border-radius: 18px; overflow: hidden; backface-visibility: hidden; -webkit-backface-visibility: hidden; background: var(--e-bg); box-shadow: 0 16px 40px rgba(0, 0, 0, .3), 0 0 0 1px color-mix(in srgb, var(--e-ink) 18%, transparent); display: flex; flex-direction: column; }
+.fc-back { transform: rotateY(180deg); }
+.fc-front .emb-svg { width: 100%; display: block; flex: none; }
+.fc-desc { flex: 1; display: flex; align-items: center; justify-content: center; text-align: center; padding: 2px 22px 0; font-family: var(--serif); font-size: 14px; line-height: 1.55; color: var(--e-ink); }
+.fc-meta { display: flex; justify-content: center; align-items: center; flex-wrap: wrap; gap: 6px; padding: 0 16px 14px; font-size: 10.5px; color: color-mix(in srgb, var(--e-ink) 70%, transparent); letter-spacing: .05em; }
+.fc-meta i { font-style: normal; font-size: 6px; opacity: .6; }
+.fc .big-stamp { top: 46%; right: 50%; transform: translate(50%, 0) rotate(-14deg) scale(3); }
+.fc .big-stamp.go { animation: stampin3 .45s cubic-bezier(.5, 0, .7, 1.6) forwards; }
+@keyframes stampin3 { 60% { transform: translate(50%, 0) rotate(-14deg) scale(.9); opacity: 1; } 100% { transform: translate(50%, 0) rotate(-14deg) scale(1); opacity: .92; } }
+.fc.used-done .fc-front { filter: saturate(.55); }
+.fc.used-done .big-stamp { animation: none; opacity: .9; transform: translate(50%, 0) rotate(-14deg) scale(1); }
+
+.emb-back { position: absolute; inset: 0; width: 100%; height: 100%; }
+.fc-back-panel { position: relative; margin: auto 22px; padding: 16px 16px 14px; border-radius: 12px; background: color-mix(in srgb, var(--e-bg) 90%, transparent); border: 1px solid color-mix(in srgb, var(--e-ink) 35%, transparent); color: var(--e-ink); backdrop-filter: blur(2px); }
+.fbp-title { font-family: var(--serif); font-weight: 900; font-size: 17px; text-align: center; letter-spacing: .2em; margin-bottom: 8px; }
+.fbp-sub { font-family: var(--serif); font-weight: 800; font-size: 12px; margin: 10px 0 2px; letter-spacing: .15em; text-align: center; opacity: .8; }
+.fbp-row { display: flex; justify-content: space-between; font-size: 12.5px; padding: 4px 0; border-bottom: 1px dashed color-mix(in srgb, var(--e-ink) 22%, transparent); }
+.fbp-row span { opacity: .7; }
+.fbp-empty { text-align: center; font-size: 12px; opacity: .6; margin-top: 10px; }
+
+/* SR / SSR 光澤 */
+.fc .holo, .fc .glare { position: absolute; inset: 0; pointer-events: none; border-radius: inherit; }
+.fc.SR .holo { background: linear-gradient(115deg, transparent 25%, rgba(214, 180, 255, .55) 42%, rgba(255, 255, 255, .75) 50%, rgba(214, 180, 255, .55) 58%, transparent 75%); background-size: 260% 260%; background-position: var(--hx, 50%) var(--hy, 50%); mix-blend-mode: soft-light; }
+.fc.SSR .holo { background: repeating-linear-gradient(118deg, #ff9fb2 0%, #ffd59a 7%, #fff3a8 14%, #a8f0c8 21%, #9fd2ff 28%, #d0b4ff 35%, #ff9fb2 42%); background-size: 320% 320%; background-position: var(--hx, 50%) var(--hy, 50%); mix-blend-mode: color-dodge; opacity: .42; }
+html[data-theme="night"] .fc.SSR .holo { opacity: .2; mix-blend-mode: screen; }
+.fc.SR .glare, .fc.SSR .glare { background: radial-gradient(circle at var(--gx, 50%) var(--gy, 40%), rgba(255, 255, 255, .55), transparent 45%); mix-blend-mode: overlay; }
