@@ -265,7 +265,7 @@ function newCoupleData(uid, profile, seedBirthday) {
   return {
     members: [uid], creator: uid, profiles: { [uid]: profile },
     dates: { anniversary: D.DEFAULT_DATES.anniversary },
-    seedPending: !!seedBirthday, tickets: {}, spins: {}, moods: {}, drops: {},
+    seedPending: !!seedBirthday, poolVer: D.POOL_VERSION, tickets: {}, spins: {}, moods: {}, drops: {},
     food: D.DEFAULT_FOOD, fund: { name: '第一趟旅行基金', goal: 30000, round: 1, rewarded: false },
     createdAt: now(),
   };
@@ -347,6 +347,23 @@ function enterCouple(cid) {
 // 把已經從預設卡池拿掉的卡，從現有空間的卡池刪掉（自己新增的不會動）
 async function cleanPool(arr) {
   for (const p of arr) if (p.by === 'sys' && D.POOL_REMOVED.includes(p.title)) await col('pool').remove(p.id);
+  await syncPool(arr);
+}
+// 卡池升級：只補上「比這個空間版本新」的預設卡，被你們刪掉的舊卡不會再跑回來
+let poolSyncing = false;
+async function syncPool(arr) {
+  if (poolSyncing || !S.couple) return;
+  const old = S.couple.poolVer || 1;
+  if (old >= D.POOL_VERSION) return;
+  poolSyncing = true;
+  try {
+    const ok = await S.store.coupleTx(S.cid, (c) => ((c.poolVer || 1) >= D.POOL_VERSION ? null : { poolVer: D.POOL_VERSION }));
+    if (!ok) return;
+    const have = new Set(arr.map((p) => p.title));
+    const add = D.POOL.filter((p) => (p.v || 1) > old && !have.has(p.title));
+    for (const p of add) await col('pool').add({ ...p, by: 'sys', at: now() });
+    if (add.length) toast(`扭蛋卡池新增了 ${add.length} 張卡 🎰`);
+  } finally { poolSyncing = false; }
 }
 
 function onData(name) {
