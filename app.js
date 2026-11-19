@@ -183,6 +183,15 @@ document.addEventListener('click', (e) => {
   if (fn) { e.preventDefault(); Promise.resolve(fn(el, e)).catch((err) => { console.error(err); toast('出了點問題：' + (err.message || err)); }); }
 });
 
+// ---------- 配色主題（每支手機自己選） ----------
+const PALETTES = {
+  zone: { name: '分區配色', desc: '每個分頁一個主色', sw: ["#ff6f91", "#8a63d8", "#2a9a96", "#d0912c"], meta: {} },
+  morandi: { name: '莫蘭迪', desc: '低飽和、溫柔安靜', sw: ["#b9787f", "#7f9a87", "#7d8fab", "#b0916e"], meta: {"day": "#f4f0ea", "night": "#1c1a19"} },
+  carnival: { name: '夜遊樂園', desc: '午夜藍底、燈泡金', sw: ["#f0606f", "#7d5fd8", "#23a19c", "#d0991e"], meta: {"day": "#f3f4fa", "night": "#10162b"} },
+  candy: { name: '復古糖果', desc: '櫻桃紅、薄荷、奶油黃', sw: ["#d93a4a", "#36a37c", "#3f84cc", "#d99a12"], meta: {"day": "#fff8ec", "night": "#1e1517"} },
+};
+function paletteId() { const p = localStorage.getItem('park-palette'); return PALETTES[p] ? p : 'zone'; }
+function setSection(sec) { document.documentElement.dataset.sec = sec || 'home'; }
 // ---------- 主題（日夜模式） ----------
 function themeMode() { return localStorage.getItem('park-theme') || 'auto'; }
 function applyTheme() {
@@ -190,8 +199,9 @@ function applyTheme() {
   const h = new Date().getHours();
   const t = mode === 'auto' ? (h >= 6 && h < 18 ? 'day' : 'night') : mode;
   document.documentElement.dataset.theme = t;
+  document.documentElement.dataset.palette = paletteId();
   const mc = document.querySelector('meta[name=theme-color]');
-  if (mc) mc.content = t === 'day' ? '#fff6f1' : '#150a0f';
+  if (mc) mc.content = (PALETTES[paletteId()].meta || {})[t] || (t === 'day' ? '#fff6f1' : '#150a0f');
   return t;
 }
 ACT.theme = () => {
@@ -199,7 +209,7 @@ ACT.theme = () => {
   const next = order[(order.indexOf(themeMode()) + 1) % 3];
   localStorage.setItem('park-theme', next);
   applyTheme();
-  toast({ auto: '🕯️ 自動模式：白天甜蜜、晚上燭光', day: '☀️ 白天模式', night: '🌙 夜晚模式' }[next]);
+  toast({ auto: '自動模式：白天亮色、晚上暗色', day: '白天模式', night: '夜晚模式' }[next]);
   renderTop();
 };
 applyTheme();
@@ -837,7 +847,7 @@ function doRender() {
   if (!S.couple || !$('#main')) return;
   const a = document.activeElement;
   if (a && a.closest && a.closest('#main') && /INPUT|TEXTAREA|SELECT/.test(a.tagName)) { S.deferRender = true; renderTop(); renderNav(); return; }
-  renderTop(); renderNav(); renderMain();
+  setSection(S.tab); renderTop(); renderNav(); renderMain();
 }
 document.addEventListener('focusout', () => setTimeout(() => {
   const a = document.activeElement;
@@ -935,6 +945,11 @@ ACT.settings = () => {
       <div class="seg" id="s-sp">${[1, 2, 3].map((l) => `<button data-l="${l}" class="${(p.spice || 1) === l ? 'on' : ''}">${spiceIc(l)} ${D.SPICE[l].label}</button>`).join('')}</div>
       <p class="small muted" style="margin:0" id="s-lv">目前兩人共同等級：${spiceIc(spiceLevel())} ${D.SPICE[spiceLevel()].label}</p>
     </div>
+    <div class="card">
+      <h3><i data-ic="sparkle"></i> 配色主題</h3>
+      <p class="small muted" style="margin:0 0 10px">只會改變你這支手機的樣子，每個分頁會有自己的主色</p>
+      <div class="pal-grid" id="s-pal">${Object.entries(PALETTES).map(([k, p]) => `<button data-p="${k}" class="${paletteId() === k ? 'on' : ''}"><span class="pal-sw">${p.sw.map((c) => `<i style="background:${c}"></i>`).join('')}</span><b>${p.name}</b><small>${p.desc}</small></button>`).join('')}</div>
+    </div>
     <button class="btn block" id="s-save">儲存</button>
     <div class="card mt">
       <h3>更多</h3>
@@ -950,6 +965,10 @@ ACT.settings = () => {
     </div>
     <p class="center small muted">兩人遊樂園 · 做給我們兩個</p>`);
   let sp = p.spice || 1;
+  $$('#s-pal button', m).forEach((b) => b.onclick = () => {
+    localStorage.setItem('park-palette', b.dataset.p); applyTheme();
+    $$('#s-pal button', m).forEach((x) => x.classList.toggle('on', x === b));
+  });
   let av = p.av && AVATARS[p.av] ? p.av : '';
   const avPick = (k) => { av = k; $$('#s-av button', m).forEach((x) => x.classList.toggle('on', x.dataset.av === k)); };
   $$('#s-av button', m).forEach((b) => b.onclick = () => { avPick(b.dataset.av); if (!b.dataset.av) $('#s-em', m).focus(); });

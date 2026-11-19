@@ -717,3 +717,60 @@ html[data-theme="night"] .piggy-svg { filter: drop-shadow(0 4px 10px rgba(255, 1
 .auth-logo .lg { animation: logofloat 4s ease-in-out infinite; font-size: 0; }
 .auth-logo .lg img { width: 132px; height: 132px; display: block; filter: drop-shadow(0 6px 18px rgba(196, 46, 82, .22)); }
 @keyframes logofloat { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-5px); } }
+
+/* ============ 配色主題 × 分頁主色 ============ */
+html[data-palette="zone"][data-theme="day"][data-sec="home"] { --accent: #ff6f91; --accent2: #ffae6b; }
+html[data-palette="zone"][data-theme="day"][data-sec="wallet"] { --accent: #f0607e; --accent2: #ffae6b; }
+html[data-palette="zone"][data-theme="day"][data-sec="play"] { --accent: #8a63d8; --accent2: #f0a8c8; }
+html[data-palette="zone"][data-theme="day"][data-sec="travel"] { --accent: #2a9a96; --accent2: #f2b46b; }
+html[data-palette="zone"][data-theme="day"][data-sec="memory"] { --accent: #d0912c; --accent2: #ff8fa8; }
+html[data-palette="zone"][data-theme="night"][data-sec="home"] { --accent: #c42e52; --accent2: #e3b25e; }
+html[data-palette="zone"][data-theme="night"][data-sec="wallet"] { --accent: #c42e52; --accent2: #e3b25e; }
+html[data-palette="zone"][data-theme="night"][data-sec="play"] { --accent: #7f5ad6; --accent2: #e3b25e; }
+html[data-palette="zone"][data-theme="night"][data-sec="travel"] { --accent: #25938f; --accent2: #e3b25e; }
+html[data-palette="zone"][data-theme="night"][data-sec="memory"] { --accent: #c08a2c; --accent2: #f0a0b4; }
+html[data-palette="morandi"][data-theme="day"] { --bg: #f4f0ea; --bg2: #ebe4da; --card: #fffdf9; --card2: #f3ede5; --ink: #4a3f3c; --muted: #9a8c86; --line: rgba(90,70,60,.12); --shadow: 0 6px 20px rgba(110,90,80,.10), 0 1px 3px rgba(90,70,60,.08); --bg-art: radial-gradient(circle at 20px 20px, rgba(150,120,110,.08) 2.5px, transparent 3px) 0 0 / 40px 40px, linear-gradient(180deg, #f5f1eb, #efe9e1); }
+html[data-palette="morandi"][data-theme="day"][data-sec="home"] { --accent: #b9787f; --accent2: #c9ad8e; }
+html[data-palette="morandi"][data-theme="day"][data-sec="wallet"] { --accent: #b9787f; --accent2: #c9ad8e; }
+html[data-palette="morandi"][data-theme="day"][data-sec="play"] { --accent: #7f9a87; --accent2: #c9ad8e; }
+html[data-palette="morandi"][data-theme="day"][data-sec="travel"] { --accent: #7d8fab; --accent2: #c9ad8e; }
+html[data-palette="morandi"][data-theme="day"][data-sec="memory"] { --accent: #b0916e; --accent2: #c08a8f; }
+html[data-palette="morandi"][data-theme="night"] { --bg: #1c1a19; --bg2: #25221f; --card: #2a2623; --card2: #332e2a; --ink: #ece4dc; --muted: #a89a91; --line: rgba(220,200,180,.12); --shadow: 0 8px 28px rgba(0,0,0,.4), 0 0 0 1px rgba(220,200,180,.06); --bg-art: radial-gradient(ellipse 70% 40% at 50% -5%, rgba(201,173,142,.14), transparent 70%), linear-gradient(180deg, #201d1b, #181615); }
+html[data-palette="morandi"][data-theme="night"][data-sec="home"] { --accent: #c98b91; --accent2: #d2b796; }
+html[data-palette="morandi"][data-theme="night"][data-sec="wallet"] { --accent: #c98b91; --accent2: #d2b796; }
+html[data-palette="morandi"][data-theme="night"][data-sec="play"] { --accent: #8fab96; --accent2: #d2b796; }
+html[data-palette="morandi"][data-theme="night"][data-sec="travel"] { --accent: #8fa0bd; --accent2: #d2b796; }
+html[data-palette="morandi"][data-theme="night"][data-sec="memory"] { --accent: #c4a27c; --accent2: #c98b91; }
+html[data-palette="carnival"][data-theme="day"] { --bg: #f3f4fa; --bg2: #e6e9f5; --card: #ffffff; --card2: #eef0f8; --ink: #1f2747; --muted: #7a809c; --line: rgba(31,39,71,.12); --shadow: 0 6px 20px rgba(31,39,71,.10), 0 1px 3px rgba(31,39,71,.08); --bg-art: radial-gradient(circle at 20px 20px, rgba(232,184,74,.16) 2.5px, transparent 3px) 0 0 / 40px 40px, linear-gradient(180deg, #f5f6fb, #eceff8); }
+html[data-palette="carnival"][data-theme="day"][data-sec="home"] { --accent: #f0606f; --accent2: #e8b84a; }
+html[data-palette="carnival"][data-theme="day"][data-sec="wallet"] { --accent: #f0606f; --accent2: #e8b84a; }
+html[data-palette="carnival"][data-theme="day"][data-sec="play"] { --accent: #7d5fd8; --accent2: #e8b84a; }
+html[data-palette="carnival"][data-theme="day"][data-sec="travel"] { --accent: #23a19c; --accent2: #e8b84a; }
+html[data-palette="carnival"][data-theme="day"][data-sec="memory"] { --accent: #d0991e; --accent2: #f0606f; }
+html[data-palette="carnival"][data-theme="night"] { --bg: #10162b; --bg2: #172042; --card: #1a2342; --card2: #222c50; --ink: #f2ecdc; --muted: #9aa3c4; --line: rgba(232,184,74,.16); --shadow: 0 8px 28px rgba(0,0,0,.45), 0 0 0 1px rgba(232,184,74,.08); --bg-art: radial-gradient(ellipse 70% 40% at 50% -5%, rgba(232,184,74,.20), transparent 70%), radial-gradient(ellipse 60% 50% at 100% 100%, rgba(255,122,138,.14), transparent 70%), linear-gradient(180deg, #131a33, #0c1124); }
+html[data-palette="carnival"][data-theme="night"][data-sec="home"] { --accent: #ff7a8a; --accent2: #e8b84a; }
+html[data-palette="carnival"][data-theme="night"][data-sec="wallet"] { --accent: #ff7a8a; --accent2: #e8b84a; }
+html[data-palette="carnival"][data-theme="night"][data-sec="play"] { --accent: #a68af0; --accent2: #e8b84a; }
+html[data-palette="carnival"][data-theme="night"][data-sec="travel"] { --accent: #4fbdb9; --accent2: #e8b84a; }
+html[data-palette="carnival"][data-theme="night"][data-sec="memory"] { --accent: #e2ac3c; --accent2: #ff7a8a; }
+html[data-palette="candy"][data-theme="day"] { --bg: #fff8ec; --bg2: #fdeccf; --card: #ffffff; --card2: #fff1dc; --ink: #3d2a2a; --muted: #a08a7a; --line: rgba(90,50,40,.12); --shadow: 0 6px 20px rgba(217,58,74,.10), 0 1px 3px rgba(90,50,40,.08); --bg-art: radial-gradient(circle at 20px 20px, rgba(124,199,168,.14) 2.5px, transparent 3px) 0 0 / 40px 40px, linear-gradient(180deg, #fff9ee, #fff3e3); }
+html[data-palette="candy"][data-theme="day"][data-sec="home"] { --accent: #d93a4a; --accent2: #f2c94c; }
+html[data-palette="candy"][data-theme="day"][data-sec="wallet"] { --accent: #d93a4a; --accent2: #f2c94c; }
+html[data-palette="candy"][data-theme="day"][data-sec="play"] { --accent: #36a37c; --accent2: #f2c94c; }
+html[data-palette="candy"][data-theme="day"][data-sec="travel"] { --accent: #3f84cc; --accent2: #f2c94c; }
+html[data-palette="candy"][data-theme="day"][data-sec="memory"] { --accent: #d99a12; --accent2: #d93a4a; }
+html[data-palette="candy"][data-theme="night"] { --bg: #1e1517; --bg2: #2a1d20; --card: #2a1f21; --card2: #33272a; --ink: #fbefe2; --muted: #c0a89b; --line: rgba(242,201,76,.14); --shadow: 0 8px 28px rgba(0,0,0,.45), 0 0 0 1px rgba(242,201,76,.06); --bg-art: radial-gradient(ellipse 70% 40% at 50% -5%, rgba(242,201,76,.14), transparent 70%), radial-gradient(ellipse 60% 50% at 100% 100%, rgba(124,199,168,.12), transparent 70%), linear-gradient(180deg, #22181a, #181113); }
+html[data-palette="candy"][data-theme="night"][data-sec="home"] { --accent: #e8576a; --accent2: #f2c94c; }
+html[data-palette="candy"][data-theme="night"][data-sec="wallet"] { --accent: #e8576a; --accent2: #f2c94c; }
+html[data-palette="candy"][data-theme="night"][data-sec="play"] { --accent: #5cc7a0; --accent2: #f2c94c; }
+html[data-palette="candy"][data-theme="night"][data-sec="travel"] { --accent: #6aa8e8; --accent2: #f2c94c; }
+html[data-palette="candy"][data-theme="night"][data-sec="memory"] { --accent: #e6b43a; --accent2: #e8576a; }
+html { transition: background-color .35s; }
+.nav button.on, .page-title h2 .ic { transition: color .3s; }
+.pal-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.pal-grid button { text-align: left; padding: 10px 12px; border-radius: 14px; background: var(--card2); border: 2px solid transparent; display: flex; flex-direction: column; gap: 2px; }
+.pal-grid button.on { border-color: var(--accent); }
+.pal-grid b { font-size: 14px; }
+.pal-grid small { font-size: 11px; color: var(--muted); }
+.pal-sw { display: flex; gap: 4px; margin-bottom: 6px; }
+.pal-sw i { flex: 1; height: 8px; border-radius: 4px; }
