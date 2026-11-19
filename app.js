@@ -594,7 +594,7 @@ const CAT_POSES = {
     <path class="cat-tail" d="M66 80 Q86 80 84 64 Q83 56 76 58" fill="none" stroke="${CAT_INK}" stroke-width="5" stroke-linecap="round"/>
     <path d="M34 86 Q29 62 39 50 Q50 43 61 50 Q71 62 66 86 Z" fill="${CAT_INK}"/>
     <ellipse cx="42" cy="86" rx="6" ry="3" fill="${CAT_INK}"/>
-    <g class="cat-wave"><path d="M60 62 Q70 54 72 42" fill="none" stroke="${CAT_INK}" stroke-width="7" stroke-linecap="round"/><circle cx="72" cy="41" r="4.5" fill="${CAT_INK}"/><circle cx="72" cy="41" r="1.6" fill="${CP}" opacity=".8"/></g>
+    <g class="cat-wave"><path d="M59 61 Q66 56 67 50" fill="none" stroke="${CAT_INK}" stroke-width="9" stroke-linecap="round"/><circle cx="67" cy="49" r="5" fill="${CAT_INK}"/><circle cx="67" cy="49" r="1.6" fill="${CP}" opacity=".8"/></g>
     ${head(49, 37, 1, 'happy')}`,
   // 縮成一團睡覺
   sleep: () => `${shadow(52, 34)}
@@ -605,20 +605,20 @@ const CAT_POSES = {
     <text x="78" y="42" font-size="8" font-weight="800" fill="currentColor" opacity=".35" font-family="sans-serif" class="cat-z z2">z</text>`,
   // 伸懶腰（屁股翹高）
   stretch: () => `${shadow(52, 34)}
-    <path class="cat-tail" d="M74 52 Q80 30 92 30" fill="none" stroke="${CAT_INK}" stroke-width="5" stroke-linecap="round"/>
-    <path d="M26 82 Q30 74 44 72 Q60 66 72 52 Q80 50 80 62 L78 86 L70 86 L70 72 Q56 82 40 86 L22 88 Q18 86 26 82 Z" fill="${CAT_INK}"/>
-    <path d="M14 86 L34 86" stroke="${CAT_INK}" stroke-width="6" stroke-linecap="round"/>
+    <path class="cat-tail" d="M75 61 Q80 44 91 42" fill="none" stroke="${CAT_INK}" stroke-width="5" stroke-linecap="round"/>
+    <path d="M26 82 Q30 76 44 75 Q58 71 70 61 Q81 58 81 68 L80 86 L70 86 L70 77 Q56 84 40 86 L22 88 Q18 86 26 82 Z" fill="${CAT_INK}"/>
+    <path d="M20 86 L34 86" stroke="${CAT_INK}" stroke-width="8.5" stroke-linecap="round"/>
     ${head(28, 70, .85, 'closed', 6)}
-    <path d="M36 54 l3 -3 M40 56 l4 -2" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" opacity=".35"/>`,
+    <path d="M40 62 l3 -3 M45 64 l4 -2" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" opacity=".35"/>`,
   // 玩毛線球
   yarn: () => `${shadow(50, 34)}
     <path class="cat-tail" d="M74 80 Q90 76 88 60" fill="none" stroke="${CAT_INK}" stroke-width="5" stroke-linecap="round"/>
     <path d="M30 86 Q26 70 42 66 Q64 62 76 74 Q80 82 74 87 L32 88 Z" fill="${CAT_INK}"/>
-    <g class="cat-bat"><path d="M34 74 Q24 70 20 74" fill="none" stroke="${CAT_INK}" stroke-width="6" stroke-linecap="round"/></g>
+    <g class="cat-bat"><path d="M34 76 Q29 73 26 76" fill="none" stroke="${CAT_INK}" stroke-width="8.5" stroke-linecap="round"/></g>
     ${head(40, 56, .9, 'wide', -10)}
-    <g class="cat-yarn"><circle cx="13" cy="80" r="8" fill="#ff8fab"/>
+    <g transform="translate(5 0)"><g class="cat-yarn"><circle cx="13" cy="80" r="8" fill="#ff8fab"/>
       <path d="M6 77 Q13 74 20 79 M7 83 Q13 80 19 85 M10 73 Q15 80 12 88" fill="none" stroke="#c94f72" stroke-width="1" stroke-linecap="round"/>
-      <path d="M21 82 Q30 90 42 88" fill="none" stroke="#ff8fab" stroke-width="1" stroke-linecap="round"/></g>`,
+      <path d="M21 82 Q30 90 42 88" fill="none" stroke="#ff8fab" stroke-width="1" stroke-linecap="round"/></g></g>`,
   // 從紙箱探頭
   box: () => `${shadow(50, 30)}
     ${head(50, 52, .95, 'wide')}
@@ -638,14 +638,14 @@ const CAT_POSES = {
     <path class="cat-tail" d="M76 80 Q90 82 90 70" fill="none" stroke="${CAT_INK}" stroke-width="5" stroke-linecap="round"/>
     <ellipse cx="54" cy="76" rx="24" ry="12" fill="${CAT_INK}"/>
     <ellipse cx="56" cy="74" rx="12" ry="6" fill="#3d3646"/>
-    <path d="M44 66 Q42 56 46 52 M56 66 Q58 56 54 50 M66 70 Q72 62 70 56 M72 74 Q80 70 80 64" fill="none" stroke="${CAT_INK}" stroke-width="6" stroke-linecap="round"/>
-    <circle cx="46" cy="51" r="1.8" fill="${CP}" opacity=".7"/><circle cx="54" cy="49" r="1.8" fill="${CP}" opacity=".7"/>
+    <path d="M46 66 L45 60 M55 65 L55 58.5 M64 67 L66.5 61 M70 71 L74.5 66.5" fill="none" stroke="${CAT_INK}" stroke-width="8.5" stroke-linecap="round"/>
+    <circle cx="45" cy="59.5" r="1.7" fill="${CP}" opacity=".7"/><circle cx="55" cy="58" r="1.7" fill="${CP}" opacity=".7"/>
     ${head(27, 70, .9, 'happy', -22)}`,
   // 跳起來（開心）
   jump: () => `<ellipse cx="50" cy="88" rx="18" ry="3" fill="currentColor" opacity=".07"/>
     <path class="cat-tail" d="M64 58 Q80 50 82 36" fill="none" stroke="${CAT_INK}" stroke-width="5" stroke-linecap="round"/>
     <path d="M36 66 Q33 48 41 41 Q50 36 59 41 Q67 48 64 66 Q56 70 50 70 Q42 70 36 66 Z" fill="${CAT_INK}"/>
-    <path d="M38 64 L32 72 M62 64 L68 72 M40 46 L28 36 M60 46 L72 36" stroke="${CAT_INK}" stroke-width="6" stroke-linecap="round"/>
+    <path d="M41 66 L38.5 72 M59 66 L61.5 72 M40 48 L34 42.5 M60 48 L66 42.5" stroke="${CAT_INK}" stroke-width="8.5" stroke-linecap="round"/>
     ${head(50, 28, 1, 'happy')}
     <path d="M20 22 l1.5 4 4 1.5 -4 1.5 -1.5 4 -1.5 -4 -4 -1.5 4 -1.5 Z M82 16 l1 3 3 1 -3 1 -1 3 -1 -3 -3 -1 3 -1 Z" fill="#ffd970"/>`,
   // 撐傘（下雨）
@@ -655,7 +655,7 @@ const CAT_POSES = {
     <ellipse cx="42" cy="86" rx="6" ry="3" fill="${CAT_INK}"/><ellipse cx="58" cy="86" rx="6" ry="3" fill="${CAT_INK}"/>
     ${head(48, 37, 1, 'open')}
     <path d="M69 8 L70 60 Q70 65 65 65" fill="none" stroke="#7a5a3a" stroke-width="1.8" stroke-linecap="round"/>
-    <path d="M60 64 Q70 62 72 54" stroke="${CAT_INK}" stroke-width="6" stroke-linecap="round" fill="none"/>
+    <path d="M60 63 Q67 61 69 56" stroke="${CAT_INK}" stroke-width="8.5" stroke-linecap="round" fill="none"/>
     <path d="M42 14 Q69 -6 96 14 Q89 10 82.5 14 Q76 10 69 14 Q62 10 55.5 14 Q49 10 42 14 Z" fill="#8fb8ff" stroke="#5a83c9" stroke-width="1"/>
     <path d="M24 30 l-2 5 M90 34 l-2 5 M20 52 l-2 5 M86 54 l-2 5" stroke="#8fb8ff" stroke-width="1.4" stroke-linecap="round" class="cat-rain"/>`,
   // 拉行李箱
@@ -663,20 +663,20 @@ const CAT_POSES = {
     <path class="cat-tail" d="M56 80 Q74 80 72 64" fill="none" stroke="${CAT_INK}" stroke-width="5" stroke-linecap="round"/>
     <path d="M24 86 Q19 62 29 50 Q40 43 51 50 Q61 62 56 86 Z" fill="${CAT_INK}"/>
     <ellipse cx="32" cy="86" rx="6" ry="3" fill="${CAT_INK}"/><ellipse cx="48" cy="86" rx="6" ry="3" fill="${CAT_INK}"/>
-    <rect x="62" y="56" width="26" height="30" rx="4" fill="#ff8fab"/><rect x="62" y="56" width="26" height="30" rx="4" fill="none" stroke="#c94f72" stroke-width="1"/>
-    <path d="M69 56 V86 M81 56 V86" stroke="#c94f72" stroke-width="1" opacity=".6"/>
-    <path d="M70 56 V46 H80 V56" fill="none" stroke="#7a5a3a" stroke-width="1.8"/>
-    <path d="M52 62 Q60 52 70 47" fill="none" stroke="${CAT_INK}" stroke-width="6" stroke-linecap="round"/>
-    <circle cx="66" cy="88" r="2" fill="#555"/><circle cx="84" cy="88" r="2" fill="#555"/>
-    <path d="M70 66 l4 -3 4 3 M73 70 h2" stroke="#fff" stroke-width="1" fill="none" opacity=".8"/>
+    <rect x="59" y="58" width="26" height="28" rx="4" fill="#ff8fab"/><rect x="59" y="58" width="26" height="28" rx="4" fill="none" stroke="#c94f72" stroke-width="1"/>
+    <path d="M66 58 V86 M78 58 V86" stroke="#c94f72" stroke-width="1" opacity=".6"/>
+    <path d="M65 58 V50 H75 V58" fill="none" stroke="#7a5a3a" stroke-width="1.8"/>
+    <path d="M52 60 Q57 55 64 51" fill="none" stroke="${CAT_INK}" stroke-width="8.5" stroke-linecap="round"/>
+    <circle cx="63" cy="88" r="2" fill="#555"/><circle cx="81" cy="88" r="2" fill="#555"/>
+    <path d="M67 68 l4 -3 4 3 M70 72 h2" stroke="#fff" stroke-width="1" fill="none" opacity=".8"/>
     ${head(40, 37, 1, 'happy')}`,
   // 走路（側面）
   walk: () => `${shadow(50, 28)}
-    <path class="cat-tail" d="M76 62 Q88 50 86 36" fill="none" stroke="${CAT_INK}" stroke-width="5" stroke-linecap="round"/>
+    <g transform="translate(0 5)"><path class="cat-tail" d="M76 62 Q88 50 86 36" fill="none" stroke="${CAT_INK}" stroke-width="5" stroke-linecap="round"/>
     <path d="M28 70 Q30 56 44 56 L70 56 Q80 58 78 70 Q76 76 70 76 L34 76 Q28 76 28 70 Z" fill="${CAT_INK}"/>
-    <g class="cat-legs-a"><path d="M36 74 L34 87 M68 74 L70 87" stroke="${CAT_INK}" stroke-width="6" stroke-linecap="round"/></g>
-    <g class="cat-legs-b"><path d="M44 74 L46 87 M60 74 L58 87" stroke="${CAT_INK}" stroke-width="6" stroke-linecap="round"/></g>
-    ${head(26, 48, .85, 'open')}`,
+    </g><g class="cat-legs-a"><path d="M36 79 L35.5 85 M68 79 L68.5 85" stroke="${CAT_INK}" stroke-width="8.5" stroke-linecap="round"/></g>
+    <g class="cat-legs-b"><path d="M44 79 L45 85 M60 79 L59 85" stroke="${CAT_INK}" stroke-width="8.5" stroke-linecap="round"/></g>
+    ${head(26, 53, .85, 'open')}`,
 };
 const CAT_EMPTY_POSES = ['sleep', 'stretch', 'yarn', 'box', 'loaf'];
 

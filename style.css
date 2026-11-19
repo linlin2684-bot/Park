@@ -942,7 +942,7 @@ html[data-theme="day"] .wheel-svg .wseg.c { fill: color-mix(in srgb, var(--accen
 .cat-wave .cat-wave, .cat-svg .cat-wave { transform-origin: 62px 62px; animation: catWave 1.2s ease-in-out infinite; }
 @keyframes catWave { 0%, 100% { transform: rotate(0); } 50% { transform: rotate(-14deg); } }
 .cat-svg .cat-tail-s { transform-origin: 78px 86px; animation: catTail 3s ease-in-out infinite; }
-.cat-svg .cat-bat { transform-origin: 34px 74px; animation: catBat 1.4s ease-in-out infinite; }
+.cat-svg .cat-bat { transform-origin: 34px 76px; animation: catBat 1.4s ease-in-out infinite; }
 @keyframes catBat { 0%, 100% { transform: rotate(0); } 50% { transform: rotate(18deg); } }
 .cat-svg .cat-yarn { transform-origin: 13px 80px; animation: catYarn 1.4s ease-in-out infinite; }
 @keyframes catYarn { 0%, 100% { transform: translateX(0) rotate(0); } 50% { transform: translateX(-3px) rotate(-30deg); } }
