@@ -2784,7 +2784,8 @@ ACT.battle = () => {
         : `<button class="btn block" data-act="battleClaim" data-id="${b.id}"><i data-ic="flag"></i> 我完成了！</button>`}`;
   } else {
     body = `<p class="small muted" style="margin-top:0">選一個挑戰，7 天內誰先完成誰贏，輸的人要發一張卡給贏的人。</p>
-      ${D.BATTLE_TASKS.map((t) => `<button class="quiz-opt" data-act="battleNew" data-t="${esc(t)}">${esc(t)}</button>`).join('')}
+      ${battlePicks().map((t) => `<button class="quiz-opt" data-act="battleNew" data-t="${esc(t)}">${esc(t)}</button>`).join('')}
+      <button class="link center" data-act="battleShuffle" style="display:block;margin:2px auto 8px"><i data-ic="swap"></i> 換一批</button>
       <button class="quiz-opt" data-act="battleNew" data-t=""><i data-ic="edit"></i> 自己出題…</button>`;
   }
   closeAll();
@@ -2793,6 +2794,12 @@ ACT.battle = () => {
     ${body}
     ${hist.length ? `<h3 style="font-size:15px;margin-top:14px">對戰紀錄</h3>${hist.slice(0, 10).map((x) => `<div class="list-row"><span class="grow">${esc(x.task)}</span><span class="small">${x.status === 'draw' ? '平手' : '<i data-ic="trophy"></i> ' + esc(nick(x.winner))}</span><span class="when">${fmtDate(x.at)}</span></div>`).join('')}` : ''}`);
 };
+// 一次只給 5 個挑戰選，不想要可以換一批
+function battlePicks() {
+  S.battleSeed ||= Math.floor(Math.random() * 1e9);
+  return shuffled(D.BATTLE_TASKS.slice(), S.battleSeed).slice(0, 5);
+}
+ACT.battleShuffle = () => { S.battleSeed = Math.floor(Math.random() * 1e9); ACT.battle(); };
 ACT.battleNew = async (el) => {
   if (!partner()) return toast('對方加入後才能對戰');
   let t = el.dataset.t;
@@ -2864,7 +2871,7 @@ ACT.giveStamp = () => {
 // ---------- 每週任務 ----------
 function weekTaskIdx() {
   const wk = weekKey();
-  const base = shuffled(D.WEEKLY_TASKS.map((_, i) => i), hash(wk + (S.cid || ''))).slice(0, 2);
+  const base = shuffled(D.WEEKLY_TASKS.map((_, i) => i), hash(wk + (S.cid || ''))).slice(0, 3);
   const ov = (S.couple?.taskOverride || {})[wk] || {};
   return base.map((v, i) => (ov[i] != null ? ov[i] : v));
 }
