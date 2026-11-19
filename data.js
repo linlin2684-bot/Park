@@ -153,7 +153,18 @@ export const HOLIDAY_CARDS = {
   christmas:   { title: '聖誕交換券', rarity: 'SR', fest: 'xmas', desc: '換一個擁抱和一個願望', series: '節日系列' },
   newyear:     { title: '新年第一張券', rarity: 'SR', fest: 'newyear', desc: '新的一年也請多指教', series: '節日系列' },
 };
-export const TRAVEL_CARD = { title: '旅行出發券', rarity: 'SSR', fest: 'travel', desc: '基金存滿了，出發吧', series: '旅行系列' };
+export const TRAVEL_CARD = { title: '旅行出發券', rarity: 'SSR', fest: 'travel', tm: 'compass', desc: '基金存滿了，出發吧', series: '旅行系列' };
+// 旅行系列的其他掉落卡（兩人各一張）
+export const TRAVEL_DROPS = {
+  fund25: { title: '行李打包券', rarity: 'R', tm: 'suitcase', desc: '對方幫你打包行李，連牙刷都不會忘' },
+  fund50: { title: '行程決定權', rarity: 'R', tm: 'map', desc: '下一趟旅行，有一天的行程由你決定' },
+  fund75: { title: '專屬攝影師', rarity: 'SR', tm: 'camera', desc: '整趟旅行，對方當你的專屬攝影師' },
+  trip1:  { title: '啟程紀念券', rarity: 'R', tm: 'pin', desc: '我們的第一站，從這裡開始' },
+  trip5:  { title: '五站護照章', rarity: 'SR', tm: 'stamp', desc: '下一趟旅行，住好一點的飯店' },
+  trip10: { title: '十站環遊券', rarity: 'SSR', tm: 'plane', desc: '一趟由對方全包的小旅行' },
+  abroad: { title: '護照初章', rarity: 'SSR', tm: 'globe', desc: '在國外，實現一個你的小願望' },
+  revisit:{ title: '舊地重遊券', rarity: 'SR', tm: 'mountain', desc: '一年前的那裡，再一起回去一次' },
+};
 
 // ---------- 每週任務（每週自動挑 3 個） ----------
 export const WEEKLY_TASKS = [

@@ -380,6 +380,7 @@ function onData(name) {
     }
   }
   if (name === 'deposits') checkFund();
+  if (name === 'trips') checkTravelDrops();
   if (!S.backupChecked && S.couple && COLS.every((c) => S.d[c])) { S.backupChecked = true; setTimeout(maybeAutoBackup, 3000); }
   scheduleAchievements();
 }
@@ -1175,7 +1176,9 @@ function attachCardFX(m) {
 //  節日／紀念限定圖騰：線描意象、收斂配色
 // ============================================================
 
+const TRAVEL_TM = { 行李打包券: 'suitcase', 行程決定權: 'map', 專屬攝影師: 'camera', 啟程紀念券: 'pin', 五站護照章: 'stamp', 十站環遊券: 'plane', 護照初章: 'globe', 舊地重遊券: 'mountain', 旅行出發券: 'compass' };
 const FEST_BY_TITLE = {
+  行李打包券: 'travel', 行程決定權: 'travel', 專屬攝影師: 'travel', 啟程紀念券: 'travel', 五站護照章: 'travel', 十站環遊券: 'travel', 護照初章: 'travel', 舊地重遊券: 'travel',
   壽星女王券: 'queen', 壽星國王券: 'king', 週年紀念券: 'anniv', 情人節限定券: 'valentine',
   聖誕交換券: 'xmas', 新年第一張券: 'newyear', 旅行出發券: 'travel',
 };
@@ -1273,7 +1276,9 @@ function festMotif(key, c) {
     s += `<circle cx="0" cy="0" r="3.4" class="e-acc-f e-ink-s" stroke-width=".8"/>`;
     return s;
   }
-  // travel：羅盤
+  // travel：依卡片換不同旅行意象，預設羅盤
+  const tm = (c && (c.tm || TRAVEL_TM[c.title])) || 'compass';
+  if (tm !== 'compass') return travelMotif(tm);
   const pts = (r1, r2, off) => Array.from({ length: 8 }, (_, i) => pt(off + i * 45, i % 2 ? r2 : r1).map((v) => v.toFixed(2)).join(',')).join(' ');
   return `<circle cx="0" cy="0" r="26" class="e-acc-s" stroke-width="1" stroke-dasharray="2 3"/>
     <polygon points="${pts(22, 5, 45)}" class="e-bg e-acc-s" stroke-width="1"/>
@@ -1291,6 +1296,46 @@ function festMedallion(cx, cy, key, c, r = 50) {
   s += `<g transform="translate(${cx} ${cy}) scale(${(k * 1.05).toFixed(3)})">${festMotif(key, c)}</g>`;
   return s;
 }
+
+function travelMotif(tm) {
+  const S1 = (d, w = 1.4, cls = 'e-ink-s') => `<path d="${d}" class="${cls}" stroke-width="${w}" fill="none" stroke-linecap="round" stroke-linejoin="round"/>`;
+  if (tm === 'suitcase') return `<rect x="-24" y="-12" width="48" height="34" rx="5" class="e-bg e-ink-s" stroke-width="1.6"/>
+    ${S1('M-9 -12 L-9 -20 Q-9 -23 -6 -23 L6 -23 Q9 -23 9 -20 L9 -12', 1.6)}
+    <rect x="-14" y="-12" width="5" height="34" class="e-acc-f"/><rect x="9" y="-12" width="5" height="34" class="e-acc-f"/>
+    ${S1('M-24 2 L24 2', .9)}<circle cx="-16" cy="26" r="3" class="e-bg e-ink-s" stroke-width="1.2"/><circle cx="16" cy="26" r="3" class="e-bg e-ink-s" stroke-width="1.2"/>`;
+  if (tm === 'map') return `<path d="M-28 -18 L-10 -24 L10 -18 L28 -24 L28 20 L10 26 L-10 20 L-28 26 Z" class="e-bg e-ink-s" stroke-width="1.5" stroke-linejoin="round"/>
+    ${S1('M-10 -24 L-10 20 M10 -18 L10 26', .9, 'e-acc-s')}
+    ${S1('M-20 14 Q-12 0 -2 6 Q8 12 14 -4', 1.4)} <path d="M-20 14 Q-12 0 -2 6 Q8 12 14 -4" class="e-ink-s" stroke-width="0" fill="none"/>
+    <path d="M18 -16 C24 -16 25 -9 18 -2 C11 -9 12 -16 18 -16 Z" class="e-acc-f e-ink-s" stroke-width="1.1"/><circle cx="18" cy="-11" r="2" class="e-ink-f"/>
+    <circle cx="-20" cy="14" r="2" class="e-ink-f"/>`;
+  if (tm === 'camera') return `<rect x="-26" y="-14" width="52" height="34" rx="6" class="e-bg e-ink-s" stroke-width="1.6"/>
+    ${S1('M-12 -14 L-8 -21 L8 -21 L12 -14', 1.5)}
+    <circle cx="0" cy="3" r="12" class="e-bg e-ink-s" stroke-width="1.6"/><circle cx="0" cy="3" r="7" class="e-acc-f e-ink-s" stroke-width="1"/><circle cx="-2.5" cy="0.5" r="2" class="e-bg"/>
+    <rect x="16" y="-9" width="6" height="4" rx="1" class="e-ink-f"/><circle cx="-19" cy="-7" r="1.6" class="e-ink-f"/>`;
+  if (tm === 'pin') return `<ellipse cx="0" cy="28" rx="16" ry="4" class="e-acc-s" stroke-width="1.2"/>
+    <path d="M0 26 C-4 14 -20 4 -20 -10 C-20 -22 -11 -30 0 -30 C11 -30 20 -22 20 -10 C20 4 4 14 0 26 Z" class="e-bg e-ink-s" stroke-width="1.6"/>
+    <circle cx="0" cy="-10" r="8" class="e-acc-f e-ink-s" stroke-width="1.2"/>`;
+  if (tm === 'stamp') {
+    let s = `<rect x="-24" y="-28" width="48" height="56" class="e-bg e-ink-s" stroke-width="1.4"/>`;
+    for (let i = 0; i < 7; i++) { const y = -28 + i * 9.33; s += `<circle cx="-24" cy="${y.toFixed(1)}" r="2.2" class="e-bg"/><circle cx="24" cy="${y.toFixed(1)}" r="2.2" class="e-bg"/>`; }
+    for (let i = 0; i < 6; i++) { const x = -24 + i * 9.6; s += `<circle cx="${x.toFixed(1)}" cy="-28" r="2.2" class="e-bg"/><circle cx="${x.toFixed(1)}" cy="28" r="2.2" class="e-bg"/>`; }
+    return s + `<rect x="-17" y="-21" width="34" height="42" class="e-acc-s" stroke-width=".9"/>
+      ${S1('M-14 12 L-5 -2 L1 6 L7 -6 L14 12 Z', 1.3)}<circle cx="8" cy="-13" r="3.5" class="e-acc-f"/>
+      <text x="0" y="19" text-anchor="middle" font-size="7" class="e-ink-f e-small">V</text>`;
+  }
+  if (tm === 'plane') return `${S1('M-32 22 Q-16 30 2 14', 1.2, 'e-acc-s')}<path d="M-32 22 Q-16 30 2 14" class="e-acc-s" stroke-width="1.2" fill="none" stroke-dasharray="2 3"/>
+    <path d="M24 -20 L28 -24 C30 -26 32 -24 30 -22 L26 -18 L28 6 L23 9 L16 -10 L4 2 L5 10 L1 13 L-2 4 L-11 1 L-8 -3 L0 -2 L12 -14 L-7 -21 L-4 -26 Z" class="e-bg e-ink-s" stroke-width="1.4" stroke-linejoin="round"/>
+    <circle cx="-26" cy="-20" r="1.5" class="e-ink-f"/><circle cx="20" cy="22" r="1.2" class="e-ink-f"/>`;
+  if (tm === 'globe') return `<circle cx="0" cy="0" r="27" class="e-bg e-ink-s" stroke-width="1.6"/>
+    <ellipse cx="0" cy="0" rx="12" ry="27" class="e-acc-s" stroke-width="1"/><ellipse cx="0" cy="0" rx="22" ry="27" class="e-acc-s" stroke-width=".7"/>
+    ${S1('M-27 0 L27 0 M-24 -12 L24 -12 M-24 12 L24 12 M0 -27 L0 27', .9, 'e-acc-s')}
+    ${S1('M-30 -30 Q0 -44 30 -30', 1.1)}<circle cx="30" cy="-30" r="2.4" class="e-ink-f"/>`;
+  // mountain：山與海浪
+  return `<circle cx="14" cy="-16" r="7" class="e-acc-f"/>
+    <path d="M-30 14 L-12 -16 L-2 -2 L8 -14 L28 14 Z" class="e-bg e-ink-s" stroke-width="1.6" stroke-linejoin="round"/>
+    ${S1('M-17 -8 L-12 -16 L-7 -9 M4 -9 L8 -14 L12 -9', 1.1, 'e-acc-s')}
+    ${S1('M-30 22 Q-24 17 -18 22 T-6 22 T6 22 T18 22 T30 22', 1.4)}${S1('M-24 29 Q-18 25 -12 29 T0 29 T12 29 T24 29', 1, 'e-acc-s')}`;
+}
 // ============================================================
 //  收藏冊封面：每個系列一張圖騰風格的橫式封面
 // ============================================================
@@ -1299,7 +1344,7 @@ const WISH_SERIES = '許願系列';
 const BOOK_META = {
   [D.BIRTHDAY_SERIES]: { pal: 'C', motif: 'candle', pat: 'sparkle', sub: '25 歲生日限定', how: '他加入時就會收到整套生日卡' },
   '節日系列': { pal: 'F-anniv', motif: 'stars', pat: 'rings', sub: '節日與紀念日限定', how: '生日、週年、情人節、聖誕、新年當天自動掉落' },
-  '旅行系列': { pal: 'F-travel', motif: 'compass', pat: 'grid', sub: '旅行基金存滿時掉落', how: '旅行基金存滿，就會掉一張旅行出發券' },
+  '旅行系列': { pal: 'F-travel', motif: 'compass', pat: 'grid', sub: '旅途中的里程碑', how: '存旅行基金、記錄足跡、第一次出國、舊地重遊都會掉卡' },
   [WISH_SERIES]: { pal: 'W', motif: 'wish', pat: 'sparkle', sub: '許願池實現的願望', how: '在許願池許願，對方點頭就會收進來' },
 };
 
@@ -1793,7 +1838,8 @@ function seriesCollected(c) {
 function walletBook() {
   S.bookShut ||= {};
   const ms = S.couple.members || [me()];
-  const all = list('cards').filter((c) => c.series);
+  // 節日、旅行卡兩人各一張，只看自己那份
+  const all = list('cards').filter((c) => c.series && !((c.series === '節日系列' || c.series === '旅行系列') && c.owner !== me()));
   // 許願系列依「誰許的願」分成兩本
   const keyOf = (c) => (c.series === WISH_SERIES ? `wish:${c.owner}` : c.series);
   const groups = {};
@@ -2370,9 +2416,39 @@ ACT.fundNew = async () => {
   await S.store.updateCouple(S.cid, { fund: { name, goal: g, round: (f.round || 1) + 1, rewarded: false } });
   toast('新的基金開始囉 🐷');
 };
+// 旅行限定卡掉落：key 只會掉一次，兩人各一張
+async function travelDrop(key, tpl, text) {
+  if (!S.couple || (S.couple.members || []).length < 2) return false;
+  const ok = await S.store.coupleTx(S.cid, (c) => (c.drops && c.drops[key] ? null : { [`drops.${key}`]: true }));
+  if (!ok) return false;
+  for (const u of S.couple.members) {
+    await col('cards').add(cardDoc({ ...tpl, fest: 'travel', series: '旅行系列' }, u, 'sys'));
+    await col('events').add({ to: u, by: 'sys', type: 'trip', text, detail: tpl.title, at: now(), read: false });
+  }
+  return true;
+}
+const inTaiwan = (lat, lng) => lat >= 21.7 && lat <= 26.5 && lng >= 118.0 && lng <= 122.3;
+async function checkTravelDrops() {
+  if (!S.couple || (S.couple.members || []).length < 2 || !S.d.trips) return;
+  const T = D.TRAVEL_DROPS, ts = list('trips');
+  if (ts.length >= 1) await travelDrop('trip1', T.trip1, '第一個足跡！旅行限定卡掉落 📍');
+  if (ts.length >= 5) await travelDrop('trip5', T.trip5, '足跡滿 5 個！旅行限定卡掉落 🛂');
+  if (ts.length >= 10) await travelDrop('trip10', T.trip10, '足跡滿 10 個！旅行限定卡掉落 ✈️');
+  if (ts.some((t) => t.lat != null && !inTaiwan(t.lat, t.lng))) await travelDrop('abroad', T.abroad, '第一次出國的足跡！護照初章掉落 🌏');
+  const d = new Date(), md = `${pad(d.getMonth() + 1)}-${pad(d.getDate())}`, y = d.getFullYear();
+  for (const t of ts) {
+    if (!t.date || t.date.slice(5) !== md || +t.date.slice(0, 4) >= y) continue;
+    if (await travelDrop(`revisit-${t.id}-${y}`, { ...T.revisit, desc: `${y - +t.date.slice(0, 4)} 年前的${t.name}，再一起回去一次` }, `${t.name}滿 ${y - +t.date.slice(0, 4)} 年了！舊地重遊券掉落 🏔️`)) break;
+  }
+}
 async function checkFund() {
   if (!S.couple || (S.couple.members || []).length < 2) return;
   const { f, total } = fundInfo();
+  const r = f.round || 1, pct = f.goal ? total / f.goal : 0;
+  const T = D.TRAVEL_DROPS;
+  if (pct >= .25) await travelDrop(`fund${r}-25`, T.fund25, '旅行基金存到 25%！旅行限定卡掉落 🧳');
+  if (pct >= .5) await travelDrop(`fund${r}-50`, T.fund50, '旅行基金存到一半了！旅行限定卡掉落 🗺️');
+  if (pct >= .75) await travelDrop(`fund${r}-75`, T.fund75, '旅行基金存到 75%！旅行限定卡掉落 📷');
   if (f.rewarded || total < f.goal) return;
   const ok = await S.store.coupleTx(S.cid, (c) => (c.fund && !c.fund.rewarded ? { 'fund.rewarded': true, fundsDone: (c.fundsDone || 0) + 1 } : null));
   if (!ok) return;
