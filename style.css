@@ -1038,3 +1038,18 @@ html[data-theme="night"] .jar-svg .jar-glass { fill: rgba(255, 255, 255, .06); }
 .tour-dots { display: flex; gap: 5px; }
 .tour-dots i { width: 6px; height: 6px; border-radius: 50%; background: var(--line); }
 .tour-dots i.on { background: var(--accent); width: 16px; border-radius: 3px; }
+/* 路過小貓的個性 */
+.cat-stroll.chubby { animation-duration: 12s; }
+.cat-stroll.chubby .cat-svg { animation: catWaddle .6s ease-in-out infinite; }
+@keyframes catWaddle { 50% { transform: scaleX(-1) rotate(3deg) translateY(-1px); } }
+.cat-stroll.princess { animation-duration: 11s; }
+.cat-stroll.princess .cat-svg { animation: catPrance 1s ease-in-out infinite; }
+@keyframes catPrance { 50% { transform: scaleX(-1) translateY(-3px); } }
+.cat-stroll.backwards { animation-name: strollBack; left: auto; right: -90px; }
+.cat-stroll.backwards .cat-svg { transform: scaleX(-1); }
+@keyframes strollBack { to { right: calc(100% + 90px); } }
+.cat-stroll.trip.caught .cat-svg { animation: catTrip .8s ease-in-out forwards !important; }
+@keyframes catTrip { 30% { transform: scaleX(-1) rotate(-25deg) translateY(4px); } 60% { transform: scaleX(-1) rotate(-80deg) translateY(10px); } 100% { transform: scaleX(-1) rotate(-80deg) translateY(10px); } }
+.cat-stroll.roll.caught .cat-svg { animation: catRoll .9s ease-in-out forwards !important; }
+@keyframes catRoll { to { transform: scaleX(-1) rotate(-360deg); } }
+.cat-stroll.caught:not(.coat-black):not(.trip):not(.roll) .cat-svg { animation: catJump .5s ease-in-out 2 !important; }

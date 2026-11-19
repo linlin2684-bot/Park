@@ -727,12 +727,26 @@ function catStroll() {
   const el = document.createElement('button');
   el.className = 'cat-stroll';
   el.setAttribute('aria-label', '黑貓');
-  // 大多是小小黑，偶爾是別的貓路過
-  const coat = Math.random() < .5 ? 'black' : pick1(['white', 'orange', 'calico', 'tuxedo']);
+  // 小小黑和晽晽貓貓各 35%，其他三隻各 10%
+  const r = Math.random();
+  const coat = r < .35 ? 'black' : r < .7 ? 'orange' : r < .8 ? 'white' : r < .9 ? 'calico' : 'tuxedo';
   el.innerHTML = coatWalk(coat);
+  el.classList.add('coat-' + coat);
+  if (coat === 'tuxedo' && Math.random() < .35) el.classList.add('backwards');
+  if (coat === 'orange') el.classList.add('chubby');
+  if (coat === 'white') el.classList.add('princess');
   el.onclick = async () => {
     el.classList.add('caught'); sfx('heart');
-    if (coat !== 'black') { toast(`是${COATS[coat].name}！牠喵了一聲就跑走了`); setTimeout(() => el.remove(), 900); return; }
+    if (coat !== 'black') {
+      const T = COAT_TRAITS[coat];
+      const r2 = el.getBoundingClientRect();
+      const fx = { tuxedo: ['#ffd1dc', '#ffd45c', '#7cc488'], calico: ['#ff9db4', '#ffc2d1'], orange: ['#c9773a', '#ffd45c'], white: ['#ffd45c', '#9fd3ff', '#ff8fab'] }[coat];
+      floaty(r2.left + r2.width / 2, r2.top, fx);
+      if (coat === 'tuxedo' && Math.random() < .4) el.classList.add('trip');
+      if (coat === 'calico') el.classList.add('roll');
+      toast(pick1(T.lines));
+      setTimeout(() => el.remove(), 1400); return;
+    }
     el.innerHTML = catPose('jump');
     const dk = `park-stroll-pat-${dkey()}-${me()}`;
     if (!localStorage.getItem(dk) && typeof petXP === 'function') { localStorage.setItem(dk, '1'); await petXP(1); toast(`抓到${petState().name}了！經驗 +1`); }
@@ -774,6 +788,19 @@ function coatHead(c) {
     <path d="M-19 2 L-11 3 M-19 6 L-11 5 M19 2 L11 3 M19 6 L11 5" stroke="${c.whisker}" stroke-width=".8" stroke-linecap="round"/>
     <ellipse cx="-10.5" cy="6" rx="2.4" ry="1.3" fill="${CP}" opacity=".55"/><ellipse cx="10.5" cy="6" rx="2.4" ry="1.3" fill="${CP}" opacity=".55"/>`;
 }
+const COAT_PROPS = {
+  drumstick: `<g transform="translate(-10 11) rotate(-20)"><ellipse cx="-6" cy="0" rx="7" ry="5" fill="#c9773a"/><ellipse cx="-7" cy="-1.5" rx="4" ry="2" fill="#e09a5a" opacity=".7"/><path d="M0 0 L7 0" stroke="#f6efe6" stroke-width="2.6" stroke-linecap="round"/><circle cx="8" cy="-1.3" r="1.6" fill="#f6efe6"/><circle cx="8" cy="1.3" r="1.6" fill="#f6efe6"/></g>`,
+  flower: `<g transform="translate(-6 9)"><path d="M0 0 Q-6 -4 -12 -12" fill="none" stroke="#5fa86b" stroke-width="1.4" stroke-linecap="round"/><path d="M-6 -5 Q-10 -3 -10 -7 Q-7 -8 -6 -5 Z" fill="#7cc488"/><g transform="translate(-13 -14)">${[0, 72, 144, 216, 288].map((a) => `<ellipse rx="2.6" ry="4" transform="rotate(${a}) translate(0 -3.6)" fill="#ffd1dc" stroke="#e98aa5" stroke-width=".5"/>`).join('')}<circle r="2.3" fill="#ffd45c"/></g></g>`,
+  fish: `<g transform="translate(-12 10) rotate(-8)"><path d="M-8 0 Q-2 -4.5 5 0 Q-2 4.5 -8 0 Z" fill="#c9a26a" stroke="#9a7440" stroke-width=".6"/><path d="M5 0 L9 -3.5 L9 3.5 Z" fill="#c9a26a" stroke="#9a7440" stroke-width=".6"/><circle cx="-5" cy="-.6" r=".8" fill="#4a3a2a"/><path d="M-2 -2 L-1 2 M1 -2 L2 2" stroke="#9a7440" stroke-width=".5"/></g>`,
+  tiara: `<g transform="translate(0 -15)"><path d="M-8 2 L-6.5 -4 L-3 -.5 L0 -6 L3 -.5 L6.5 -4 L8 2 Z" fill="#ffd45c" stroke="#c9952e" stroke-width=".7" stroke-linejoin="round"/><circle cx="0" cy="-1" r="1.2" fill="#ff8fab"/><circle cx="-5" cy=".2" r=".7" fill="#9fd3ff"/><circle cx="5" cy=".2" r=".7" fill="#9fd3ff"/></g>`,
+};
+// 每隻貓的個性：道具、點牠會說的話
+const COAT_TRAITS = {
+  orange: { prop: 'drumstick', lines: ['晽晽貓貓叼著雞腿跑過去，完全不想分你', '晽晽貓貓：嗝～（剛吃飽又在找下一餐）', '晽晽貓貓聞到你身上的零食味，賴著不走了', '晽晽貓貓把你的宵夜當成牠的宵夜', '晽晽貓貓肚子圓滾滾，跳不起來，只好滾過去'] },
+  tuxedo: { prop: 'flower', lines: ['吵吵貓送你一朵花，然後大叫三聲就跑了', '吵吵貓送你一朵花……是從隔壁盆栽偷摘的', '吵吵貓想送你花，結果被自己的尾巴絆倒', '吵吵貓把花放下，倒退著走掉了', '吵吵貓：喵！喵喵！喵！（翻譯：這朵給你）', '吵吵貓送完花，對著空氣罵了一分鐘'] },
+  white: { prop: 'tiara', lines: ['陷阱貓：哼，本公主准許你看一眼', '陷阱貓翻肚子給你摸……然後輕輕咬了你一口', '陷阱貓優雅地走過去，連頭都沒回', '陷阱貓：今天的罐罐準備好了嗎？', '陷阱貓假裝要讓你摸，又跳開了，這就是陷阱'] },
+  calico: { prop: 'fish', lines: ['小魚乾叼著小魚乾蹭了蹭你', '小魚乾：再給一條小魚乾，我就讓你抱', '小魚乾在你腳邊滾了兩圈撒嬌', '小魚乾把小魚乾分你一半……又叼回去了', '小魚乾喵～的一聲，要你摸摸頭'] },
+};
 let coatSeq = 0;
 function coatWalk(key) {
   const c = COATS[key] || COATS.black, id = 'cw' + (++coatSeq);
@@ -791,7 +818,7 @@ function coatWalk(key) {
       <path d="${body}" fill="${c.base}" stroke="${c.line}" stroke-width="${sw}"/>
     </g>
     ${c.patches ? c.patches(id) : ''}
-    <g transform="translate(30 ${c.fat ? 50 : 52}) scale(.9)">${coatHead(c)}</g>
+    <g transform="translate(30 ${c.fat ? 50 : 52}) scale(.9)">${coatHead(c)}${COAT_TRAITS[key] ? COAT_PROPS[COAT_TRAITS[key].prop] : ''}</g>
   </svg>`;
 }
 // ============================================================
