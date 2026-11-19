@@ -739,24 +739,41 @@ function catifyEmpty(root) {
 }
 
 // 首頁偶爾有黑貓路過（點牠 +1 經驗，一天一次）
-function catStroll() {
+function catStroll(force) {
   if (S.tab !== 'home' || document.querySelector('.cat-stroll')) return;
   const k = 'park-stroll-at';
-  if (now() - +(localStorage.getItem(k) || 0) < 8 * 60000 || Math.random() > .45) return;
+  if (!force && (now() - +(localStorage.getItem(k) || 0) < 8 * 60000 || Math.random() > .45)) return;
   localStorage.setItem(k, now());
   const el = document.createElement('button');
   el.className = 'cat-stroll';
   el.setAttribute('aria-label', '黑貓');
   // 小小黑和晽晽貓貓各 35%，其他三隻各 10%
+  // 小小黑、晽晽貓貓各 30%，還好 13%，陷阱貓、小魚乾、吵吵貓各 9%
   const r = Math.random();
-  const coat = r < .35 ? 'black' : r < .7 ? 'orange' : r < .8 ? 'white' : r < .9 ? 'calico' : 'tuxedo';
-  el.innerHTML = coatWalk(coat);
+  const coat = force || (r < .3 ? 'black' : r < .6 ? 'orange' : r < .73 ? 'dog' : r < .82 ? 'white' : r < .91 ? 'calico' : 'tuxedo');
+  el.innerHTML = coat === 'dog' ? dogWalk() : coatWalk(coat);
+  if (coat === 'dog') {
+    el.setAttribute('aria-label', '還好');
+    // 有時候還好會追著一隻貓跑
+    if (Math.random() < .4) setTimeout(() => {
+      const kitty = document.createElement('div');
+      kitty.className = 'cat-stroll lead';
+      kitty.innerHTML = coatWalk(pick1(['black', 'orange', 'white', 'calico', 'tuxedo']));
+      document.body.appendChild(kitty); setTimeout(() => kitty.remove(), 9000);
+    }, 0);
+  }
   el.classList.add('coat-' + coat);
   if (coat === 'tuxedo' && Math.random() < .35) el.classList.add('backwards');
   if (coat === 'orange') el.classList.add('chubby');
   if (coat === 'white') el.classList.add('princess');
   el.onclick = async () => {
     el.classList.add('caught'); sfx('heart');
+    if (coat === 'dog') {
+      const r2 = el.getBoundingClientRect();
+      floaty(r2.left + r2.width / 2, r2.top, ['#ff9fb4', '#ffd45c', '#e2b56a']);
+      el.classList.add('dog-happy'); toast(pick1(DOG_LINES));
+      setTimeout(() => el.remove(), 1600); return;
+    }
     if (coat !== 'black') {
       const T = COAT_TRAITS[coat];
       const r2 = el.getBoundingClientRect();
@@ -841,6 +858,40 @@ function coatWalk(key) {
     <g transform="translate(30 ${c.fat ? 50 : 52}) scale(.9)">${coatHead(c)}${COAT_TRAITS[key] ? COAT_PROPS[COAT_TRAITS[key].prop] : ''}</g>
   </svg>`;
 }
+
+// ============================================================
+//  還好：黃金獵犬，大隻、樂天、有點無厘頭（堅持自己是女生）
+// ============================================================
+const DOG = { name: '還好', base: '#e2b56a', line: '#b98a3e', ear: '#c99448', dark: '#2b2226' };
+function dogWalk() {
+  const c = DOG, sw = 1.2, ly = 80;
+  const leg = (x1, x2, cls = '') => `<path d="M${x1} ${ly} L${x2} 87" stroke="${c.line}" stroke-width="${11 + sw * 2}" stroke-linecap="round"/><path d="M${x1} ${ly} L${x2} 87" stroke="${c.base}" stroke-width="11" stroke-linecap="round"/><ellipse cx="${x2}" cy="88" rx="5" ry="2.6" fill="${c.dark}"/>`;
+  return `<svg viewBox="0 0 120 96" class="cat-svg dog-walk" xmlns="http://www.w3.org/2000/svg">
+    <ellipse cx="60" cy="91" rx="38" ry="3.6" fill="currentColor" opacity=".09"/>
+    <g class="dog-tail"><path d="M96 58 Q112 50 114 34 Q115 28 110 30 Q106 44 94 52 Z" fill="${c.base}" stroke="${c.line}" stroke-width="${sw}" stroke-linejoin="round"/><path d="M104 44 l4 -2 M107 38 l4 -1" stroke="${c.line}" stroke-width=".8" stroke-linecap="round"/></g>
+    <g class="cat-legs-a">${leg(44, 43)}${leg(86, 87)}</g>
+    <g class="cat-legs-b">${leg(54, 55)}${leg(76, 75)}</g>
+    <path d="M30 62 Q30 46 50 46 L88 48 Q102 50 100 66 Q98 82 84 82 L44 82 Q30 82 30 70 Z" fill="${c.base}" stroke="${c.line}" stroke-width="${sw}"/>
+    <path d="M40 74 Q60 82 82 76" fill="none" stroke="#f3d9a8" stroke-width="5" stroke-linecap="round" opacity=".8"/>
+    <path d="M48 52 l3 -3 M54 50 l3 -3 M84 54 l3 -3" stroke="${c.line}" stroke-width=".9" stroke-linecap="round" opacity=".7"/>
+    <g class="dog-head" transform="translate(30 40)">
+      <path d="M-18 -8 Q-20 -30 2 -31 Q22 -30 20 -8 Q20 10 2 12 Q-18 10 -18 -8 Z" fill="${c.base}" stroke="${c.line}" stroke-width="${sw}"/>
+      <path d="M-15 -22 Q-28 -20 -26 0 Q-25 10 -18 8 Q-14 -6 -12 -18 Z" fill="${c.ear}" stroke="${c.line}" stroke-width="${sw}" stroke-linejoin="round"/>
+      <path d="M15 -22 Q28 -20 26 0 Q25 10 18 8 Q14 -6 12 -18 Z" fill="${c.ear}" stroke="${c.line}" stroke-width="${sw}" stroke-linejoin="round"/>
+      <ellipse cx="1" cy="2" rx="11" ry="8.5" fill="#f3d9a8"/>
+      <ellipse cx="-7" cy="-9" rx="2.6" ry="3" fill="${c.dark}"/><ellipse cx="9" cy="-9" rx="2.6" ry="3" fill="${c.dark}"/>
+      <circle cx="-6.2" cy="-10" r=".9" fill="#fff"/><circle cx="9.8" cy="-10" r=".9" fill="#fff"/>
+      <path d="M-10 -14 Q-7 -16 -4 -14 M6 -14 Q9 -16 12 -14" fill="none" stroke="${c.line}" stroke-width=".9" stroke-linecap="round"/>
+      <ellipse cx="1" cy="-1" rx="5" ry="3.8" fill="${c.dark}"/><ellipse cx="-.5" cy="-2.2" rx="1.6" ry=".9" fill="#fff" opacity=".5"/>
+      <path d="M1 3 L1 5.5 M-5 5.5 Q1 9 7 5.5" fill="none" stroke="${c.dark}" stroke-width="1.2" stroke-linecap="round"/>
+      <g class="dog-tongue"><path d="M-1.5 6.8 Q-2 14 1 15 Q4 14 3.5 6.8 Z" fill="#ff7f86" stroke="#d9535d" stroke-width=".7"/><path d="M1 8 L1 12.5" stroke="#d9535d" stroke-width=".6"/></g>
+      <ellipse cx="-12" cy="2" rx="2.6" ry="1.4" fill="#ff9fb4" opacity=".55"/><ellipse cx="14" cy="2" rx="2.6" ry="1.4" fill="#ff9fb4" opacity=".55"/>
+    </g>
+  </svg>`;
+}
+const DOG_LINES = ['還好：我是女生～', '還好：嗷把拔貓咪好可愛喔～', '還好：我是女生～（男朋友：你明明就是男生）', '還好追著自己的尾巴轉了三圈，然後忘記自己在幹嘛', '還好：今天也是很好的一天耶～', '還好躺下來翻肚子：我是女生～摸我～', '還好把球叼過來，結果是一顆橘子', '還好：嗷！（不知道在嗷什麼）', '還好跟陷阱貓打招呼，被無視了，但還是很開心', '還好：把拔～貓咪呢？貓咪呢？'];
+
+window.__stroll = (c) => catStroll(c || 'dog');
 // ============================================================
 //  啟動、登入、配對、外框
 // ============================================================

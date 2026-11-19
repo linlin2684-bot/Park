@@ -1053,3 +1053,15 @@ html[data-theme="night"] .jar-svg .jar-glass { fill: rgba(255, 255, 255, .06); }
 .cat-stroll.roll.caught .cat-svg { animation: catRoll .9s ease-in-out forwards !important; }
 @keyframes catRoll { to { transform: scaleX(-1) rotate(-360deg); } }
 .cat-stroll.caught:not(.coat-black):not(.trip):not(.roll) .cat-svg { animation: catJump .5s ease-in-out 2 !important; }
+/* 還好（黃金獵犬） */
+.cat-stroll.coat-dog { width: 112px; animation-duration: 7.5s; }
+.cat-stroll.coat-dog .cat-svg { animation: dogBounce .36s ease-in-out infinite; }
+@keyframes dogBounce { 50% { transform: scaleX(-1) translateY(-2.5px); } }
+.dog-walk .dog-tail { transform-origin: 96px 58px; animation: dogWag .25s ease-in-out infinite alternate; }
+@keyframes dogWag { from { transform: rotate(-10deg); } to { transform: rotate(14deg); } }
+.dog-walk .dog-tongue { transform-origin: 1px 7px; animation: dogPant .3s ease-in-out infinite alternate; }
+@keyframes dogPant { to { transform: scaleY(1.15); } }
+.cat-stroll.lead { width: 70px; animation-duration: 6.8s; pointer-events: none; animation-delay: -.9s; }
+.cat-stroll.coat-dog.dog-happy { animation-play-state: paused; }
+.cat-stroll.coat-dog.dog-happy .cat-svg { animation: dogSpin .9s ease-in-out forwards !important; }
+@keyframes dogSpin { 0% { transform: scaleX(-1); } 50% { transform: scaleX(1) translateY(-8px); } 100% { transform: scaleX(-1); } }
