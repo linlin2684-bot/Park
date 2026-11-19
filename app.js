@@ -3630,7 +3630,7 @@ const PET_ACC = [
   { id: 'crown', name: '小皇冠', xp: 500 },
   { id: 'santa', name: '聖誕帽', xp: 0, month: 12 },
 ];
-const PET_DEFAULT_NAME = '小黑';
+const PET_DEFAULT_NAME = '小小黑';
 
 function petState() {
   const pet = S.couple?.pet || {};
@@ -3760,7 +3760,7 @@ ACT.petOpen = () => {
     toast(`${P.name} 吃得好開心！經驗 +8`); closeModal(m); ACT.petOpen();
   };
   $('#pt-name', m).onclick = async () => {
-    const v = await promptBox('幫黑貓取名字', { value: P.name, placeholder: '例如：小黑' });
+    const v = await promptBox('幫黑貓取名字', { value: P.name, placeholder: '例如：小小黑' });
     if (v && v.trim()) { await S.store.updateCouple(S.cid, { 'pet.name': v.trim().slice(0, 10) }); toast('改好了'); }
   };
 };
