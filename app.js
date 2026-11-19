@@ -635,7 +635,8 @@ async function holidayDrops() {
     const ok = await S.store.coupleTx(S.cid, (x) => (x.drops && x.drops[k] ? null : { [`drops.${k}`]: true }));
     if (!ok) continue;
     for (const u of r.to) {
-      await col('cards').add(cardDoc(D.HOLIDAY_CARDS[r.key], u, 'sys'));
+      const tpl = r.key === 'anniversary' ? { ...D.HOLIDAY_CARDS.anniversary, title: `${annivInfo().cn}週年紀念券`, desc: `謝謝你陪我走過第 ${annivInfo().n} 年，下一年也請多多指教` } : D.HOLIDAY_CARDS[r.key];
+      await col('cards').add(cardDoc(tpl, u, 'sys'));
       await col('events').add({ to: u, by: 'sys', type: 'card', text: '今天有一張節日限定券送給你 🎁', detail: D.HOLIDAY_CARDS[r.key].title, at: now(), read: false });
     }
   }
@@ -848,7 +849,10 @@ function doRender() {
   if (!S.couple || !$('#main')) return;
   const a = document.activeElement;
   if (a && a.closest && a.closest('#main') && /INPUT|TEXTAREA|SELECT/.test(a.tagName)) { S.deferRender = true; renderTop(); renderNav(); return; }
-  setSection(S.tab); renderTop(); renderNav(); renderMain();
+  setSection(S.tab);
+  const A = annivInfo(); document.documentElement.dataset.anniv = A.is ? '1' : '';
+  renderTop(); renderNav(); renderMain();
+  if (A.is) annivIntro();
 }
 document.addEventListener('focusout', () => setTimeout(() => {
   const a = document.activeElement;
@@ -1147,7 +1151,7 @@ PAGES.home = {
     const myToday = misses.filter((x) => x.by === me() && isToday(x)).length;
     const theirToday = misses.filter((x) => x.by === p && isToday(x)).length;
     const total = misses.length;
-    return `
+    return `${annivHomeCard()}
     <div class="card hero">
       <div class="small muted">我們在一起</div>
       <div class="days">第 ${money(daysTogether())} <small>天</small></div>
@@ -2909,7 +2913,7 @@ PAGES.memory = {
     const sub = S.sub.memory;
     const tabs = [['goals', '<i data-ic="target"></i> 年度清單'], ['timeline', '<i data-ic="clock"></i> 時間軸'], ['capsule', '<i data-ic="hourglass"></i> 時光膠囊'], ['ach', '<i data-ic="trophy"></i> 成就']];
     return `<div class="page-title"><h2><i data-ic="book"></i> 回憶</h2><span>第 ${money(daysTogether())} 天</span></div>
-      <button class="card" data-act="review" style="width:100%;text-align:left;display:flex;align-items:center;gap:12px;background:linear-gradient(135deg,#ff6f91,#845ec2);color:#fff">
+      <button class="card review-banner" data-act="review">
         <span class="review-ic"><i data-ic="film"></i></span><span class="grow"><b style="font-family:var(--serif);font-size:17px">${new Date().getFullYear()} 年度回顧</b><br><span class="small" style="opacity:.9">看看我們這一年一起做了什麼</span></span><span style="font-size:22px">›</span></button>
       <div class="seg">${tabs.map(([k, n]) => `<button class="${sub === k ? 'on' : ''}" data-act="sub" data-page="memory" data-sub="${k}">${n}</button>`).join('')}</div>
       ${({ goals: memGoals, timeline: memTimeline, capsule: memCapsule, ach: memAch }[sub] || memGoals)()}`;
@@ -3189,23 +3193,36 @@ ACT.review = () => {
   const annT = parseD(S.couple.dates?.anniversary || D.DEFAULT_DATES.anniversary).getTime();
   const daysAtEnd = Math.floor((yEnd - annT) / 86400000) + 1;
   const slides = [
-    { bg: 'linear-gradient(160deg,#ff6f91,#845ec2)', i: ic('ferris'), n: Y, t: '這一年的我們', s: `${nick(me())} & ${nick(p)}<br>往右點，一起回顧 →` },
-    { bg: 'linear-gradient(160deg,#ff9671,#ff6f91)', i: ic('ticket'), n: redeems.length, t: '張票券被兌換', s: top ? `最常用的是「${esc(top[0])}」<br>一共用了 ${top[1]} 次` : '明年多用一點吧' },
-    { bg: 'linear-gradient(160deg,#845ec2,#2c73d2)', i: ic('gacha'), n: gacha.length, t: '次扭蛋和合成', s: `扭出 ${gacha.filter((g) => g.rarity === 'SSR').length} 張 SSR、${gacha.filter((g) => g.rarity === 'SR').length} 張 SR` },
-    { bg: 'linear-gradient(160deg,#00c9a7,#2c73d2)', i: ic('map'), n: trips.length, t: '個一起去過的地方', s: trips.length ? trips.slice(0, 8).map((t) => esc(t.name)).join('・') : '明年一起去更多地方吧 ✈️' },
-    { bg: 'linear-gradient(160deg,#ffc75f,#ff9671)', i: ic('target'), n: `${goals.filter((g) => g.done).length}/${goals.length}`, t: '個年度目標完成', s: goals.filter((g) => g.done).slice(0, 6).map((g) => '✓ ' + esc(g.title)).join('<br>') || '寫下明年的目標吧' },
-    { bg: 'linear-gradient(160deg,#ff6f91,#ffc2d1)', i: ic('heart'), n: money(misses.length), t: '次「想你」', s: ms.map((u) => `${esc(nick(u))} 想了 ${misses.filter((x) => x.by === u).length} 次`).join('<br>') },
-    { bg: 'linear-gradient(160deg,#4b4453,#845ec2)', i: ic('minds'), n: qrate + '%', t: '默契度', s: `一起答了 ${quiz.length} 題默契問答<br>${daily.length} 題每日一問<br>互相蓋了 ${stamps.length} 個章` },
-    { bg: 'linear-gradient(160deg,#c42e52,#3a0f1d)', i: ic('house'), n: `第 ${money(daysAtEnd)} 天`, t: D.BIRTHDAY_SLOGAN, s: `${Y + 1} 年也請多多指教` },
+    { i: ic('ferris'), n: Y, t: '這一年的我們', s: `${nick(me())} & ${nick(p)}<br>往右點，一起回顧 →` },
+    { i: ic('ticket'), n: redeems.length, t: '張票券被兌換', s: top ? `最常用的是「${esc(top[0])}」<br>一共用了 ${top[1]} 次` : '明年多用一點吧' },
+    { i: ic('gacha'), n: gacha.length, t: '次扭蛋和合成', s: `扭出 ${gacha.filter((g) => g.rarity === 'SSR').length} 張 SSR、${gacha.filter((g) => g.rarity === 'SR').length} 張 SR` },
+    { i: ic('map'), n: trips.length, t: '個一起去過的地方', s: trips.length ? trips.slice(0, 8).map((t) => esc(t.name)).join('・') : '明年一起去更多地方吧' },
+    { i: ic('target'), n: `${goals.filter((g) => g.done).length}/${goals.length}`, t: '個年度目標完成', s: goals.filter((g) => g.done).slice(0, 6).map((g) => '✓ ' + esc(g.title)).join('<br>') || '寫下明年的目標吧' },
+    { i: ic('heart'), n: money(misses.length), t: '次「想你」', s: ms.map((u) => `${esc(nick(u))} 想了 ${misses.filter((x) => x.by === u).length} 次`).join('<br>') },
+    { i: ic('minds'), n: qrate + '%', t: '默契度', s: `一起答了 ${quiz.length} 題默契問答<br>${daily.length} 題每日一問<br>互相蓋了 ${stamps.length} 個章` },
+    { bg: finaleBg(), i: ic('house'), n: `第 ${money(daysAtEnd)} 天`, t: D.BIRTHDAY_SLOGAN, s: `${Y + 1} 年也請多多指教` },
   ];
+  playStory(slides);
+};
+
+// 故事頁共用：slides = [{ bg, i, n, t, s }]，bg 沒給就用目前主題的顏色
+function finaleBg() { return `linear-gradient(160deg, ${PALETTES[paletteId()].sw[0]}, #1a0d14)`; }
+function storyBgs() {
+  const sw = PALETTES[paletteId()].sw;
+  const night = document.documentElement.dataset.theme === 'night';
+  const dk = (c) => night ? `color-mix(in srgb, ${c} 70%, #10080c)` : c;
+  return sw.map((c, i) => `linear-gradient(160deg, ${dk(c)}, ${dk(sw[(i + 1) % sw.length])})`);
+}
+function playStory(slides, { finale = 100, colors } = {}) {
+  const bgs = storyBgs();
   let k = 0;
   const el = document.createElement('div');
   el.className = 'story';
   const draw = () => {
     const s = slides[k];
-    el.style.background = s.bg;
+    el.style.background = s.bg || bgs[k % bgs.length];
     el.innerHTML = `<div class="bars">${slides.map((_, i) => `<div class="${i <= k ? 'on' : ''}"></div>`).join('')}</div>
-      <button class="story-close">✕</button>
+      <button class="story-close" aria-label="關閉">✕</button>
       <div class="slide"><div class="si">${s.i}</div><div class="sn">${s.n}</div><div class="st">${esc(s.t)}</div><div class="ss">${s.s}</div></div>
       <div class="tapzones"><div data-d="-1"></div><div data-d="1"></div></div>`;
     $('.story-close', el).onclick = () => el.remove();
@@ -3213,12 +3230,13 @@ ACT.review = () => {
       k += +z.dataset.d;
       if (k >= slides.length) { el.remove(); return; }
       k = Math.max(0, k); draw();
-      if (k === slides.length - 1) confetti(100);
+      if (k === slides.length - 1) confetti(finale, colors);
     });
   };
   draw();
   document.body.appendChild(el);
-};
+}
+
 // ============================================================
 //  備份與還原
 //  1. 雲端自動快照：每 7 天一次，保留最近 4 份（存在 Firebase 的 backups／backupParts）
@@ -3359,6 +3377,140 @@ ACT.backup = async () => {
   };
   draw();
 };
+// ============================================================
+//  週年慶模式：紀念日當天的開場、金色首頁、限定卡、這幾年的故事、週年信
+// ============================================================
+
+const CN_NUM = ['零', '一', '二', '三', '四', '五', '六', '七', '八', '九', '十'];
+function cnNum(n) {
+  if (n <= 10) return CN_NUM[n];
+  if (n < 20) return '十' + (n % 10 ? CN_NUM[n % 10] : '');
+  return CN_NUM[Math.floor(n / 10)] + '十' + (n % 10 ? CN_NUM[n % 10] : '');
+}
+// 今天是不是紀念日？回傳第幾週年（試玩可用 localStorage park-anniv-preview=1 預覽）
+function annivInfo() {
+  const a = parseD(S.couple?.dates?.anniversary || D.DEFAULT_DATES.anniversary);
+  const t = new Date();
+  const preview = localStorage.getItem('park-anniv-preview') === '1';
+  const is = preview || (t.getMonth() === a.getMonth() && t.getDate() === a.getDate() && t.getFullYear() > a.getFullYear());
+  let n = t.getFullYear() - a.getFullYear();
+  if (preview && n < 1) n = 1;
+  return { is, n, y: t.getFullYear(), cn: cnNum(n) };
+}
+
+// 金色週年徽章（中間是大大的數字）
+function annivMedal(n) {
+  let dots = '';
+  for (let i = 0; i < 36; i++) { const a = i * 10 * Math.PI / 180; dots += `<circle cx="${(100 + Math.sin(a) * 94).toFixed(1)}" cy="${(100 - Math.cos(a) * 94).toFixed(1)}" r="${i % 3 ? 1.1 : 2.2}" fill="#e9c77b"/>`; }
+  let rays = '';
+  for (let i = 0; i < 24; i++) { const a = i * 15 * Math.PI / 180, r1 = 62, r2 = i % 2 ? 68 : 72; rays += `<path d="M${(100 + Math.sin(a) * r1).toFixed(1)} ${(100 - Math.cos(a) * r1).toFixed(1)} L${(100 + Math.sin(a) * r2).toFixed(1)} ${(100 - Math.cos(a) * r2).toFixed(1)}" stroke="#e9c77b" stroke-width="1.2" stroke-linecap="round"/>`; }
+  return `<svg viewBox="0 0 200 200" class="anniv-medal" xmlns="http://www.w3.org/2000/svg">
+    <g class="am-dots">${dots}</g>
+    <circle cx="100" cy="100" r="86" fill="none" stroke="#e9c77b" stroke-width="2" class="am-ring"/>
+    <circle cx="100" cy="100" r="80" fill="none" stroke="#e9c77b" stroke-width=".8" opacity=".6"/>
+    <g opacity=".85">${rays}</g>
+    <circle cx="100" cy="100" r="56" fill="#2b1420" stroke="#e9c77b" stroke-width="1.6"/>
+    <circle cx="100" cy="100" r="50" fill="none" stroke="#e9c77b" stroke-width=".7" stroke-dasharray="2 4"/>
+    <text x="100" y="${n > 9 ? 121 : 124}" text-anchor="middle" font-family="Songti TC, Noto Serif TC, serif" font-weight="900" font-size="${n > 9 ? 58 : 70}" fill="url(#amg)">${n}</text>
+    <defs><linearGradient id="amg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff1c9"/><stop offset=".55" stop-color="#e9c77b"/><stop offset="1" stop-color="#b8862f"/></linearGradient></defs>
+    <path d="M58 158 Q100 176 142 158" fill="none" stroke="#e9c77b" stroke-width="1.4" stroke-linecap="round"/>
+    <path d="M100 160 L102 165 L107 167 L102 169 L100 174 L98 169 L93 167 L98 165 Z" fill="#e9c77b"/>
+    <path d="M48 52 L49.5 56 L53.5 57.5 L49.5 59 L48 63 L46.5 59 L42.5 57.5 L46.5 56 Z" fill="#fff1c9"/>
+    <path d="M154 46 L155 49 L158 50 L155 51 L154 54 L153 51 L150 50 L153 49 Z" fill="#fff1c9"/>
+  </svg>`;
+}
+
+// 開場（每年每支手機看一次；首頁的週年卡可以重看）
+function annivIntro(force) {
+  const A = annivInfo();
+  if (!A.is || !S.couple) return;
+  const key = `park-anniv-intro-${A.y}`;
+  if (!force && localStorage.getItem(key)) return;
+  localStorage.setItem(key, '1');
+  const p = partner();
+  const el = document.createElement('div');
+  el.className = 'anniv-intro';
+  el.innerHTML = `<div class="ai-glow"></div>
+    <div class="ai-body">
+      ${annivMedal(A.n)}
+      <div class="ai-eyebrow">${esc(nick(me()))}${p ? ' & ' + esc(nick(p)) : ''}</div>
+      <h1>${A.cn}週年快樂</h1>
+      <p>今天是我們在一起的第 ${money(daysTogether())} 天</p>
+      <button class="btn ai-go" id="ai-story">打開我們的${A.cn}年</button>
+      <button class="link ai-skip" id="ai-skip">先看看首頁</button>
+    </div>`;
+  document.body.appendChild(el);
+  setTimeout(() => confetti(120, ['#e9c77b', '#fff1c9', '#c42e52', '#ff9db4', '#b8862f']), 900);
+  const close = () => { el.classList.add('out'); setTimeout(() => el.remove(), 450); };
+  $('#ai-skip', el).onclick = close;
+  $('#ai-story', el).onclick = () => { close(); setTimeout(() => ACT.annivStory(), 300); };
+}
+
+// 這幾年的我們（全部時間的統計）
+ACT.annivStory = () => {
+  const A = annivInfo();
+  const ms = S.couple.members, p = partner();
+  const ann = S.couple.dates?.anniversary || D.DEFAULT_DATES.anniversary;
+  const redeems = list('cards').flatMap((c) => (c.log || []).filter((l) => l.how === 'redeem').map(() => c));
+  const cnt = {}; redeems.forEach((c) => cnt[c.title] = (cnt[c.title] || 0) + 1);
+  const top = Object.entries(cnt).sort((a, b) => b[1] - a[1])[0];
+  const trips = list('trips');
+  const misses = list('misses');
+  const daily = list('daily').filter((d) => d.answers && ms.every((u) => d.answers[u]));
+  const mems = list('memories').slice().sort((a, b) => (a.date || '').localeCompare(b.date || ''));
+  const wishes = list('wishes').filter((w) => w.status === 'ok');
+  const G = ['#e9c77b', '#fff1c9', '#c42e52', '#ff9db4'];
+  const gold = 'linear-gradient(160deg, #3a1622, #1a0b11)';
+  const slides = [
+    { bg: gold, i: annivMedal(A.n), n: `${A.cn}週年`, t: '這幾年的我們', s: `從 ${ann.replace(/-/g, '/')} 開始<br>往右點，一起回顧 →` },
+    { i: ic('heart'), n: money(daysTogether()), t: '天', s: `大約 ${money(Math.round(daysTogether() / 7))} 個週末<br>${money(daysTogether() * 24)} 個小時都有彼此` },
+    { i: ic('ticket'), n: redeems.length, t: '張票券被兌現', s: top ? `兌現最多次的是「${esc(top[0])}」` : '接下來的每一張都好好用掉吧' },
+    { i: ic('map'), n: trips.length, t: '個一起去過的地方', s: trips.length ? trips.slice(0, 10).map((t) => esc(t.name)).join('・') : '下一年一起去更多地方' },
+    { i: ic('heart'), n: money(misses.length), t: '次「想你」', s: ms.map((u) => `${esc(nick(u))} 按了 ${misses.filter((x) => x.by === u).length} 次`).join('<br>') },
+    { i: ic('chat'), n: daily.length, t: '題一起回答的每日一問', s: wishes.length ? `還實現了 ${wishes.length} 個願望` : '每一題都是更認識彼此一點' },
+  ];
+  if (mems.length) slides.push({ i: ic('photo'), n: mems.length, t: '段寫下來的回憶', s: `最早的一段是「${esc(mems[0].title)}」` });
+  slides.push({ bg: gold, i: ic('house'), n: `第 ${A.n + 1} 年`, t: D.BIRTHDAY_SLOGAN, s: `${esc(nick(me()))}${p ? ' ♡ ' + esc(nick(p)) : ''}<br>也請多多指教` });
+  playStory(slides, { finale: 140, colors: G });
+};
+
+// 週年信：兩個人都寫好之後才能同時打開
+ACT.annivLetter = async () => {
+  const A = annivInfo(), p = partner();
+  const L = (S.couple.annivLetters || {})[A.y] || {};
+  const mine = L[me()], theirs = p ? L[p] : null;
+  if (mine && theirs) {
+    openModal(`${mhead(`<i data-ic="letter"></i> ${A.cn}週年的信`)}
+      ${[[p, theirs], [me(), mine]].map(([u, t]) => `<div class="anniv-letter"><div class="al-from">${avatar(u)} ${esc(nick(u))} 寫給 ${esc(nick(u === me() ? p : me()))}</div><div class="al-body">${esc(t.text)}</div></div>`).join('')}`);
+    return;
+  }
+  const text = await promptBox(mine ? '修改我的週年信（對方寫好後才會一起打開）' : `寫一封${A.cn}週年的信給 ${nick(p) || '對方'}`, { multiline: true, value: mine?.text || '', placeholder: '這一年最想謝謝對方的事、最喜歡的瞬間、想對下一年說的話…', ok: '封好' });
+  if (!text || !text.trim()) return;
+  await S.store.updateCouple(S.cid, { [`annivLetters.${A.y}.${me()}`]: { text: text.trim(), at: now() } });
+  if (p) await notify(p, 'letter', `${nick(me())} 寫好週年信了，換你寫，兩封會一起打開`);
+  toast(theirs ? '兩封信都寫好了，可以一起打開了' : '封好了，等對方也寫完就能一起打開');
+};
+
+// 首頁最上面的週年卡
+function annivHomeCard() {
+  const A = annivInfo();
+  if (!A.is) return '';
+  const p = partner();
+  const L = (S.couple.annivLetters || {})[A.y] || {};
+  const both = L[me()] && p && L[p];
+  return `<div class="card anniv-card">
+    <div class="ac-medal">${annivMedal(A.n)}</div>
+    <div class="grow">
+      <div class="ac-eyebrow">今天是我們的</div>
+      <div class="ac-title">${A.cn}週年紀念日</div>
+      <div class="ac-btns">
+        <button class="btn sm" data-act="annivStory">我們的${A.cn}年</button>
+        <button class="btn sm ghost" data-act="annivLetter">${both ? '打開週年信' : L[me()] ? '信已封好・等對方' : '寫週年信'}</button>
+      </div>
+    </div>
+  </div>`;
+}
+ACT.annivReplay = () => annivIntro(true);
 // ============================================================
 //  啟動
 // ============================================================
