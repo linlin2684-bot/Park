@@ -516,8 +516,38 @@ const AVATARS = {
     <path d="M29.5 48.5 Q32 50.5 34.5 48.5" fill="none" stroke="${AV_INK}" stroke-width="1.3" stroke-linecap="round"/>
     <ellipse cx="21" cy="42" rx="2.6" ry="1.5" fill="#ffb3c4"/><ellipse cx="43" cy="42" rx="2.6" ry="1.5" fill="#ffb3c4"/>` },
 };
+// 我們的貓（和首頁路過的貓同一套）
+const CAT_AV = [['mx_black', 'black', '小小黑', '#efe6f6'], ['mx_white', 'white', '陷阱貓', '#e2f1fb'], ['mx_orange', 'orange', '晽晽貓貓', '#fff0d9'], ['mx_calico', 'calico', '小魚乾', '#fde8ee'], ['mx_tuxedo', 'tuxedo', '吵吵貓', '#e6f3e4']];
+CAT_AV.forEach(([id, coat, name, bg]) => { AVATARS[id] = { name, bg, cat: coat }; });
+// 圖騰頭像（和卡片徽章同一套圖騰）
+const EMB_AV = [
+  ['em_rose', '玫瑰', 'F-valentine', () => festMotif('valentine', {})],
+  ['em_anniv', '週年', 'F-anniv', () => festMotif('anniv', {})],
+  ['em_xmas', '聖誕', 'F-xmas', () => festMotif('xmas', {})],
+  ['em_newyear', '新年', 'F-newyear', () => festMotif('newyear', {})],
+  ['em_candle', '燭光', 'C', () => bookMotif('candle')],
+  ['em_stars', '星空', 'SSR', () => bookMotif('stars')],
+  ['em_wish', '願望', 'W', () => bookMotif('wish')],
+  ['em_compass', '羅盤', 'F-travel', () => bookMotif('compass')],
+  ['em_suitcase', '旅行', 'R', () => travelMotif('suitcase')],
+  ['em_camera', '相機', 'SR', () => travelMotif('camera')],
+  ['em_mountain', '山', 'N', () => travelMotif('mountain')],
+  ['em_globe', '地球', 'F-queen', () => travelMotif('globe')],
+];
+EMB_AV.forEach(([id, name, pal, motif]) => { AVATARS[id] = { name, emb: pal, motif }; });
+
 function avatarSVG(id) {
   const a = AVATARS[id]; if (!a) return '';
+  if (a.cat) {
+    const c = COATS[a.cat], tr = (COAT_TRAITS || {})[a.cat];
+    return `<svg viewBox="0 0 64 64" class="av-svg" xmlns="http://www.w3.org/2000/svg"><circle cx="32" cy="32" r="31" fill="${a.bg}"/><g transform="translate(32 37) scale(1.12)">${coatHead(c)}${tr && tr.prop === 'tiara' ? COAT_PROPS.tiara : ''}</g><circle cx="32" cy="32" r="30.5" fill="none" stroke="rgba(74,46,42,.18)" stroke-width="1"/></svg>`;
+  }
+  if (a.emb) {
+    let dots = '';
+    for (let i = 0; i < 16; i++) { const t = i * 22.5 * Math.PI / 180; dots += `<circle cx="${(32 + Math.sin(t) * 27).toFixed(1)}" cy="${(32 - Math.cos(t) * 27).toFixed(1)}" r="${i % 4 ? .55 : 1}" class="e-ink-f"/>`; }
+    let m = ''; try { m = a.motif(); } catch (e) {}
+    return `<svg viewBox="0 0 64 64" class="av-svg emb-${a.emb}" xmlns="http://www.w3.org/2000/svg"><circle cx="32" cy="32" r="31" class="e-bg"/><circle cx="32" cy="32" r="30" class="e-ink-s" stroke-width="1.2"/><circle cx="32" cy="32" r="24" class="e-acc-s" stroke-width=".7"/>${dots}<g transform="translate(32 32) scale(.64)">${m}</g></svg>`;
+  }
   return `<svg viewBox="0 0 64 64" class="av-svg" xmlns="http://www.w3.org/2000/svg"><circle cx="32" cy="32" r="31" fill="${a.bg}"/><g>${a.art}</g><circle cx="32" cy="32" r="30.5" fill="none" stroke="rgba(74,46,42,.18)" stroke-width="1"/></svg>`;
 }
 
