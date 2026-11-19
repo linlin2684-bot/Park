@@ -1640,36 +1640,72 @@ ACT.wishNo = async (el) => {
 function craftable() {
   return list('cards').filter((c) => c.owner === me() && c.scratched && c.kind !== 'collect' && !c.series && !c.mystery && remaining(c) > 0 && !isExpired(c));
 }
-function walletCraft() {
-  const cs = craftable();
-  const n = D.CRAFT_COST;
-  return `<div class="card center"><div style="font-size:46px">⚗️</div><h3 style="justify-content:center">合成工坊</h3>
-    <p class="small muted" style="margin:0">${n} 張同級的票券，可以合成 1 張高一級的隨機票券（從卡池抽，由 ${esc(nick(partner()))} 兌現）</p></div>
-    ${['N', 'R', 'SR'].map((r, i) => {
-      const units = sum(cs.filter((c) => c.rarity === r), remaining);
-      const to = D.RARITY_ORDER[i + 1];
-      return `<div class="card"><div class="row">
-        <span class="chip" style="color:var(--r-${r.toLowerCase()});font-size:14px">${r} ×${units}</span>
-        <span class="grow center" style="font-size:20px">→</span>
-        <span class="chip" style="color:var(--r-${to.toLowerCase()});font-size:14px">${to} ×1</span>
-        <button class="btn sm" data-act="craft" data-r="${r}" ${units >= n && partner() ? '' : 'disabled'}>合成</button></div></div>`;
-    }).join('')}
-    <p class="small muted center">合成會用掉 ${n} 張票券，剩最多張的會優先用掉<br>生日、節日、旅行等系列卡是心意，不能拿去合成</p>`;
+// 自選合成：選 3 張同稀有度的卡（同一張有多張時可以選幾張）
+S.craftSel = S.craftSel || {};
+const craftTotal = () => sum(Object.values(S.craftSel), (n) => n);
+function craftRarity() {
+  const id = Object.keys(S.craftSel).find((k) => S.craftSel[k] > 0);
+  const c = id && list('cards').find((x) => x.id === id);
+  return c ? c.rarity : '';
 }
-ACT.craft = async (el) => {
-  const r = el.dataset.r, to = D.RARITY_ORDER[rarityRank(r) + 1];
-  const cs = craftable().filter((c) => c.rarity === r).sort((a, b) => remaining(b) - remaining(a));
-  const take = []; let need = D.CRAFT_COST;
-  for (const c of cs) { while (need > 0 && remaining(c) - take.filter((t) => t.id === c.id).length > 0) { take.push(c); need--; } }
-  if (need > 0) return toast('數量不夠');
-  const names = [...new Set(take.map((c) => c.title))].join('、');
+function walletCraft() {
+  const n = D.CRAFT_COST;
+  const cs = craftable().filter((c) => c.rarity !== 'SSR');
+  // 清掉已經不能用的選擇
+  for (const id of Object.keys(S.craftSel)) { const c = cs.find((x) => x.id === id); if (!c || S.craftSel[id] <= 0) delete S.craftSel[id]; else S.craftSel[id] = Math.min(S.craftSel[id], remaining(c)); }
+  const total = craftTotal(), r = craftRarity();
+  const to = r ? D.RARITY_ORDER[rarityRank(r) + 1] : '';
+  const groups = ['N', 'R', 'SR'].map((rr) => [rr, cs.filter((c) => c.rarity === rr).sort((a, b) => a.title.localeCompare(b.title))]).filter(([, a]) => a.length);
+  return `<div class="card center"><div style="font-size:40px">⚗️</div><h3 style="justify-content:center">合成工坊</h3>
+      <p class="small muted" style="margin:0">挑 ${n} 張<b>同稀有度</b>、不想要的票券，合成 1 張高一級的隨機卡（從卡池抽，由 ${esc(nick(partner()))} 兌現）</p></div>
+    <div class="craft-bar card">
+      <div class="row"><div class="grow"><b style="font-family:var(--serif);font-size:17px">已選 ${total} / ${n}</b>${r ? ` <span class="chip" style="color:var(--r-${r.toLowerCase()})">${r}</span>` : ''}
+        <div class="small muted">${r ? `合成後得到 1 張 ${to} 刮刮卡` : '先點一張卡開始選'}</div></div>
+        ${total ? '<button class="small muted" data-act="craftClear">清除</button>' : ''}</div>
+      <button class="btn block mt" data-act="craft" ${total === n && partner() ? '' : 'disabled'}>${total === n ? `合成 1 張 ${to}` : `還要選 ${n - total} 張`}</button>
+    </div>
+    ${groups.length ? groups.map(([rr, arr]) => `<h3 class="craft-h" style="color:var(--r-${rr.toLowerCase()})">${rr} · ${D.RARITY[rr].label}</h3>
+      ${arr.map((c) => {
+        const sel = S.craftSel[c.id] || 0, rem = remaining(c);
+        const off = (r && r !== c.rarity) || (!sel && total >= n);
+        return `<div class="craft-row emb-${embPalette(c)} ${sel ? 'on' : ''} ${off ? 'off' : ''}" ${off ? '' : `data-act="craftAdd" data-id="${c.id}"`}>
+          <div style="width:46px;height:46px;flex:none">${emblemMini(c)}</div>
+          <div class="grow"><b>${esc(c.title)}</b><div class="small muted">剩 ${rem} 張${c.from && c.from !== 'sys' ? ' · 來自 ' + esc(nick(c.from)) : ''}</div></div>
+          ${sel ? `<button class="craft-minus" data-act="craftSub" data-id="${c.id}">−</button><span class="craft-n">${sel}</span>` : ''}
+          ${!off && sel < rem && total < n ? `<button class="craft-plus" data-act="craftAdd" data-id="${c.id}">＋</button>` : ''}
+        </div>`;
+      }).join('')}`).join('')
+      : '<div class="empty"><span class="big">⚗️</span>目前沒有可以合成的票券</div>'}
+    <p class="small muted center" style="margin-top:12px">SSR、生日／節日／旅行等系列卡、收藏卡和神秘盲盒不能合成</p>`;
+}
+ACT.craftAdd = (el, e) => {
+  e && e.stopPropagation();
+  const c = list('cards').find((x) => x.id === el.dataset.id); if (!c) return;
+  const r = craftRarity();
+  if (r && r !== c.rarity) return toast('要選同一個稀有度的卡');
+  if (craftTotal() >= D.CRAFT_COST) return toast(`最多選 ${D.CRAFT_COST} 張`);
+  const cur = S.craftSel[c.id] || 0;
+  if (cur >= remaining(c)) return toast('這張已經全部選了');
+  S.craftSel[c.id] = cur + 1; vibrate(10); render();
+};
+ACT.craftSub = (el, e) => {
+  e && e.stopPropagation();
+  const id = el.dataset.id;
+  S.craftSel[id] = Math.max(0, (S.craftSel[id] || 0) - 1);
+  if (!S.craftSel[id]) delete S.craftSel[id];
+  render();
+};
+ACT.craftClear = () => { S.craftSel = {}; render(); };
+ACT.craft = async () => {
+  const r = craftRarity(), to = D.RARITY_ORDER[rarityRank(r) + 1];
+  const picks = Object.entries(S.craftSel).map(([id, k]) => [list('cards').find((x) => x.id === id), k]).filter(([c, k]) => c && k > 0);
+  if (sum(picks, ([, k]) => k) !== D.CRAFT_COST || !to || picks.some(([c]) => c.rarity !== r)) return toast(`要選 ${D.CRAFT_COST} 張同稀有度的卡`);
+  const names = picks.map(([c, k]) => `${c.title}${k > 1 ? ' ×' + k : ''}`).join('、');
   if (!(await confirmBox(`要用掉這 ${D.CRAFT_COST} 張 ${r} 票券嗎？\n${names}`, '合成！'))) return;
-  const grouped = {};
-  take.forEach((c) => grouped[c.id] = (grouped[c.id] || 0) + 1);
-  for (const [id, k] of Object.entries(grouped)) {
-    const c = list('cards').find((x) => x.id === id);
-    await col('cards').update(id, { used: (c.used || 0) + k, log: [...(c.log || []), ...Array.from({ length: k }, () => ({ at: now(), how: 'craft' }))] });
+  for (const [c, k] of picks) {
+    await col('cards').update(c.id, { used: (c.used || 0) + k, log: [...(c.log || []), ...Array.from({ length: k }, () => ({ at: now(), how: 'craft' }))] });
   }
+  S.craftSel = {};
   const tpl = drawFromPool(to, true);
   const m = openModal(`<div class="center" style="padding:20px 0"><div style="font-size:70px;animation:spin 1s linear infinite">⚗️</div><h2>合成中…</h2></div>`, { center: true });
   await sleep(1300);

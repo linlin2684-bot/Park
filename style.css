@@ -615,3 +615,14 @@ html[data-theme="night"] .ach-g { --e-bg: #2a210f; --e-ink: #f2d58f; --e-acc: #8
 /* 時間軸照片 */
 .tl-item.tl-mine { cursor: pointer; border: 1px solid color-mix(in srgb, var(--accent) 30%, transparent); }
 .tl-cover { height: 120px; border-radius: 10px; margin: -2px -4px 8px; background: center/cover no-repeat; }
+
+/* 自選合成 */
+.craft-bar { position: sticky; top: calc(env(safe-area-inset-top) + 62px); z-index: 10; }
+.craft-h { font-size: 15px; margin: 14px 4px 6px; }
+.craft-row { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 16px; background: var(--card); box-shadow: var(--shadow); margin-bottom: 8px; border: 2px solid transparent; cursor: pointer; transition: opacity .2s, border-color .2s; }
+.craft-row b { font-family: var(--serif); }
+.craft-row.on { border-color: var(--accent); }
+.craft-row.off { opacity: .35; cursor: default; }
+.craft-plus, .craft-minus { width: 32px; height: 32px; border-radius: 50%; background: var(--card2); font-size: 18px; font-weight: 800; flex: none; }
+.craft-plus { background: var(--accent); color: var(--accent-ink); }
+.craft-n { min-width: 18px; text-align: center; font-family: var(--serif); font-weight: 900; font-size: 18px; color: var(--accent); }
