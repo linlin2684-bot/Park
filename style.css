@@ -1073,3 +1073,49 @@ html[data-theme="night"] .jar-svg .jar-glass { fill: rgba(255, 255, 255, .06); }
 .cat-stroll.pup-nod { animation-play-state: paused; }
 .cat-stroll.pup-nod .dog-head { transform-origin: 30px 58px; animation: pupNod .5s ease-in-out 3; }
 @keyframes pupNod { 50% { transform: translate(30px, 52px) rotate(8deg); } }
+/* ============ 家裡的小動物 ============ */
+.cat-stroll.fr-haohao { animation-duration: 7.5s; }
+.cat-stroll.fr-haohao .cat-svg, .cat-stroll.fr-doggy .cat-svg, .cat-stroll.fr-abian .cat-svg { animation: dogBounce .4s ease-in-out infinite; }
+.cat-stroll.fr-doggy { animation-duration: 11s; }
+.cat-stroll.fr-abian { animation-duration: 9s; }
+.cat-stroll.fr-orange { animation-duration: 12s; }
+.cat-stroll.fr-orange .cat-svg { animation: catWaddle .6s ease-in-out infinite; }
+.cat-stroll.fr-white { animation-duration: 11s; }
+.cat-stroll.fr-white .cat-svg { animation: catPrance 1s ease-in-out infinite; }
+.cat-stroll.fr-gungun { animation-duration: 8s; }
+.cat-stroll.fr-gungun .cat-svg { animation: dogBounce .3s ease-in-out infinite; }
+.panda-walk .panda-tail { transform-origin: 80px 60px; animation: dogWag .5s ease-in-out infinite alternate; }
+.cat-stroll.flee { animation-duration: 1.2s !important; }
+.cat-stroll.flee .cat-svg { animation: dogBounce .12s ease-in-out infinite !important; }
+.cat-stroll.clap { animation-play-state: paused; }
+.cat-stroll.clap .cat-svg { animation: catJump .25s ease-in-out 5 !important; }
+/* 鯊鯊：在空中游泳，關機會掉到地上 */
+.cat-stroll.swim { bottom: calc(var(--nav-h) + env(safe-area-inset-bottom) + 70px); animation-duration: 10s; }
+.cat-stroll.swim .cat-svg { animation: sharkBob 1.6s ease-in-out infinite; }
+@keyframes sharkBob { 0%, 100% { transform: scaleX(-1) translateY(0) rotate(0); } 50% { transform: scaleX(-1) translateY(-6px) rotate(-3deg); } }
+.shark-swim .shark-tail { transform-origin: 104px 36px; animation: sharkTail .5s ease-in-out infinite alternate; }
+@keyframes sharkTail { to { transform: rotate(14deg); } }
+.cat-stroll.swim.off { animation: none; transition: bottom .55s cubic-bezier(.5, 0, .9, .4); bottom: calc(var(--nav-h) + env(safe-area-inset-bottom) - 2px); }
+.cat-stroll.swim.off .cat-svg { animation: sharkFall .55s ease-in forwards; }
+@keyframes sharkFall { to { transform: scaleX(-1) rotate(178deg); } }
+.cat-stroll.swim.wake .cat-svg { animation: sharkWake .35s ease-out forwards; }
+@keyframes sharkWake { 0% { transform: scaleX(-1) rotate(178deg); } 100% { transform: scaleX(-1) rotate(0) translateY(-20px); } }
+.cat-stroll.swim.wake { animation: none; transition: left 1.8s ease-in, bottom .4s ease-out; left: calc(100% + 120px) !important; bottom: calc(var(--nav-h) + env(safe-area-inset-bottom) + 70px); }
+html[data-theme="night"] .cat-stroll .cat-svg { filter: drop-shadow(0 0 1px rgba(255, 240, 220, .55)) drop-shadow(0 0 10px rgba(255, 200, 150, .12)); }
+/* 圖鑑 */
+.dex-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.dex-card { background: var(--card2); border-radius: 16px; padding: 10px 8px 12px; display: flex; flex-direction: column; align-items: center; gap: 2px; border: 1px solid color-mix(in srgb, var(--accent2) 25%, transparent); color: var(--ink); }
+.dex-card .dex-art { height: 74px; display: flex; align-items: flex-end; justify-content: center; margin-bottom: 4px; }
+.dex-card .dex-art .cat-svg { height: 70px; width: auto; transform: scaleX(-1); }
+.dex-card b { font-family: var(--serif); font-size: 15px; }
+.dex-card small { font-size: 11px; color: var(--muted); }
+.dex-card.locked .dex-art .cat-svg { filter: brightness(0) opacity(.18); }
+html[data-theme="night"] .dex-card.locked .dex-art .cat-svg { filter: brightness(0) invert(1) opacity(.12); }
+.dex-card.locked b { color: var(--muted); }
+.dex-detail { text-align: center; }
+.dex-detail .dex-big { width: 180px; margin: 0 auto 4px; color: var(--ink); }
+.dex-detail .dex-big .cat-svg { width: 100%; height: auto; transform: scaleX(-1); }
+.dex-detail h2 { font-family: var(--serif); margin: 4px 0; }
+.dex-detail h2 .chip { font-family: var(--sans); font-size: 11px; vertical-align: middle; padding: 2px 8px; border-radius: 99px; background: color-mix(in srgb, var(--accent) 14%, transparent); color: var(--accent); }
+.dex-line { text-align: left; background: var(--card2); border-radius: 12px; padding: 9px 12px; margin-top: 6px; font-size: 14px; line-height: 1.6; }
+.dex-line.locked { color: var(--muted); opacity: .6; }

@@ -738,76 +738,6 @@ function catifyEmpty(root) {
   });
 }
 
-// 首頁偶爾有黑貓路過（點牠 +1 經驗，一天一次）
-function catStroll(force) {
-  if (S.tab !== 'home' || document.querySelector('.cat-stroll')) return;
-  const k = 'park-stroll-at';
-  if (!force && (now() - +(localStorage.getItem(k) || 0) < 8 * 60000 || Math.random() > .45)) return;
-  localStorage.setItem(k, now());
-  const el = document.createElement('button');
-  el.className = 'cat-stroll';
-  el.setAttribute('aria-label', '黑貓');
-  // 小小黑和晽晽貓貓各 35%，其他三隻各 10%
-  // 小小黑、晽晽貓貓各 30%，還好 13%，陷阱貓、小魚乾、吵吵貓各 9%
-  const r = Math.random();
-  // 小小黑、晽晽貓貓各 27%，還好 12%，狗狗、阿扁各 8%，陷阱貓、小魚乾、吵吵貓各 6%
-  const coat = force || (r < .27 ? 'black' : r < .54 ? 'orange' : r < .66 ? 'dog' : r < .74 ? 'doggy' : r < .82 ? 'abian' : r < .88 ? 'white' : r < .94 ? 'calico' : 'tuxedo');
-  el.innerHTML = coat === 'dog' ? dogWalk() : PUPS[coat] ? pupWalk(coat) : coatWalk(coat);
-  // 結伴路過：狗狗跟在小小黑後面（又要捉弄牠了）、阿扁跟狗狗一起
-  const buddy = coat === 'doggy' && Math.random() < .5 ? 'black' : coat === 'abian' && Math.random() < .4 ? 'doggy' : '';
-  if (buddy) {
-    const b = document.createElement('div');
-    b.className = 'cat-stroll lead';
-    b.innerHTML = buddy === 'black' ? coatWalk('black') : pupWalk('doggy');
-    document.body.appendChild(b); setTimeout(() => b.remove(), 9000);
-  }
-  if (coat === 'dog') {
-    el.setAttribute('aria-label', '還好');
-    // 有時候還好會追著一隻貓跑
-    if (Math.random() < .4) setTimeout(() => {
-      const kitty = document.createElement('div');
-      kitty.className = 'cat-stroll lead';
-      kitty.innerHTML = coatWalk('black'); // 把拔貓咪＝小小黑
-      document.body.appendChild(kitty); setTimeout(() => kitty.remove(), 9000);
-    }, 0);
-  }
-  el.classList.add('coat-' + coat);
-  if (coat === 'tuxedo' && Math.random() < .35) el.classList.add('backwards');
-  if (coat === 'orange') el.classList.add('chubby');
-  if (coat === 'white') el.classList.add('princess');
-  el.onclick = async () => {
-    el.classList.add('caught'); sfx('heart');
-    if (PUPS[coat]) {
-      const r2 = el.getBoundingClientRect();
-      floaty(r2.left + r2.width / 2, r2.top, coat === 'abian' ? ['#ffd45c', '#9fd3ff', '#ff9fb4'] : ['#ff9fb4', '#ecd3a2']);
-      el.classList.add(coat === 'abian' ? 'pup-clap' : 'pup-nod'); toast(pick1(PUP_LINES[coat]));
-      setTimeout(() => el.remove(), 1600); return;
-    }
-    if (coat === 'dog') {
-      const r2 = el.getBoundingClientRect();
-      floaty(r2.left + r2.width / 2, r2.top, ['#ff9fb4', '#ffd45c', '#e2b56a']);
-      el.classList.add('dog-happy'); toast(pick1(DOG_LINES));
-      setTimeout(() => el.remove(), 1600); return;
-    }
-    if (coat !== 'black') {
-      const T = COAT_TRAITS[coat];
-      const r2 = el.getBoundingClientRect();
-      const fx = { tuxedo: ['#ffd1dc', '#ffd45c', '#7cc488'], calico: ['#ff9db4', '#ffc2d1'], orange: ['#c9773a', '#ffd45c'], white: ['#ffd45c', '#9fd3ff', '#ff8fab'] }[coat];
-      floaty(r2.left + r2.width / 2, r2.top, fx);
-      if (coat === 'tuxedo' && Math.random() < .4) el.classList.add('trip');
-      if (coat === 'calico') el.classList.add('roll');
-      toast(pick1(T.lines));
-      setTimeout(() => el.remove(), 1400); return;
-    }
-    el.innerHTML = catPose('jump');
-    const dk = `park-stroll-pat-${dkey()}-${me()}`;
-    if (!localStorage.getItem(dk) && typeof petXP === 'function') { localStorage.setItem(dk, '1'); await petXP(1); toast(`抓到${petState().name}了！經驗 +1`); }
-    else toast(`${typeof petState === 'function' ? petState().name : '小小黑'}：喵～`);
-    setTimeout(() => el.remove(), 900);
-  };
-  document.body.appendChild(el);
-  setTimeout(() => el.remove(), 9000);
-}
 
 // ============================================================
 //  路過的小貓：不同毛色（純白、橘白胖貓、三花、賓士）
@@ -875,82 +805,237 @@ function coatWalk(key) {
 }
 
 // ============================================================
-//  還好：黃金獵犬，大隻、樂天、有點無厘頭（堅持自己是女生）
+//  家裡的小動物：會路過首頁，點到會說話，說過的話收進圖鑑
 // ============================================================
-const DOG = { name: '還好', base: '#e2b56a', line: '#b98a3e', ear: '#c99448', dark: '#2b2226' };
-function dogWalk() {
-  const c = DOG, sw = 1.2, ly = 80;
-  const leg = (x1, x2, cls = '') => `<path d="M${x1} ${ly} L${x2} 87" stroke="${c.line}" stroke-width="${11 + sw * 2}" stroke-linecap="round"/><path d="M${x1} ${ly} L${x2} 87" stroke="${c.base}" stroke-width="11" stroke-linecap="round"/><ellipse cx="${x2}" cy="88" rx="5" ry="2.6" fill="${c.dark}"/>`;
-  return `<svg viewBox="0 0 120 96" class="cat-svg dog-walk" xmlns="http://www.w3.org/2000/svg">
+
+// ---------- 狗狗一家（同一套畫法：還好、狗狗、阿扁） ----------
+const DOGS = {
+  haohao: { base: '#e2b56a', line: '#b98a3e', ear: '#c99448', muzzle: '#f3d9a8', belly: '#f3d9a8', dark: '#2b2226', ears: 'flop', eyes: 'open', mouth: 'open' },
+  doggy: { base: '#efd9ac', line: '#c7a66a', ear: '#e0bf85', muzzle: '#fbf0d8', belly: '#fbf0d8', dark: '#2b2226', ears: 'flop', eyes: 'sleepy', mouth: 'smile', curls: true, brow: true },
+  abian: { base: '#d9bd8c', line: '#a98a58', ear: '#f0e2c4', muzzle: '#ecdcbc', belly: '#ecdcbc', dark: '#2b2226', ears: 'wide', eyes: 'up', mouth: 'small', bigNose: true, pads: true },
+};
+function dogArt(key, { off = false } = {}) {
+  const c = DOGS[key], sw = 1.2, ly = 80;
+  const leg = (x1, x2) => `<path d="M${x1} ${ly} L${x2} 87" stroke="${c.line}" stroke-width="${11 + sw * 2}" stroke-linecap="round"/><path d="M${x1} ${ly} L${x2} 87" stroke="${c.base}" stroke-width="11" stroke-linecap="round"/>${key !== 'doggy' ? `<ellipse cx="${x2}" cy="88" rx="5" ry="2.6" fill="${c.dark}"/>` : ''}`;
+  const ears = c.ears === 'wide'
+    ? `<path d="M-12 -20 Q-30 -30 -31 -14 Q-31 -5 -18 -6 Z" fill="${c.base}" stroke="${c.line}" stroke-width="${sw}" stroke-linejoin="round"/><path d="M-14 -16 Q-27 -23 -27 -13 Q-27 -9 -18 -9 Z" fill="${c.ear}"/>
+       <path d="M12 -20 Q30 -30 31 -14 Q31 -5 18 -6 Z" fill="${c.base}" stroke="${c.line}" stroke-width="${sw}" stroke-linejoin="round"/><path d="M14 -16 Q27 -23 27 -13 Q27 -9 18 -9 Z" fill="${c.ear}"/>`
+    : `<path d="M-15 -22 Q-28 -20 -26 0 Q-25 10 -18 8 Q-14 -6 -12 -18 Z" fill="${c.ear}" stroke="${c.line}" stroke-width="${sw}" stroke-linejoin="round"/>
+       <path d="M15 -22 Q28 -20 26 0 Q25 10 18 8 Q14 -6 12 -18 Z" fill="${c.ear}" stroke="${c.line}" stroke-width="${sw}" stroke-linejoin="round"/>`;
+  const eyes = {
+    open: `<ellipse cx="-7" cy="-9" rx="2.6" ry="3" fill="${c.dark}"/><ellipse cx="9" cy="-9" rx="2.6" ry="3" fill="${c.dark}"/><circle cx="-6.2" cy="-10" r=".9" fill="#fff"/><circle cx="9.8" cy="-10" r=".9" fill="#fff"/>`,
+    sleepy: `<path d="M-10 -9 Q-7 -6.5 -4 -9 M6 -9 Q9 -6.5 12 -9" fill="none" stroke="${c.dark}" stroke-width="1.5" stroke-linecap="round"/>`,
+    up: `<ellipse cx="-7" cy="-9" rx="2.5" ry="2.9" fill="${c.dark}"/><ellipse cx="9" cy="-9" rx="2.5" ry="2.9" fill="${c.dark}"/><circle cx="-6.4" cy="-10.6" r="1" fill="#fff"/><circle cx="9.6" cy="-10.6" r="1" fill="#fff"/>`,
+  }[c.eyes];
+  const brow = c.brow ? `<path d="M-11 -13.5 Q-7 -16 -3.5 -13.5 M5.5 -13.5 Q9 -16 13 -13.5" fill="none" stroke="#fffaf0" stroke-width="2.2" stroke-linecap="round"/>`
+    : `<path d="M-10 -14 Q-7 -16 -4 -14 M6 -14 Q9 -16 12 -14" fill="none" stroke="${c.line}" stroke-width=".9" stroke-linecap="round"/>`;
+  const mouth = {
+    open: `<path d="M-5.5 4 Q1 6.5 7.5 4 Q7 12.5 1 13 Q-5 12.5 -5.5 4 Z" fill="${c.dark}"/><g class="dog-tongue"><path d="M-3 9.5 Q1 6.8 5 9.5 Q4.6 15 1 15.4 Q-2.6 15 -3 9.5 Z" fill="#ff7f86"/><path d="M1 10 L1 13.5" stroke="#d9535d" stroke-width=".6" stroke-linecap="round"/></g>`,
+    smile: `<path d="M1 3 L1 5 M-4 5.5 Q1 9 6 5.5" fill="none" stroke="${c.dark}" stroke-width="1.3" stroke-linecap="round"/><path d="M-.5 7.4 Q1 10.5 2.5 7.4 Z" fill="#ff8f96"/>`,
+    small: `<path d="M1 4 L1 6 M-2.5 7 Q1 8.8 4.5 7" fill="none" stroke="${c.dark}" stroke-width="1.2" stroke-linecap="round"/>`,
+  }[c.mouth];
+  const curls = c.curls ? `<path d="M-12 -24 q2 -5 6 -3 q2 -5 7 -3 q3 -4 7 -1 q4 -2 5 3" fill="none" stroke="${c.line}" stroke-width="1" stroke-linecap="round" opacity=".75"/><path d="M-6 -27 q3 -3 5 0 M4 -27 q3 -3 5 0" fill="none" stroke="${c.line}" stroke-width=".8" stroke-linecap="round" opacity=".6"/>` : '';
+  const offEyes = `<path d="M-10 -9 L-4 -9 M6 -9 L12 -9" stroke="${c.dark}" stroke-width="1.6" stroke-linecap="round"/>`;
+  return `<svg viewBox="0 0 120 96" class="cat-svg dog-walk dog-${key}" xmlns="http://www.w3.org/2000/svg">
     <ellipse cx="60" cy="91" rx="38" ry="3.6" fill="currentColor" opacity=".09"/>
-    <g class="dog-tail"><path d="M96 58 Q112 50 114 34 Q115 28 110 30 Q106 44 94 52 Z" fill="${c.base}" stroke="${c.line}" stroke-width="${sw}" stroke-linejoin="round"/><path d="M104 44 l4 -2 M107 38 l4 -1" stroke="${c.line}" stroke-width=".8" stroke-linecap="round"/></g>
+    <g class="dog-tail"><path d="M96 58 Q112 50 114 34 Q115 28 110 30 Q106 44 94 52 Z" fill="${c.base}" stroke="${c.line}" stroke-width="${sw}" stroke-linejoin="round"/></g>
     <g class="cat-legs-a">${leg(44, 43)}${leg(86, 87)}</g>
     <g class="cat-legs-b">${leg(54, 55)}${leg(76, 75)}</g>
     <path d="M30 62 Q30 46 50 46 L88 48 Q102 50 100 66 Q98 82 84 82 L44 82 Q30 82 30 70 Z" fill="${c.base}" stroke="${c.line}" stroke-width="${sw}"/>
-    <path d="M40 74 Q60 82 82 76" fill="none" stroke="#f3d9a8" stroke-width="5" stroke-linecap="round" opacity=".8"/>
-    <path d="M48 52 l3 -3 M54 50 l3 -3 M84 54 l3 -3" stroke="${c.line}" stroke-width=".9" stroke-linecap="round" opacity=".7"/>
-    <g class="dog-head" transform="translate(30 40)">
+    <path d="M40 74 Q60 82 82 76" fill="none" stroke="${c.belly}" stroke-width="5" stroke-linecap="round" opacity=".85"/>
+    ${c.curls ? `<path d="M46 52 q3 -3 6 0 q3 -3 6 0 q3 -3 6 0 q3 -3 6 0 q3 -3 6 0" fill="none" stroke="${c.line}" stroke-width=".9" stroke-linecap="round" opacity=".55"/>` : `<path d="M48 52 l3 -3 M54 50 l3 -3 M84 54 l3 -3" stroke="${c.line}" stroke-width=".9" stroke-linecap="round" opacity=".7"/>`}
+    <g class="dog-head" transform="translate(${c.ears === 'wide' ? 34 : 30} 40)">
+      ${ears}
       <path d="M-18 -8 Q-20 -30 2 -31 Q22 -30 20 -8 Q20 10 2 12 Q-18 10 -18 -8 Z" fill="${c.base}" stroke="${c.line}" stroke-width="${sw}"/>
-      <path d="M-15 -22 Q-28 -20 -26 0 Q-25 10 -18 8 Q-14 -6 -12 -18 Z" fill="${c.ear}" stroke="${c.line}" stroke-width="${sw}" stroke-linejoin="round"/>
-      <path d="M15 -22 Q28 -20 26 0 Q25 10 18 8 Q14 -6 12 -18 Z" fill="${c.ear}" stroke="${c.line}" stroke-width="${sw}" stroke-linejoin="round"/>
-      <ellipse cx="1" cy="2" rx="11" ry="8.5" fill="#f3d9a8"/>
-      <ellipse cx="-7" cy="-9" rx="2.6" ry="3" fill="${c.dark}"/><ellipse cx="9" cy="-9" rx="2.6" ry="3" fill="${c.dark}"/>
-      <circle cx="-6.2" cy="-10" r=".9" fill="#fff"/><circle cx="9.8" cy="-10" r=".9" fill="#fff"/>
-      <path d="M-10 -14 Q-7 -16 -4 -14 M6 -14 Q9 -16 12 -14" fill="none" stroke="${c.line}" stroke-width=".9" stroke-linecap="round"/>
-      <ellipse cx="1" cy="-1" rx="5" ry="3.8" fill="${c.dark}"/><ellipse cx="-.5" cy="-2.2" rx="1.6" ry=".9" fill="#fff" opacity=".5"/>
-      <path d="M-5.5 4 Q1 6.5 7.5 4 Q7 12.5 1 13 Q-5 12.5 -5.5 4 Z" fill="${c.dark}"/>
-      <g class="dog-tongue"><path d="M-3 9.5 Q1 6.8 5 9.5 Q4.6 15 1 15.4 Q-2.6 15 -3 9.5 Z" fill="#ff7f86"/><path d="M1 10 L1 13.5" stroke="#d9535d" stroke-width=".6" stroke-linecap="round"/></g>
+      ${curls}
+      <ellipse cx="1" cy="2" rx="11" ry="8.5" fill="${c.muzzle}"/>
+      ${off ? offEyes : eyes}${brow}
+      <ellipse cx="1" cy="${c.bigNose ? 0 : -1}" rx="${c.bigNose ? 6.5 : 5}" ry="${c.bigNose ? 5 : 3.8}" fill="${c.dark}"/><ellipse cx="-.8" cy="${c.bigNose ? -1.8 : -2.2}" rx="1.8" ry="1" fill="#fff" opacity=".45"/>
+      ${mouth}
       <ellipse cx="-12" cy="2" rx="2.6" ry="1.4" fill="#ff9fb4" opacity=".55"/><ellipse cx="14" cy="2" rx="2.6" ry="1.4" fill="#ff9fb4" opacity=".55"/>
     </g>
   </svg>`;
 }
-const DOG_LINES = ['還好：我是女生～', '還好：嗷把拔貓咪好可愛喔～', '還好：我是女生～（男朋友：你明明就是男生）', '還好追著自己的尾巴轉了三圈，然後忘記自己在幹嘛', '還好：今天也是很好的一天耶～', '還好躺下來翻肚子：我是女生～摸我～', '還好把球叼過來，結果是一顆橘子', '還好：嗷！（不知道在嗷什麼）', '還好跟陷阱貓打招呼，被無視了，但還是很開心', '還好：把拔～小小黑呢？小小黑呢？'];
 
-window.__stroll = (c) => catStroll(c || 'dog');
-
-// ============================================================
-//  狗狗（家裡最年長、愛捉弄小小黑）和阿扁（愛思考、怕被捏鼻子、聽到諧音梗會拍手）
-// ============================================================
-const PUPS = {
-  doggy: { name: '狗狗', base: '#ecd3a2', line: '#c4a46a', ear: '#d9b97f', muzzle: '#f7e8c8', dark: '#2b2226', fluff: true, brow: true },
-  abian: { name: '阿扁', base: '#dfc59c', line: '#b89a6a', ear: '#f1e2c6', muzzle: '#efdfc0', dark: '#2b2226', bigEar: true, bigNose: true },
-};
-function pupHead(p) {
-  const fluffTop = p.fluff ? `<path d="M-15 -8 Q-17 -14 -12 -16 Q-12 -22 -6 -21 Q-4 -26 1 -24 Q5 -27 8 -22 Q14 -23 14 -17 Q19 -15 16 -8 Z" fill="${p.base}" stroke="${p.line}" stroke-width="1"/>` : '';
-  const ears = p.bigEar
-    ? `<path d="M-12 -12 Q-30 -22 -30 -6 Q-28 2 -16 -2 Z" fill="${p.base}" stroke="${p.line}" stroke-width="1"/><path d="M-14 -9 Q-26 -16 -26 -6 Q-25 -2 -17 -4 Z" fill="${p.ear}"/>
-       <path d="M12 -12 Q30 -22 30 -6 Q28 2 16 -2 Z" fill="${p.base}" stroke="${p.line}" stroke-width="1"/><path d="M14 -9 Q26 -16 26 -6 Q25 -2 17 -4 Z" fill="${p.ear}"/>`
-    : `<path d="M-13 -10 Q-23 -8 -21 6 Q-20 12 -14 9 Q-12 0 -10 -6 Z" fill="${p.ear}" stroke="${p.line}" stroke-width="1" stroke-linejoin="round"/>
-       <path d="M13 -10 Q23 -8 21 6 Q20 12 14 9 Q12 0 10 -6 Z" fill="${p.ear}" stroke="${p.line}" stroke-width="1" stroke-linejoin="round"/>`;
-  return `${ears}
-    ${fluffTop}
-    <path d="M-15 -4 Q-16 -18 0 -19 Q16 -18 15 -4 Q15 11 0 12 Q-15 11 -15 -4 Z" fill="${p.base}" stroke="${p.line}" stroke-width="1"/>
-    ${p.fluff ? `<path d="M-14.2 -8 Q-15 -17 0 -18.2 Q15 -17 14.2 -8" fill="${p.base}"/>` : ''}
-    <ellipse cx="0" cy="4" rx="8.5" ry="6.5" fill="${p.muzzle}"/>
-    ${p.brow ? `<path d="M-9 -9 Q-6 -11 -3 -9 M3 -9 Q6 -11 9 -9" fill="none" stroke="#fff6e4" stroke-width="2" stroke-linecap="round"/>` : ''}
-    ${p.fluff
-      ? `<path d="M-8.5 -5 Q-6 -3 -3.5 -5 M3.5 -5 Q6 -3 8.5 -5" fill="none" stroke="${p.dark}" stroke-width="1.4" stroke-linecap="round"/>`
-      : `<ellipse cx="-6" cy="-5" rx="2" ry="2.3" fill="${p.dark}"/><ellipse cx="6" cy="-5" rx="2" ry="2.3" fill="${p.dark}"/><circle cx="-5.4" cy="-5.8" r=".7" fill="#fff"/><circle cx="6.6" cy="-5.8" r=".7" fill="#fff"/>`}
-    <ellipse cx="0" cy="${p.bigNose ? 1.5 : 1}" rx="${p.bigNose ? 5 : 3.4}" ry="${p.bigNose ? 4 : 2.6}" fill="${p.dark}"/>
-    <path d="M0 ${p.bigNose ? 5.5 : 3.6} L0 6 M-3.5 6.5 Q0 9 3.5 6.5" fill="none" stroke="${p.dark}" stroke-width="1" stroke-linecap="round"/>
-    <ellipse cx="-10" cy="4" rx="2.2" ry="1.2" fill="#ff9fb4" opacity=".5"/><ellipse cx="10" cy="4" rx="2.2" ry="1.2" fill="#ff9fb4" opacity=".5"/>`;
-}
-function pupWalk(key) {
-  const p = PUPS[key];
-  const leg = (x1, x2) => `<path d="M${x1} 78 L${x2} 85" stroke="${p.line}" stroke-width="10.4" stroke-linecap="round"/><path d="M${x1} 78 L${x2} 85" stroke="${p.base}" stroke-width="8.4" stroke-linecap="round"/>${key === 'abian' ? `<ellipse cx="${x2}" cy="86.5" rx="4" ry="2" fill="${p.dark}"/>` : ''}`;
-  return `<svg viewBox="0 0 100 92" class="cat-svg pup-walk pup-${key}" xmlns="http://www.w3.org/2000/svg">
-    ${shadow(54, 26)}
-    <g class="dog-tail"><path d="M76 64 Q88 58 88 46 Q88 42 85 44 Q83 54 74 58 Z" fill="${p.base}" stroke="${p.line}" stroke-width="1" stroke-linejoin="round"/></g>
-    <g class="cat-legs-a">${leg(42, 41.5)}${leg(70, 70.5)}</g>
-    <g class="cat-legs-b">${leg(50, 51)}${leg(62, 61)}</g>
-    <path d="M30 66 Q30 56 44 55 L70 56 Q80 57 79 68 Q78 80 68 80 L40 80 Q30 80 30 72 Z" fill="${p.base}" stroke="${p.line}" stroke-width="1"/>
-    ${p.fluff ? `<path d="M36 58 q3 -3 6 0 q3 -3 6 0 q3 -3 6 0 q3 -3 6 0 q3 -3 6 0" fill="none" stroke="${p.line}" stroke-width=".9" stroke-linecap="round" opacity=".7"/>` : ''}
-    <g class="dog-head" transform="translate(30 50)">${pupHead(p)}</g>
+// ---------- 小棍棍（小熊貓） ----------
+function pandaArt() {
+  const R = '#c8642c', RL = '#9c4a1e', W = '#fbf3e6', D = '#3b2a26';
+  const leg = (x1, x2) => `<path d="M${x1} 76 L${x2} 85" stroke="${D}" stroke-width="9" stroke-linecap="round"/>`;
+  return `<svg viewBox="0 0 110 92" class="cat-svg panda-walk" xmlns="http://www.w3.org/2000/svg">
+    <ellipse cx="56" cy="88" rx="32" ry="3.4" fill="currentColor" opacity=".09"/>
+    <g class="panda-tail"><path d="M80 62 Q100 56 104 40 Q106 32 100 34 Q96 50 78 54 Z" fill="${R}" stroke="${RL}" stroke-width="1"/>
+      <path d="M86 57 Q90 53 89 49 M93 52 Q97 47 96 43 M99 45 Q102 41 101 37" fill="none" stroke="#f0b27a" stroke-width="2.4" stroke-linecap="round"/></g>
+    <g class="cat-legs-a">${leg(40, 39.5)}${leg(72, 72.5)}</g>
+    <g class="cat-legs-b">${leg(48, 49)}${leg(64, 63)}</g>
+    <path d="M28 64 Q28 52 42 51 L72 52 Q84 54 83 66 Q82 78 72 78 L40 78 Q28 78 28 70 Z" fill="${R}" stroke="${RL}" stroke-width="1"/>
+    <g class="dog-head" transform="translate(30 44)">
+      <path d="M-14 -12 L-16 -26 L-4 -20 Z M14 -12 L16 -26 L4 -20 Z" fill="${R}" stroke="${RL}" stroke-width="1" stroke-linejoin="round"/>
+      <path d="M-13 -15 L-14 -23 L-7 -19 Z M13 -15 L14 -23 L7 -19 Z" fill="${W}"/>
+      <ellipse cx="0" cy="-4" rx="18" ry="15" fill="${R}" stroke="${RL}" stroke-width="1"/>
+      <path d="M-15 -2 Q-12 -12 -5 -10 Q-4 -2 -9 4 Q-14 4 -15 -2 Z M15 -2 Q12 -12 5 -10 Q4 -2 9 4 Q14 4 15 -2 Z" fill="${W}"/>
+      <ellipse cx="0" cy="4" rx="8" ry="6.5" fill="${W}"/>
+      <path d="M-7 -16 Q-5 -18 -3 -16 M3 -16 Q5 -18 7 -16" fill="none" stroke="${W}" stroke-width="2.2" stroke-linecap="round"/>
+      <ellipse cx="-7" cy="-5" rx="2.3" ry="2.8" fill="${D}"/><ellipse cx="7" cy="-5" rx="2.3" ry="2.8" fill="${D}"/><circle cx="-6.3" cy="-6" r=".8" fill="#fff"/><circle cx="7.7" cy="-6" r=".8" fill="#fff"/>
+      <path d="M-11 -2 Q-9 6 -6 10 M11 -2 Q9 6 6 10" fill="none" stroke="${RL}" stroke-width="1.6" stroke-linecap="round" opacity=".6"/>
+      <ellipse cx="0" cy="1.5" rx="3.6" ry="2.6" fill="${D}"/>
+      <path d="M0 4 L0 5.5 M-3 6.3 Q0 8.3 3 6.3" fill="none" stroke="${D}" stroke-width="1.1" stroke-linecap="round"/>
+      <path d="M-18 3 L-10 3.5 M-18 6 L-10 5.5 M18 3 L10 3.5 M18 6 L10 5.5" stroke="#fff" stroke-width=".6" stroke-linecap="round" opacity=".9"/>
+    </g>
   </svg>`;
 }
-const PUP_LINES = {
-  doggy: ['狗狗偷偷拍了一下小小黑的尾巴，然後裝作什麼都沒發生', '狗狗把阿扁的玩具藏起來了', '狗狗是家裡最資深的小動物，大家都要讓牠一下', '狗狗打了一個好大的哈欠', '大家都最喜歡狗狗了', '狗狗趁小小黑睡覺，偷偷趴在牠旁邊', '狗狗慢慢走過去，好像在巡視牠的地盤'],
-  abian: ['阿扁趕快摀住鼻子：不要捏我的鼻子！', '阿扁在思考……為什麼貓咪叫貓咪？', '阿扁在思考……今天的晚餐是什麼', '阿扁聽到一個諧音梗：「狗狗去餐廳點了『汪』子麵」，笑到拍拍手', '阿扁：「你知道小小黑最喜歡什麼運動嗎？『喵』準！」，說完自己拍拍手', '阿扁和狗狗是最好的朋友', '阿扁：讓我想一下……嗯……想完了，忘記剛剛在想什麼'],
+
+// ---------- 鯊魚（游過去；碰到鼻子會關機掉到地上） ----------
+function sharkArt({ off = false } = {}) {
+  const B = '#6f9cbc', BL = '#4f7c9c', W = '#f4efe4';
+  return `<svg viewBox="0 0 130 70" class="cat-svg shark-swim ${off ? 'off' : ''}" xmlns="http://www.w3.org/2000/svg">
+    <g class="shark-tail"><path d="M104 36 L126 18 Q122 34 128 52 Z" fill="${B}" stroke="${BL}" stroke-width="1.2" stroke-linejoin="round"/></g>
+    <path d="M56 18 L70 2 Q72 14 76 20 Z" fill="${B}" stroke="${BL}" stroke-width="1.2" stroke-linejoin="round"/>
+    <path d="M10 38 Q12 18 44 16 Q80 14 106 34 Q82 56 46 58 Q14 58 10 38 Z" fill="${B}" stroke="${BL}" stroke-width="1.2"/>
+    <path d="M12 40 Q24 54 48 56 Q80 54 102 38 Q80 46 48 46 Q24 46 12 40 Z" fill="${W}"/>
+    <path d="M48 50 L40 64 L58 54 Z" fill="${B}" stroke="${BL}" stroke-width="1.2" stroke-linejoin="round"/>
+    <path d="M14 42 Q22 50 34 48 Q28 44 26 40 Q20 42 14 42 Z" fill="#f2a3a8"/>
+    <path d="M14 42 L17 44.5 L19 42.5 L21.5 45 L23.5 43 L26 45.5 L27 41" fill="none" stroke="#fff" stroke-width="1" stroke-linejoin="round"/>
+    ${off ? `<path d="M23 29 L29 29" stroke="#2b2633" stroke-width="1.8" stroke-linecap="round"/><text x="36" y="20" font-size="9" font-weight="800" fill="#9fb7d9" font-family="sans-serif">z</text>`
+      : `<ellipse cx="26" cy="29" rx="2.4" ry="2.9" fill="#2b2633"/><circle cx="26.8" cy="28" r=".8" fill="#fff"/>`}
+    <ellipse cx="20" cy="36" rx="2.6" ry="1.4" fill="#ff9fb4" opacity=".5"/>
+    <path d="M36 28 Q38 34 36 40 M41 27 Q43 33 41 40" fill="none" stroke="${BL}" stroke-width=".9" stroke-linecap="round" opacity=".6"/>
+  </svg>`;
+}
+
+// ---------- 角色資料 ----------
+const FRIENDS = {
+  black: { name: '小小黑', kind: '黑貓', intro: '我們一起養的黑貓，黃眼睛、粉紅耳朵，最喜歡被摸摸。', w: 78,
+    lines: ['小小黑：喵～', '小小黑被抓到，假裝自己是一團影子', '小小黑：今天有罐罐嗎？', '小小黑又被狗狗捉弄了，跑來找你告狀', '小小黑把頭塞進你手裡，要你摸摸'] },
+  orange: { name: '晽晽貓貓', kind: '橘白胖貓', intro: '貪吃的橘白胖貓，嘴裡永遠叼著吃的。', w: 80, lines: () => COAT_TRAITS.orange.lines },
+  white: { name: '陷阱貓', kind: '白貓', intro: '一隻小公主貓，戴著小皇冠，讓你摸之前要先看牠心情。', w: 78, lines: () => COAT_TRAITS.white.lines },
+  calico: { name: '小魚乾', kind: '三花貓', intro: '最愛小魚乾的三花，很會撒嬌。', w: 78, lines: () => COAT_TRAITS.calico.lines },
+  tuxedo: { name: '吵吵貓', kind: '賓士貓', intro: '喜歡送別人一朵花，行為常常有點好笑。', w: 78, lines: () => COAT_TRAITS.tuxedo.lines },
+  haohao: { name: '還好', kind: '黃金獵犬', intro: '樂天又有點無厘頭的大狗狗，堅持自己是女生。', w: 112,
+    lines: ['還好：我是女生～', '還好：嗷把拔貓咪好可愛喔～', '還好：我是女生～（男朋友：你明明就是男生）', '還好追著自己的尾巴轉了三圈，然後忘記自己在幹嘛', '還好：今天也是很好的一天耶～', '還好躺下來翻肚子：我是女生～摸我～', '還好把球叼過來，結果是一顆橘子', '還好：嗷！（不知道在嗷什麼）', '還好跟陷阱貓打招呼，被無視了，但還是很開心', '還好：把拔～小小黑呢？小小黑呢？'] },
+  doggy: { name: '狗狗', kind: '小狗', intro: '家裡最年長的小動物，大家都喜歡牠。愛捉弄小小黑，喜歡自己香香的。', w: 92,
+    lines: ['狗狗偷偷拍了一下小小黑的尾巴，然後裝作什麼都沒發生', '狗狗把阿扁的玩具藏起來了', '狗狗聞了聞你：汪，去洗澡', '狗狗：汪去洗澡！（但說到牠自己洗澡就跑掉了）', '狗狗香香的，因為牠很在意自己香不香', '狗狗趁小小黑睡覺，偷偷趴在牠旁邊', '狗狗被小棍棍踩了一腳，一臉無奈'] },
+  abian: { name: '阿扁', kind: '小狗', intro: '愛思考的小狗，怕被捏鼻子，聽到諧音梗會拍拍手。和狗狗是好朋友。', w: 92,
+    lines: ['阿扁趕快摀住鼻子：不要捏我的鼻子！', '阿扁在思考……為什麼貓咪叫貓咪？', '阿扁在思考……今天的晚餐是什麼', '阿扁聽到一個諧音梗：「狗狗去餐廳點了『汪』子麵」，笑到拍拍手', '阿扁：「你知道小小黑最喜歡什麼運動嗎？『喵』準！」，說完自己拍拍手', '阿扁和狗狗是最好的朋友', '阿扁：讓我想一下……嗯……想完了，忘記剛剛在想什麼'] },
+  gungun: { name: '小棍棍', kind: '小熊貓', intro: '會「棍～」地叫，講話幾乎只講最後一個字。最愛蘋果，喜歡踩狗狗，但狗狗不喜歡。', w: 84,
+    lines: ['小棍棍：棍～', '小棍棍：蛋（荷包蛋的蛋）', '小棍棍：狗狗❤️', '小棍棍：狗狗～（踩）', '小棍棍：蘋果～', '小棍棍被打了一下：一袋～（跑掉）', '小棍棍：……果（想說蘋果）'] },
+  shark: { name: '鯊鯊', kind: '鯊魚', intro: '男朋友最喜歡的小動物。鼻子被碰到就會關機，再碰一下會倒吸一口氣醒來。', w: 110, swim: true,
+    lines: ['鯊鯊被碰到鼻子，關機了', '鯊鯊：河！（倒吸一口氣，開機了）', '鯊鯊：河！河！（嚇一跳游走了）', '鯊鯊在空氣裡游泳，看起來很認真'] },
+};
+const friendLines = (k) => { const L = FRIENDS[k].lines; return typeof L === 'function' ? L() : L; };
+function friendArt(k, opts) {
+  if (DOGS[k]) return dogArt(k, opts);
+  if (k === 'gungun') return pandaArt();
+  if (k === 'shark') return sharkArt(opts);
+  return coatWalk(k);
+}
+
+// ---------- 圖鑑紀錄（兩個人共用） ----------
+async function dexNote(k, idx) {
+  if (!S.couple || !S.cid) return;
+  const D0 = (S.couple.dex || {})[k] || {};
+  const first = !D0.met, newLine = !(D0.l || {})[idx];
+  if (!first && !newLine) return;
+  const up = { [`dex.${k}.l.${idx}`]: true };
+  if (first) { up[`dex.${k}.met`] = now(); up[`dex.${k}.by`] = me(); }
+  await S.store.updateCouple(S.cid, up);
+  if (first) setTimeout(() => toast(`圖鑑新增：${FRIENDS[k].name}！`), 1600);
+}
+function sayLine(k, idx) {
+  const L = friendLines(k);
+  const i = idx === undefined ? Math.floor(Math.random() * L.length) : idx;
+  toast(L[i]); dexNote(k, i);
+}
+
+// ---------- 路過首頁 ----------
+const STROLL_ODDS = [['black', .2], ['orange', .2], ['haohao', .11], ['doggy', .08], ['abian', .08], ['gungun', .09], ['shark', .09], ['white', .05], ['calico', .05], ['tuxedo', .05]];
+function pickFriend() { let r = Math.random(); for (const [k, p] of STROLL_ODDS) { if ((r -= p) < 0) return k; } return 'black'; }
+function walker(k, cls = '') {
+  const el = document.createElement('button');
+  el.className = `cat-stroll fr-${k} ${FRIENDS[k].swim ? 'swim' : ''} ${cls}`;
+  el.style.width = FRIENDS[k].w + 'px';
+  el.setAttribute('aria-label', FRIENDS[k].name);
+  el.innerHTML = friendArt(k);
+  return el;
+}
+function catStroll(force) {
+  if (S.tab !== 'home' || document.querySelector('.cat-stroll')) return;
+  const key = 'park-stroll-at';
+  if (!force && (now() - +(localStorage.getItem(key) || 0) < 8 * 60000 || Math.random() > .45)) return;
+  localStorage.setItem(key, now());
+  const k = force || pickFriend();
+  const el = walker(k);
+  if (k === 'tuxedo' && Math.random() < .35) el.classList.add('backwards');
+  // 結伴路過
+  const buddy = { haohao: ['black', .4], doggy: ['black', .5], abian: ['doggy', .4], gungun: ['doggy', .5] }[k];
+  if (buddy && Math.random() < buddy[1]) {
+    const b = walker(buddy[0], 'lead'); b.disabled = true;
+    document.body.appendChild(b); setTimeout(() => b.remove(), 9500);
+  }
+  let timer = setTimeout(() => el.remove(), 9500);
+  el.onclick = async () => {
+    const r = el.getBoundingClientRect();
+    // 鯊鯊：第一次點＝鼻子被碰到，關機掉到地上；再點一次＝倒吸一口氣開機，游走
+    if (k === 'shark') {
+      if (!el.classList.contains('off')) {
+        el.classList.add('off'); el.style.left = r.left + 'px'; el.innerHTML = sharkArt({ off: true });
+        sfx('flip'); sayLine('shark', 0);
+        clearTimeout(timer); timer = setTimeout(() => el.remove(), 25000);
+      } else {
+        el.classList.remove('off'); el.classList.add('wake'); el.innerHTML = sharkArt();
+        sfx('heart'); sayLine('shark', Math.random() < .6 ? 1 : 2);
+        clearTimeout(timer); setTimeout(() => el.remove(), 2200);
+      }
+      return;
+    }
+    el.classList.add('caught'); sfx('heart');
+    const fx = { orange: ['#c9773a', '#ffd45c'], white: ['#ffd45c', '#9fd3ff', '#ff8fab'], calico: ['#ff9db4', '#ffc2d1'], tuxedo: ['#ffd1dc', '#ffd45c', '#7cc488'], haohao: ['#ff9fb4', '#ffd45c', '#e2b56a'], doggy: ['#ff9fb4', '#efd9ac'], abian: ['#ffd45c', '#9fd3ff', '#ff9fb4'], gungun: ['#e9573f', '#ffd45c'] }[k] || ['#2b2633', '#ff9db4', '#ffd970'];
+    floaty(r.left + r.width / 2, r.top, fx);
+    if (k === 'tuxedo' && Math.random() < .4) el.classList.add('trip');
+    if (k === 'calico') el.classList.add('roll');
+    if (k === 'abian') el.classList.add('clap');
+    if (k === 'gungun') {
+      // 小棍棍：被打會「一袋～」地快速跑掉
+      if (Math.random() < .4) { el.classList.remove('caught'); el.classList.add('flee'); sayLine('gungun', 5); clearTimeout(timer); setTimeout(() => el.remove(), 1200); return; }
+    }
+    if (k === 'black') {
+      el.innerHTML = catPose('jump');
+      const dk = `park-stroll-pat-${dkey()}-${me()}`;
+      if (!localStorage.getItem(dk) && typeof petXP === 'function') { localStorage.setItem(dk, '1'); petXP(1); }
+    }
+    sayLine(k);
+    clearTimeout(timer); setTimeout(() => el.remove(), 1500);
+  };
+  document.body.appendChild(el);
+}
+window.__stroll = (c) => catStroll(c || 'haohao');
+
+// ---------- 圖鑑頁 ----------
+const DEX_ORDER = ['black', 'orange', 'white', 'calico', 'tuxedo', 'haohao', 'doggy', 'abian', 'gungun', 'shark'];
+function dexCount() { const d = S.couple?.dex || {}; return DEX_ORDER.filter((k) => d[k] && d[k].met).length; }
+ACT.dex = () => {
+  const d = S.couple.dex || {};
+  const m = openModal(`${mhead('<i data-ic="book"></i> 小動物圖鑑')}
+    <p class="small muted" style="margin-top:0">牠們會偶爾路過首頁，點到牠們就會收進圖鑑，牠們說過的話也會記下來。兩個人共用一本。</p>
+    <div class="dex-grid">${DEX_ORDER.map((k) => {
+      const f = FRIENDS[k], e = d[k] || {}, met = !!e.met;
+      const n = Object.keys(e.l || {}).length, tot = friendLines(k).length;
+      return `<button class="dex-card ${met ? '' : 'locked'}" data-k="${k}">
+        <span class="dex-art">${friendArt(k)}</span>
+        <b>${met ? esc(f.name) : '？？？'}</b><small>${met ? `${f.kind}・台詞 ${n}/${tot}` : '還沒遇過'}</small></button>`;
+    }).join('')}</div>`);
+  $$('.dex-card', m).forEach((b) => b.onclick = () => {
+    const k = b.dataset.k, f = FRIENDS[k], e = d[k] || {};
+    if (!e.met) return toast('還沒遇過牠，多去首頁晃晃吧');
+    const L = friendLines(k), got = e.l || {};
+    const mm = openModal(`<div class="dex-detail">
+      <div class="dex-big">${friendArt(k)}</div>
+      <h2>${esc(f.name)} <span class="chip">${f.kind}</span></h2>
+      <p class="small muted">${esc(f.intro)}</p>
+      <div class="small muted" style="margin:4px 0 8px">第一次遇到：${new Date(e.met).toLocaleDateString('zh-TW')}${e.by ? `・${esc(nick(e.by))} 遇到的` : ''}</div>
+      <h3 style="font-size:15px">說過的話 ${Object.keys(got).length}/${L.length}</h3>
+      ${L.map((t, i) => `<div class="dex-line ${got[i] ? '' : 'locked'}">${got[i] ? esc(t) : '？？？（還沒聽過）'}</div>`).join('')}
+    </div>`, { center: true });
+  });
 };
 // ============================================================
 //  啟動、登入、配對、外框
@@ -2712,6 +2797,7 @@ PAGES.play = {
       <button class="game-tile" data-act="food"><span class="gi"><i data-ic="dining" data-medal></i></span><b>今天吃什麼</b><span>選擇障礙救星</span></button>
       <button class="game-tile" data-act="tod"><span class="gi"><i data-ic="dice" data-medal></i></span><b>真心話大冒險</b><span>${spiceIc(spiceLevel())} 目前：${D.SPICE[spiceLevel()].label}</span></button>
       <button class="game-tile" data-act="quiz"><span class="gi"><i data-ic="minds" data-medal></i></span><b>默契問答</b><span>${quizNew ? '今天的題目來了' : (q && p && q.answers[p] ? '看結果' : '等對方作答')}</span>${quizNew ? '<span class="badge-dot">!</span>' : ''}</button>
+      <button class="game-tile wide" data-act="dex"><span class="gi"><i data-ic="book" data-medal></i></span><div class="grow"><b>小動物圖鑑</b><br><span>已經遇到 ${dexCount()}/${DEX_ORDER.length} 隻，牠們會偶爾路過首頁</span></div><span style="font-size:22px">›</span></button>
       <button class="game-tile wide" data-act="battle"><span class="gi"><i data-ic="swords" data-medal></i></span><div class="grow"><b>對戰挑戰</b><br><span>${bt ? `進行中：${esc(bt.task)}` : '一週內誰先完成？輸的人發卡'}</span></div><span style="font-size:22px">›</span></button>
     </div>
     ${stampCardHTML()}
