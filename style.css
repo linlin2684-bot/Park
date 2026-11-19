@@ -938,3 +938,35 @@ html[data-theme="day"] .wheel-svg .wseg.c { fill: color-mix(in srgb, var(--accen
 .wheel-pointer { top: -10px; width: 30px; height: 40px; border: 0; background: none; filter: drop-shadow(0 3px 3px rgba(0, 0, 0, .35)); }
 .wheel-pointer::before { content: ''; position: absolute; inset: 0; background: var(--accent2); clip-path: path('M15 40 C10 28 2 22 2 13 A13 13 0 0 1 28 13 C28 22 20 28 15 40 Z'); }
 .wheel-pointer::after { content: ''; position: absolute; left: 9px; top: 7px; width: 12px; height: 12px; border-radius: 50%; background: var(--card); box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--accent) 78%, #1a0b11); }
+/* ============ 黑貓動作 ============ */
+.cat-wave .cat-wave, .cat-svg .cat-wave { transform-origin: 62px 62px; animation: catWave 1.2s ease-in-out infinite; }
+@keyframes catWave { 0%, 100% { transform: rotate(0); } 50% { transform: rotate(-14deg); } }
+.cat-svg .cat-tail-s { transform-origin: 78px 86px; animation: catTail 3s ease-in-out infinite; }
+.cat-svg .cat-bat { transform-origin: 34px 74px; animation: catBat 1.4s ease-in-out infinite; }
+@keyframes catBat { 0%, 100% { transform: rotate(0); } 50% { transform: rotate(18deg); } }
+.cat-svg .cat-yarn { transform-origin: 13px 80px; animation: catYarn 1.4s ease-in-out infinite; }
+@keyframes catYarn { 0%, 100% { transform: translateX(0) rotate(0); } 50% { transform: translateX(-3px) rotate(-30deg); } }
+.cat-svg .cat-rain { animation: catRain 1s linear infinite; }
+@keyframes catRain { from { transform: translateY(-4px); opacity: .9; } to { transform: translateY(6px); opacity: 0; } }
+.cat-svg .cat-legs-a { animation: catStep .5s steps(1) infinite; }
+.cat-svg .cat-legs-b { animation: catStep .5s steps(1) infinite reverse; }
+@keyframes catStep { 50% { opacity: 0; } }
+.cat-jump .cat-svg, .cat-svg.cat-jump { animation: catJump .9s ease-in-out infinite; }
+@keyframes catJump { 0%, 100% { transform: translateY(4px); } 50% { transform: translateY(-6px); } }
+.ctx-cat { width: 110px; margin: 0 auto 4px; color: var(--ink); }
+.ctx-cat.jump { animation: pop .5s; }
+.gacha-machine { position: relative; }
+.gm-cat { position: absolute; right: -46px; bottom: -6px; width: 72px; color: var(--ink); z-index: 3; pointer-events: none; }
+.mood-box { position: relative; overflow: hidden; }
+.mood-cat { position: absolute; right: -4px; bottom: -6px; width: 54px; color: currentColor; opacity: .95; pointer-events: none; }
+.pet-pose .cat-svg { width: 100%; height: auto; display: block; }
+.pet-flip { animation: pop .4s; }
+.pet-stage .cat-svg, .pet-big .cat-svg { color: var(--ink); }
+html[data-theme="night"] .gm-cat .cat-svg, html[data-theme="night"] .ctx-cat .cat-svg, html[data-theme="night"] .pet-pose .cat-svg, html[data-theme="night"] .pet-flip .cat-svg { filter: drop-shadow(0 0 1px rgba(255, 240, 220, .55)) drop-shadow(0 0 10px rgba(255, 200, 150, .12)); }
+/* 首頁路過的黑貓 */
+.cat-stroll { position: fixed; bottom: calc(var(--nav-h) + env(safe-area-inset-bottom) + 6px); left: -90px; width: 78px; z-index: 40; background: none; border: 0; padding: 0; color: var(--ink); animation: stroll 9s linear forwards; }
+.cat-stroll .cat-svg { width: 100%; height: auto; transform: scaleX(-1); }
+.cat-stroll.caught { animation-play-state: paused; }
+.cat-stroll.caught .cat-svg { transform: none; animation: catJump .5s ease-in-out 2; }
+@keyframes stroll { to { left: calc(100% + 90px); } }
+html[data-theme="night"] .cat-stroll .cat-svg { filter: drop-shadow(0 0 1px rgba(255, 240, 220, .6)) drop-shadow(0 0 10px rgba(255, 200, 150, .15)); }

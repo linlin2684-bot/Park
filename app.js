@@ -550,51 +550,178 @@ function piggyEmblem(pct) {
   </svg>`;
 }
 // ============================================================
-//  黑貓吉祥物（和 App 圖示同一隻）
+//  黑貓吉祥物（和 App 圖示同一隻）：多種動作，扁平畫風
 // ============================================================
 const CAT_INK = '#2b2633';
-function catSVG(pose = 'sit', extra = '') {
-  const face = (sleep) => `
-    <path d="M33 29 L35 12 L45 22 Z M67 29 L65 12 L55 22 Z" fill="${CAT_INK}" stroke="${CAT_INK}" stroke-width="2" stroke-linejoin="round"/>
-    <path d="M36.5 23 L37 15.5 L42 20.5 Z M63.5 23 L63 15.5 L58 20.5 Z" fill="#c98aa0"/>
-    <ellipse cx="50" cy="34" rx="18" ry="15" fill="${CAT_INK}"/>
-    ${sleep ? `<path d="M40 34 Q43 37 46 34 M54 34 Q57 37 60 34" fill="none" stroke="#efe6f2" stroke-width="1.6" stroke-linecap="round"/>`
-      : `<ellipse cx="43" cy="32.5" rx="3.6" ry="4.2" fill="#ffd970"/><ellipse cx="57" cy="32.5" rx="3.6" ry="4.2" fill="#ffd970"/>
-         <ellipse cx="43" cy="33" rx="1.2" ry="3" fill="${CAT_INK}"/><ellipse cx="57" cy="33" rx="1.2" ry="3" fill="${CAT_INK}"/>
-         <circle cx="44" cy="31" r=".9" fill="#fff"/><circle cx="58" cy="31" r=".9" fill="#fff"/>`}
-    <path d="M48.5 38.5 L51.5 38.5 L50 40 Z" fill="#ff9fb4"/>
-    <path d="M50 40 Q48 42.5 46.5 41.5 M50 40 Q52 42.5 53.5 41.5" fill="none" stroke="#efe6f2" stroke-width="1" stroke-linecap="round"/>
-    <path d="M31 36 L39 37 M31 40 L39 39 M69 36 L61 37 M69 40 L61 39" stroke="#efe6f2" stroke-width=".8" stroke-linecap="round"/>
-    <ellipse cx="39.5" cy="40" rx="2.4" ry="1.3" fill="#ff9fb4" opacity=".55"/><ellipse cx="60.5" cy="40" rx="2.4" ry="1.3" fill="#ff9fb4" opacity=".55"/>`;
-  if (pose === 'sleep') return `<svg viewBox="0 0 100 80" class="cat-svg" xmlns="http://www.w3.org/2000/svg">
-    <ellipse cx="50" cy="74" rx="34" ry="4" fill="currentColor" opacity=".08"/>
-    <path d="M20 62 Q18 44 40 42 Q66 40 78 52 Q86 60 80 70 L24 70 Q18 68 20 62 Z" fill="${CAT_INK}"/>
-    <path d="M78 66 Q92 66 90 56 Q88 50 82 54" fill="none" stroke="${CAT_INK}" stroke-width="5" stroke-linecap="round"/>
-    <g transform="translate(-14 26) scale(.9)">${face(true)}</g>
-    <text x="74" y="30" font-size="11" font-weight="800" fill="currentColor" opacity=".5" font-family="sans-serif" class="cat-z">z</text>
-    <text x="82" y="20" font-size="8" font-weight="800" fill="currentColor" opacity=".35" font-family="sans-serif" class="cat-z z2">z</text>
-  </svg>`;
-  // sit：坐著，旁邊可放一個小泡泡（extra = 圖示 HTML）
-  return `<svg viewBox="0 0 100 92" class="cat-svg" xmlns="http://www.w3.org/2000/svg">
-    <ellipse cx="50" cy="88" rx="26" ry="3.5" fill="currentColor" opacity=".08"/>
+const CW = '#efe6f2';          // 鬍鬚、嘴巴
+const CP = '#ff9fb4';          // 鼻子、腮紅
+const CE = '#c98aa0';          // 耳朵內側
+
+// 貓頭：以 (0,0) 為臉中心，寬約 36
+function catHead(eyes = 'open') {
+  const e = {
+    open: `<ellipse cx="-7" cy="-1.5" rx="3.6" ry="4.2" fill="#ffd970"/><ellipse cx="7" cy="-1.5" rx="3.6" ry="4.2" fill="#ffd970"/>
+           <ellipse cx="-7" cy="-1" rx="1.2" ry="3" fill="${CAT_INK}"/><ellipse cx="7" cy="-1" rx="1.2" ry="3" fill="${CAT_INK}"/>
+           <circle cx="-6" cy="-3" r=".9" fill="#fff"/><circle cx="8" cy="-3" r=".9" fill="#fff"/>`,
+    closed: `<path d="M-10 0 Q-7 3 -4 0 M4 0 Q7 3 10 0" fill="none" stroke="${CW}" stroke-width="1.6" stroke-linecap="round"/>`,
+    happy: `<path d="M-10.5 -1 Q-7 -5 -3.5 -1 M3.5 -1 Q7 -5 10.5 -1" fill="none" stroke="#ffd970" stroke-width="2.2" stroke-linecap="round"/>`,
+    wide: `<circle cx="-7" cy="-1.5" r="4.4" fill="#ffd970"/><circle cx="7" cy="-1.5" r="4.4" fill="#ffd970"/>
+           <circle cx="-7" cy="-1" r="2.6" fill="${CAT_INK}"/><circle cx="7" cy="-1" r="2.6" fill="${CAT_INK}"/>
+           <circle cx="-6" cy="-2.6" r="1" fill="#fff"/><circle cx="8" cy="-2.6" r="1" fill="#fff"/>`,
+  }[eyes];
+  return `<path d="M-17 -5 L-15 -22 L-5 -12 Z M17 -5 L15 -22 L5 -12 Z" fill="${CAT_INK}" stroke="${CAT_INK}" stroke-width="2" stroke-linejoin="round"/>
+    <path d="M-13.5 -11 L-13 -18.5 L-8 -13.5 Z M13.5 -11 L13 -18.5 L8 -13.5 Z" fill="${CE}"/>
+    <ellipse cx="0" cy="0" rx="18" ry="15" fill="${CAT_INK}"/>
+    ${e}
+    <path d="M-1.5 4.5 L1.5 4.5 L0 6 Z" fill="${CP}"/>
+    <path d="M0 6 Q-2 8.5 -3.5 7.5 M0 6 Q2 8.5 3.5 7.5" fill="none" stroke="${CW}" stroke-width="1" stroke-linecap="round"/>
+    <path d="M-19 2 L-11 3 M-19 6 L-11 5 M19 2 L11 3 M19 6 L11 5" stroke="${CW}" stroke-width=".8" stroke-linecap="round"/>
+    <ellipse cx="-10.5" cy="6" rx="2.4" ry="1.3" fill="${CP}" opacity=".55"/><ellipse cx="10.5" cy="6" rx="2.4" ry="1.3" fill="${CP}" opacity=".55"/>`;
+}
+const head = (x, y, s = 1, eyes, rot = 0) => `<g transform="translate(${x} ${y}) rotate(${rot}) scale(${s})">${catHead(eyes)}</g>`;
+const shadow = (cx, w) => `<ellipse cx="${cx}" cy="88" rx="${w}" ry="3.5" fill="currentColor" opacity=".09"/>`;
+
+const CAT_POSES = {
+  // 坐著
+  sit: () => `${shadow(50, 26)}
     <path class="cat-tail" d="M66 80 Q86 80 84 64 Q83 56 76 58" fill="none" stroke="${CAT_INK}" stroke-width="5" stroke-linecap="round"/>
     <path d="M34 86 Q30 62 40 50 L60 50 Q70 62 66 86 Z" fill="${CAT_INK}"/>
     <ellipse cx="42" cy="86" rx="6" ry="3" fill="${CAT_INK}"/><ellipse cx="58" cy="86" rx="6" ry="3" fill="${CAT_INK}"/>
-    <path d="M44 62 Q50 66 56 62" fill="none" stroke="#c98aa0" stroke-width="1.2" stroke-linecap="round" opacity=".7"/>
-    <g transform="translate(0 4)">${face(false)}</g>
-  </svg>${extra ? `<span class="cat-bubble">${extra}</span>` : ''}`;
+    <path d="M44 62 Q50 66 56 62" fill="none" stroke="${CE}" stroke-width="1.2" stroke-linecap="round" opacity=".7"/>
+    ${head(50, 34)}`,
+  // 舉手打招呼
+  wave: () => `${shadow(50, 26)}
+    <path class="cat-tail" d="M66 80 Q86 80 84 64 Q83 56 76 58" fill="none" stroke="${CAT_INK}" stroke-width="5" stroke-linecap="round"/>
+    <path d="M34 86 Q30 62 40 50 L60 50 Q70 62 66 86 Z" fill="${CAT_INK}"/>
+    <ellipse cx="42" cy="86" rx="6" ry="3" fill="${CAT_INK}"/>
+    <g class="cat-wave"><path d="M60 62 Q70 54 72 42" fill="none" stroke="${CAT_INK}" stroke-width="7" stroke-linecap="round"/><circle cx="72" cy="41" r="4.5" fill="${CAT_INK}"/><circle cx="72" cy="41" r="1.6" fill="${CP}" opacity=".8"/></g>
+    ${head(48, 34, 1, 'happy')}`,
+  // 縮成一團睡覺
+  sleep: () => `${shadow(52, 34)}
+    <path d="M20 82 Q18 64 40 62 Q66 60 78 72 Q86 80 80 88 L24 88 Q18 86 20 82 Z" fill="${CAT_INK}"/>
+    <path class="cat-tail-s" d="M78 86 Q92 86 90 76 Q88 70 82 74" fill="none" stroke="${CAT_INK}" stroke-width="5" stroke-linecap="round"/>
+    ${head(35, 72, .9, 'closed', -8)}
+    <text x="70" y="52" font-size="11" font-weight="800" fill="currentColor" opacity=".5" font-family="sans-serif" class="cat-z">z</text>
+    <text x="78" y="42" font-size="8" font-weight="800" fill="currentColor" opacity=".35" font-family="sans-serif" class="cat-z z2">z</text>`,
+  // 伸懶腰（屁股翹高）
+  stretch: () => `${shadow(52, 34)}
+    <path class="cat-tail" d="M74 52 Q80 30 92 30" fill="none" stroke="${CAT_INK}" stroke-width="5" stroke-linecap="round"/>
+    <path d="M26 82 Q30 74 44 72 Q60 66 72 52 Q80 50 80 62 L78 86 L70 86 L70 72 Q56 82 40 86 L22 88 Q18 86 26 82 Z" fill="${CAT_INK}"/>
+    <path d="M14 86 L34 86" stroke="${CAT_INK}" stroke-width="6" stroke-linecap="round"/>
+    ${head(28, 70, .85, 'closed', 6)}
+    <path d="M36 54 l3 -3 M40 56 l4 -2" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" opacity=".35"/>`,
+  // 玩毛線球
+  yarn: () => `${shadow(50, 34)}
+    <path class="cat-tail" d="M74 80 Q90 76 88 60" fill="none" stroke="${CAT_INK}" stroke-width="5" stroke-linecap="round"/>
+    <path d="M30 86 Q26 70 42 66 Q64 62 76 74 Q80 82 74 87 L32 88 Z" fill="${CAT_INK}"/>
+    <g class="cat-bat"><path d="M34 74 Q24 70 20 74" fill="none" stroke="${CAT_INK}" stroke-width="6" stroke-linecap="round"/></g>
+    ${head(40, 56, .9, 'wide', -10)}
+    <g class="cat-yarn"><circle cx="13" cy="80" r="8" fill="#ff8fab"/>
+      <path d="M6 77 Q13 74 20 79 M7 83 Q13 80 19 85 M10 73 Q15 80 12 88" fill="none" stroke="#c94f72" stroke-width="1" stroke-linecap="round"/>
+      <path d="M21 82 Q30 90 42 88" fill="none" stroke="#ff8fab" stroke-width="1" stroke-linecap="round"/></g>`,
+  // 從紙箱探頭
+  box: () => `${shadow(50, 30)}
+    ${head(50, 52, .95, 'wide')}
+    <circle cx="40" cy="64" r="4" fill="${CAT_INK}"/><circle cx="60" cy="64" r="4" fill="${CAT_INK}"/>
+    <path d="M22 64 L78 64 L74 88 L26 88 Z" fill="#d9a56c"/>
+    <path d="M22 64 L12 56 L30 56 L38 64 Z M78 64 L88 56 L70 56 L62 64 Z" fill="#e8bb85"/>
+    <path d="M22 64 L78 64" stroke="#b9854f" stroke-width="1.2"/>
+    <path d="M44 72 L56 72" stroke="#b9854f" stroke-width="1.4" stroke-linecap="round" opacity=".7"/>`,
+  // 趴著（貓麵包）看你
+  loaf: () => `${shadow(50, 30)}
+    <path class="cat-tail" d="M74 84 Q86 86 86 78" fill="none" stroke="${CAT_INK}" stroke-width="5" stroke-linecap="round"/>
+    <path d="M24 86 Q22 66 50 64 Q78 66 76 86 Z" fill="${CAT_INK}"/>
+    <ellipse cx="40" cy="87" rx="6" ry="2.6" fill="${CAT_INK}"/><ellipse cx="54" cy="87" rx="6" ry="2.6" fill="${CAT_INK}"/>
+    ${head(50, 56)}`,
+  // 翻肚（摸摸時）
+  belly: () => `${shadow(50, 32)}
+    <path class="cat-tail" d="M76 80 Q90 82 90 70" fill="none" stroke="${CAT_INK}" stroke-width="5" stroke-linecap="round"/>
+    <ellipse cx="54" cy="76" rx="24" ry="12" fill="${CAT_INK}"/>
+    <ellipse cx="56" cy="74" rx="12" ry="6" fill="#3d3646"/>
+    <path d="M44 66 Q42 56 46 52 M56 66 Q58 56 54 50 M66 70 Q72 62 70 56 M72 74 Q80 70 80 64" fill="none" stroke="${CAT_INK}" stroke-width="6" stroke-linecap="round"/>
+    <circle cx="46" cy="51" r="1.8" fill="${CP}" opacity=".7"/><circle cx="54" cy="49" r="1.8" fill="${CP}" opacity=".7"/>
+    ${head(27, 70, .9, 'happy', -22)}`,
+  // 跳起來（開心）
+  jump: () => `<ellipse cx="50" cy="88" rx="18" ry="3" fill="currentColor" opacity=".07"/>
+    <path class="cat-tail" d="M64 58 Q80 50 82 36" fill="none" stroke="${CAT_INK}" stroke-width="5" stroke-linecap="round"/>
+    <path d="M36 66 Q34 48 42 42 L58 42 Q66 48 64 66 Q56 70 50 70 Q42 70 36 66 Z" fill="${CAT_INK}"/>
+    <path d="M38 64 L32 72 M62 64 L68 72 M40 46 L28 36 M60 46 L72 36" stroke="${CAT_INK}" stroke-width="6" stroke-linecap="round"/>
+    ${head(50, 28, 1, 'happy')}
+    <path d="M20 22 l1.5 4 4 1.5 -4 1.5 -1.5 4 -1.5 -4 -4 -1.5 4 -1.5 Z M82 16 l1 3 3 1 -3 1 -1 3 -1 -3 -3 -1 3 -1 Z" fill="#ffd970"/>`,
+  // 撐傘（下雨）
+  umbrella: () => `${shadow(50, 26)}
+    <path class="cat-tail" d="M66 80 Q86 80 84 64 Q83 56 76 58" fill="none" stroke="${CAT_INK}" stroke-width="5" stroke-linecap="round"/>
+    <path d="M34 86 Q30 62 40 50 L60 50 Q70 62 66 86 Z" fill="${CAT_INK}"/>
+    <ellipse cx="42" cy="86" rx="6" ry="3" fill="${CAT_INK}"/><ellipse cx="58" cy="86" rx="6" ry="3" fill="${CAT_INK}"/>
+    ${head(46, 36, 1, 'open')}
+    <path d="M69 8 L70 60 Q70 65 65 65" fill="none" stroke="#7a5a3a" stroke-width="1.8" stroke-linecap="round"/>
+    <path d="M60 64 Q70 62 72 54" stroke="${CAT_INK}" stroke-width="6" stroke-linecap="round" fill="none"/>
+    <path d="M42 14 Q69 -6 96 14 Q89 10 82.5 14 Q76 10 69 14 Q62 10 55.5 14 Q49 10 42 14 Z" fill="#8fb8ff" stroke="#5a83c9" stroke-width="1"/>
+    <path d="M24 30 l-2 5 M90 34 l-2 5 M20 52 l-2 5 M86 54 l-2 5" stroke="#8fb8ff" stroke-width="1.4" stroke-linecap="round" class="cat-rain"/>`,
+  // 拉行李箱
+  suitcase: () => `${shadow(50, 34)}
+    <path class="cat-tail" d="M56 80 Q74 80 72 64" fill="none" stroke="${CAT_INK}" stroke-width="5" stroke-linecap="round"/>
+    <path d="M24 86 Q20 62 30 50 L50 50 Q60 62 56 86 Z" fill="${CAT_INK}"/>
+    <ellipse cx="32" cy="86" rx="6" ry="3" fill="${CAT_INK}"/><ellipse cx="48" cy="86" rx="6" ry="3" fill="${CAT_INK}"/>
+    <rect x="62" y="56" width="26" height="30" rx="4" fill="#ff8fab"/><rect x="62" y="56" width="26" height="30" rx="4" fill="none" stroke="#c94f72" stroke-width="1"/>
+    <path d="M69 56 V86 M81 56 V86" stroke="#c94f72" stroke-width="1" opacity=".6"/>
+    <path d="M70 56 V46 H80 V56" fill="none" stroke="#7a5a3a" stroke-width="1.8"/>
+    <path d="M52 62 Q60 52 70 47" fill="none" stroke="${CAT_INK}" stroke-width="6" stroke-linecap="round"/>
+    <circle cx="66" cy="88" r="2" fill="#555"/><circle cx="84" cy="88" r="2" fill="#555"/>
+    <path d="M70 66 l4 -3 4 3 M73 70 h2" stroke="#fff" stroke-width="1" fill="none" opacity=".8"/>
+    ${head(40, 34, 1, 'happy')}`,
+  // 走路（側面）
+  walk: () => `${shadow(50, 28)}
+    <path class="cat-tail" d="M76 62 Q88 50 86 36" fill="none" stroke="${CAT_INK}" stroke-width="5" stroke-linecap="round"/>
+    <path d="M28 70 Q30 56 44 56 L70 56 Q80 58 78 70 Q76 76 70 76 L34 76 Q28 76 28 70 Z" fill="${CAT_INK}"/>
+    <g class="cat-legs-a"><path d="M36 74 L34 87 M68 74 L70 87" stroke="${CAT_INK}" stroke-width="6" stroke-linecap="round"/></g>
+    <g class="cat-legs-b"><path d="M44 74 L46 87 M60 74 L58 87" stroke="${CAT_INK}" stroke-width="6" stroke-linecap="round"/></g>
+    ${head(26, 48, .85, 'open')}`,
+};
+const CAT_EMPTY_POSES = ['sleep', 'stretch', 'yarn', 'box', 'loaf'];
+
+function catPose(pose = 'sit') {
+  return `<svg viewBox="0 0 100 92" class="cat-svg cat-${pose}" xmlns="http://www.w3.org/2000/svg">${(CAT_POSES[pose] || CAT_POSES.sit)()}</svg>`;
 }
-// 空白頁自動放上黑貓：有圖示的坐著拿泡泡，沒有圖示的睡覺
+// 舊的介面：catSVG('sit', 泡泡內容) / catSVG('sleep')
+function catSVG(pose = 'sit', extra = '') {
+  return catPose(pose) + (extra ? `<span class="cat-bubble">${extra}</span>` : '');
+}
+const pick1 = (a) => a[Math.floor(Math.random() * a.length)];
+
+// 空白頁自動放上黑貓（姿勢隨機）：有圖示的打招呼或坐著拿泡泡；沒有圖示的隨機睡覺、伸懶腰、玩毛線、紙箱、趴著
 function catifyEmpty(root) {
   root.querySelectorAll('.empty:not([data-cat])').forEach((el) => {
     el.dataset.cat = '1';
     const big = el.querySelector('.big');
     const wrap = document.createElement('div');
     wrap.className = 'cat-wrap';
-    if (big) { wrap.innerHTML = catSVG('sit', big.innerHTML); big.remove(); }
-    else wrap.innerHTML = catSVG('sleep');
+    const travel = /pin|coin|map|plane/.test(big ? big.innerHTML : '') || el.closest('[data-page="travel"]');
+    if (big) { wrap.innerHTML = catSVG(travel && Math.random() < .6 ? 'suitcase' : pick1(['sit', 'wave', 'loaf']), big.innerHTML); big.remove(); }
+    else wrap.innerHTML = catSVG(pick1(CAT_EMPTY_POSES));
     el.prepend(wrap);
   });
+}
+
+// 首頁偶爾有黑貓路過（點牠 +1 經驗，一天一次）
+function catStroll() {
+  if (S.tab !== 'home' || document.querySelector('.cat-stroll')) return;
+  const k = 'park-stroll-at';
+  if (now() - +(localStorage.getItem(k) || 0) < 8 * 60000 || Math.random() > .45) return;
+  localStorage.setItem(k, now());
+  const el = document.createElement('button');
+  el.className = 'cat-stroll';
+  el.setAttribute('aria-label', '黑貓');
+  el.innerHTML = catPose('walk');
+  el.onclick = async () => {
+    el.innerHTML = catPose('jump'); el.classList.add('caught'); sfx('heart');
+    const dk = `park-stroll-pat-${dkey()}-${me()}`;
+    if (!localStorage.getItem(dk) && typeof petXP === 'function') { localStorage.setItem(dk, '1'); await petXP(1); toast(`抓到${petState().name}了！經驗 +1`); }
+    else toast(`${typeof petState === 'function' ? petState().name : '小小黑'}：喵～`);
+    setTimeout(() => el.remove(), 900);
+  };
+  document.body.appendChild(el);
+  setTimeout(() => el.remove(), 9000);
 }
 // ============================================================
 //  啟動、登入、配對、外框
@@ -921,6 +1048,7 @@ function doRender() {
   const A = annivInfo(); document.documentElement.dataset.anniv = A.is ? '1' : '';
   renderTop(); renderNav(); renderMain();
   if (A.is) annivIntro();
+  else setTimeout(catStroll, 2500 + Math.random() * 4000);
 }
 document.addEventListener('focusout', () => setTimeout(() => {
   const a = document.activeElement;
@@ -1241,8 +1369,8 @@ PAGES.home = {
     <div class="card">
       <h3><i data-ic="weather"></i> 心情天氣 <span class="sub">點自己的換心情</span></h3>
       <div class="mood-row">
-        <button class="mood-box ${mm ? moodCls(mm.icon) : ''}" data-act="mood"><div class="mi">${mm ? moodIc(mm.icon) : '<i data-ic="weather" class="ic-faint"></i>'}</div><b>${mm ? esc(mm.label) : '還沒設定'}</b><div class="who">${esc(nick(me()))}${mm ? ' · ' + ago(mm.at) : ''}</div></button>
-        <div class="mood-box ${pm ? moodCls(pm.icon) : ''}"><div class="mi">${pm ? moodIc(pm.icon) : '<i data-ic="weather" class="ic-faint"></i>'}</div><b>${pm ? esc(pm.label) : '還沒設定'}</b><div class="who">${p ? esc(nick(p)) : '對方'}${pm ? ' · ' + ago(pm.at) : ''}</div>
+        <button class="mood-box ${mm ? moodCls(mm.icon) : ''}" data-act="mood">${mm && /rain|storm/.test(moodCls(mm.icon)) ? `<span class="mood-cat">${catPose('umbrella')}</span>` : ''}<div class="mi">${mm ? moodIc(mm.icon) : '<i data-ic="weather" class="ic-faint"></i>'}</div><b>${mm ? esc(mm.label) : '還沒設定'}</b><div class="who">${esc(nick(me()))}${mm ? ' · ' + ago(mm.at) : ''}</div></button>
+        <div class="mood-box ${pm ? moodCls(pm.icon) : ''}">${pm && /rain|storm/.test(moodCls(pm.icon)) ? `<span class="mood-cat">${catPose('umbrella')}</span>` : ''}<div class="mi">${pm ? moodIc(pm.icon) : '<i data-ic="weather" class="ic-faint"></i>'}</div><b>${pm ? esc(pm.label) : '還沒設定'}</b><div class="who">${p ? esc(nick(p)) : '對方'}${pm ? ' · ' + ago(pm.at) : ''}</div>
           ${pm && (pm.icon === '🌧️' || pm.icon === '⛈️') ? '<div class="small" style="color:var(--accent);font-weight:700">需要哄哄！</div>' : ''}</div>
       </div>
     </div>
@@ -2075,7 +2203,7 @@ ACT.openCard = (el) => {
     if (c.rarity === 'SSR' || c.rarity === 'SR') confetti(110); else confetti(50);
     sfx('chime'); vibrate([30, 40, 80]); petXP(3);
     if (c.mystery) $('#secret', m).innerHTML = `<div class="secret-reveal">盲盒揭曉：${esc(c.secret)}</div>`;
-    hold.outerHTML = '<p class="center" style="font-weight:700">兌換成功！好好享受</p><button class="btn block" data-act="close">完成</button>';
+    hold.outerHTML = `<div class="ctx-cat jump">${catPose('jump')}</div><p class="center" style="font-weight:700">兌換成功！好好享受</p><button class="btn block" data-act="close">完成</button>`;
     await col('cards').update(c.id, { used: (c.used || 0) + 1, log: [...(c.log || []), { at: now(), how: 'redeem' }] });
     if (c.from !== me() && c.from !== 'sys') await notify(c.from, 'redeem', `${nick(me())} 使用了一張票券 ✂️`, c.mystery ? `神秘盲盒：${c.secret}` : c.title);
   };
@@ -2357,7 +2485,7 @@ ACT.gacha = () => {
     return `<div class="gm-ball" style="--c:${c};left:${8 + (i % 5) * 36 + (Math.floor(i / 5) % 2) * 16}px;top:${110 - Math.floor(i / 5) * 34 + Math.random() * 6}px;transform:rotate(${Math.random() * 360}deg)"></div>`;
   }).join('');
   const m = openModal(`${mhead('<i data-ic="gacha"></i> 扭蛋機')}
-    <div class="gacha-machine" id="gm"><div class="gm-dome">${balls}</div><div class="gm-base"><div class="gm-knob" id="kn"></div><div class="gm-slot"></div><div class="gm-out" id="go"></div></div></div>
+    <div class="gacha-machine" id="gm"><div class="gm-cat">${catPose('wave')}</div><div class="gm-dome">${balls}</div><div class="gm-base"><div class="gm-knob" id="kn"></div><div class="gm-slot"></div><div class="gm-out" id="go"></div></div></div>
     <div id="gres"></div>
     <div id="gbtns">
       <div class="btn-row"><button class="btn" id="g-pt">扭一次（${D.POINTS.gachaCost} 點）</button>${tickets(me()) ? `<button class="btn gold" id="g-tk">用扭蛋券 <i data-ic="ticket"></i>${tickets(me())}</button>` : ''}</div>
@@ -3708,16 +3836,24 @@ function petSVG(st, mood, wear, { blink = true } = {}) {
   </svg>`;
 }
 
+// 依時間：晚上 10 點到早上 6 點睡覺、早上 6～9 點伸懶腰，其他時間坐著（可戴配件）
+function petTimePose() { const h = new Date().getHours(); return h >= 22 || h < 6 ? 'sleep' : h < 9 ? 'stretch' : ''; }
+function petArt(P, big) {
+  const tp = petTimePose();
+  if (tp) return `<div class="pet-pose" data-pose="${tp}">${catPose(tp)}</div>`;
+  return petSVG(P.st, P.mood, P.wear);
+}
+const PET_TIME_TEXT = { sleep: '睡得正香，小聲一點', stretch: '剛睡醒，正在伸懶腰' };
 const PET_MOOD_TEXT = { happy: '心情超好，尾巴翹得高高的', ok: '在窩裡等你們來玩', miss: '好久沒人理牠了，有點想你們' };
 
 function petHomeCard() {
   const P = petState();
   const pct = P.next ? Math.round((P.xp - P.stage.xp) / (P.next.xp - P.stage.xp) * 100) : 100;
   return `<div class="card pet-card" data-act="petOpen">
-    <div class="pet-stage">${petSVG(P.st, P.mood, P.wear)}</div>
+    <div class="pet-stage">${petArt(P)}</div>
     <div class="grow">
       <div class="pet-name">${esc(P.name)} <span class="chip">${P.stage.name}</span></div>
-      <div class="small muted">${PET_MOOD_TEXT[P.mood]}</div>
+      <div class="small muted">${PET_TIME_TEXT[petTimePose()] || PET_MOOD_TEXT[P.mood]}</div>
       <div class="pet-bar"><div style="width:${pct}%"></div></div>
       <div class="small muted">${P.next ? `再 ${P.next.xp - P.xp} 點經驗長成${P.next.name}` : '已經是最大隻的貓老大了'}</div>
     </div>
@@ -3729,8 +3865,8 @@ ACT.petPat = async (el, e) => {
   e && e.stopPropagation();
   const k = `park-petpat-${dkey()}-${me()}`;
   const card = el.closest('.pet-card, .modal');
-  const svg = card && card.querySelector('.pet-svg');
-  if (svg) { svg.classList.remove('pet-bounce'); void svg.getBoundingClientRect(); svg.classList.add('pet-bounce'); }
+  const holder = card && card.querySelector('.pet-stage, .pet-big');
+  if (holder) { const old = holder.innerHTML; holder.innerHTML = catPose('belly'); holder.classList.add('pet-flip'); setTimeout(() => { holder.innerHTML = old; holder.classList.remove('pet-flip'); }, 1400); }
   const r = el.getBoundingClientRect(); floaty(r.left + r.width / 2, r.top, ['#2b2633', '#ff9db4', '#ffd970']);
   sfx('heart');
   if (localStorage.getItem(k)) return toast(`${petState().name} 呼嚕呼嚕～（今天摸過了，明天再來）`);
@@ -3742,8 +3878,8 @@ ACT.petPat = async (el, e) => {
 ACT.petOpen = () => {
   const P = petState();
   const m = openModal(`${mhead(`<i data-ic="heart"></i> ${esc(P.name)}`)}
-    <div class="pet-big">${petSVG(P.st, P.mood, P.wear)}</div>
-    <p class="center muted" style="margin:0 0 4px">${P.stage.name}・經驗 ${P.xp}・${PET_MOOD_TEXT[P.mood]}</p>
+    <div class="pet-big">${petArt(P, true)}</div>
+    <p class="center muted" style="margin:0 0 4px">${P.stage.name}・經驗 ${P.xp}・${PET_TIME_TEXT[petTimePose()] || PET_MOOD_TEXT[P.mood]}</p>
     <div class="btn-row" style="justify-content:center;margin-bottom:12px">
       <button class="btn sm" data-act="petPat">摸摸</button>
       <button class="btn sm ghost" id="pt-feed">餵罐罐 <small>10點</small></button>
