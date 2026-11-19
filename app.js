@@ -2669,7 +2669,7 @@ ACT.food = () => {
 //   「我」= 出題的人（另一個人），「我們」不換，引號「」裡的字不換
 function personalize(text, asker, answerer) {
   const out = text.split(/(「[^」]*」)/).map((seg) => (seg.startsWith('「') ? seg
-    : seg.replace(/對方/g, asker).replace(/我(?!們)/g, asker))).join('');
+    : seg.replace(/對方/g, asker).replace(/他(?!們)/g, asker).replace(/我(?!們)/g, asker))).join('');
   return `${answerer}，${out}`;
 }
 ACT.tod = () => {
@@ -2864,7 +2864,7 @@ ACT.giveStamp = () => {
 // ---------- 每週任務 ----------
 function weekTaskIdx() {
   const wk = weekKey();
-  const base = shuffled(D.WEEKLY_TASKS.map((_, i) => i), hash(wk + (S.cid || ''))).slice(0, 3);
+  const base = shuffled(D.WEEKLY_TASKS.map((_, i) => i), hash(wk + (S.cid || ''))).slice(0, 2);
   const ov = (S.couple?.taskOverride || {})[wk] || {};
   return base.map((v, i) => (ov[i] != null ? ov[i] : v));
 }
@@ -3992,7 +3992,7 @@ const PET_ACC = [
   { id: 'starclip', name: '星星髮夾', gacha: true },
   { id: 'heartbag', name: '愛心小包', gacha: true },
 ];
-const PET_GACHA_RATE = 0.1;
+const PET_GACHA_RATE = 0.03;
 // 扭卡片時小機率額外掉一個還沒有的配件
 async function petGachaBonus() {
   if (Math.random() > PET_GACHA_RATE) return null;
