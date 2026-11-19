@@ -758,7 +758,7 @@ function catStroll(force) {
     if (Math.random() < .4) setTimeout(() => {
       const kitty = document.createElement('div');
       kitty.className = 'cat-stroll lead';
-      kitty.innerHTML = coatWalk(pick1(['black', 'orange', 'white', 'calico', 'tuxedo']));
+      kitty.innerHTML = coatWalk('black'); // 把拔貓咪＝小小黑
       document.body.appendChild(kitty); setTimeout(() => kitty.remove(), 9000);
     }, 0);
   }
@@ -883,13 +883,13 @@ function dogWalk() {
       <circle cx="-6.2" cy="-10" r=".9" fill="#fff"/><circle cx="9.8" cy="-10" r=".9" fill="#fff"/>
       <path d="M-10 -14 Q-7 -16 -4 -14 M6 -14 Q9 -16 12 -14" fill="none" stroke="${c.line}" stroke-width=".9" stroke-linecap="round"/>
       <ellipse cx="1" cy="-1" rx="5" ry="3.8" fill="${c.dark}"/><ellipse cx="-.5" cy="-2.2" rx="1.6" ry=".9" fill="#fff" opacity=".5"/>
-      <path d="M1 3 L1 5.5 M-5 5.5 Q1 9 7 5.5" fill="none" stroke="${c.dark}" stroke-width="1.2" stroke-linecap="round"/>
-      <g class="dog-tongue"><path d="M-1.5 6.8 Q-2 14 1 15 Q4 14 3.5 6.8 Z" fill="#ff7f86" stroke="#d9535d" stroke-width=".7"/><path d="M1 8 L1 12.5" stroke="#d9535d" stroke-width=".6"/></g>
+      <path d="M-5.5 4 Q1 6.5 7.5 4 Q7 12.5 1 13 Q-5 12.5 -5.5 4 Z" fill="${c.dark}"/>
+      <g class="dog-tongue"><path d="M-3 9.5 Q1 6.8 5 9.5 Q4.6 15 1 15.4 Q-2.6 15 -3 9.5 Z" fill="#ff7f86"/><path d="M1 10 L1 13.5" stroke="#d9535d" stroke-width=".6" stroke-linecap="round"/></g>
       <ellipse cx="-12" cy="2" rx="2.6" ry="1.4" fill="#ff9fb4" opacity=".55"/><ellipse cx="14" cy="2" rx="2.6" ry="1.4" fill="#ff9fb4" opacity=".55"/>
     </g>
   </svg>`;
 }
-const DOG_LINES = ['還好：我是女生～', '還好：嗷把拔貓咪好可愛喔～', '還好：我是女生～（男朋友：你明明就是男生）', '還好追著自己的尾巴轉了三圈，然後忘記自己在幹嘛', '還好：今天也是很好的一天耶～', '還好躺下來翻肚子：我是女生～摸我～', '還好把球叼過來，結果是一顆橘子', '還好：嗷！（不知道在嗷什麼）', '還好跟陷阱貓打招呼，被無視了，但還是很開心', '還好：把拔～貓咪呢？貓咪呢？'];
+const DOG_LINES = ['還好：我是女生～', '還好：嗷把拔貓咪好可愛喔～', '還好：我是女生～（男朋友：你明明就是男生）', '還好追著自己的尾巴轉了三圈，然後忘記自己在幹嘛', '還好：今天也是很好的一天耶～', '還好躺下來翻肚子：我是女生～摸我～', '還好把球叼過來，結果是一顆橘子', '還好：嗷！（不知道在嗷什麼）', '還好跟陷阱貓打招呼，被無視了，但還是很開心', '還好：把拔～小小黑呢？小小黑呢？'];
 
 window.__stroll = (c) => catStroll(c || 'dog');
 // ============================================================

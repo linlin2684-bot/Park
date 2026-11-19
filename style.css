@@ -1059,7 +1059,7 @@ html[data-theme="night"] .jar-svg .jar-glass { fill: rgba(255, 255, 255, .06); }
 @keyframes dogBounce { 50% { transform: scaleX(-1) translateY(-2.5px); } }
 .dog-walk .dog-tail { transform-origin: 96px 58px; animation: dogWag .25s ease-in-out infinite alternate; }
 @keyframes dogWag { from { transform: rotate(-10deg); } to { transform: rotate(14deg); } }
-.dog-walk .dog-tongue { transform-origin: 1px 7px; animation: dogPant .3s ease-in-out infinite alternate; }
+.dog-walk .dog-tongue { transform-origin: 1px 9px; animation: dogPant .3s ease-in-out infinite alternate; }
 @keyframes dogPant { to { transform: scaleY(1.15); } }
 .cat-stroll.lead { width: 70px; animation-duration: 6.8s; pointer-events: none; animation-delay: -.9s; }
 .cat-stroll.coat-dog.dog-happy { animation-play-state: paused; }
