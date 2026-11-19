@@ -748,16 +748,16 @@ function catStroll() {
 // ============================================================
 const COATS = {
   black: { name: '小小黑', base: CAT_INK, line: CAT_INK, eye: '#ffd970', ear: CE, whisker: CW },
-  white: { name: '小白', base: '#f7f4ef', line: '#cfc6bd', eye: '#8fd0f0', ear: '#f4b6c4', whisker: '#c9bfb6' },
-  orange: { name: '橘胖', base: '#f2a65a', line: '#c97a35', eye: '#9ccc65', ear: '#f4b6a4', whisker: '#fff', fat: true,
+  white: { name: '陷阱貓', base: '#f7f4ef', line: '#cfc6bd', eye: '#8fd0f0', ear: '#f4b6c4', whisker: '#c9bfb6' },
+  orange: { name: '晽晽貓貓', base: '#f2a65a', line: '#c97a35', eye: '#9ccc65', ear: '#f4b6a4', whisker: '#fff', fat: true,
     patches: (id) => `<g clip-path="url(#${id})"><ellipse cx="52" cy="80" rx="16" ry="8" fill="#fffaf2"/></g>`,
     face: `<ellipse cx="0" cy="6" rx="8.5" ry="6" fill="#fffaf2"/><path d="M-6 -13 Q-3 -9 0 -13 Q3 -9 6 -13 M-8 -9 Q-4 -5 0 -9 Q4 -5 8 -9" fill="none" stroke="#d98a3e" stroke-width="1.4" stroke-linecap="round"/>` },
-  calico: { name: '三花', base: '#fbf7f1', line: '#d6c9bc', eye: '#e8b23a', ear: '#f4b6c4', whisker: '#c9bfb6',
+  calico: { name: '小魚乾', base: '#fbf7f1', line: '#d6c9bc', eye: '#e8b23a', ear: '#f4b6c4', whisker: '#c9bfb6',
     patches: (id) => `<g clip-path="url(#${id})"><ellipse cx="40" cy="60" rx="10" ry="8" fill="#e9984d"/><ellipse cx="66" cy="62" rx="9" ry="7" fill="#3a3238"/><ellipse cx="60" cy="58" rx="5" ry="4" fill="#e9984d"/></g>`,
     face: `<path d="M-18 -4 Q-16 -18 -4 -14 Q-6 -4 -14 2 Z" fill="#e9984d"/><path d="M18 -4 Q16 -18 5 -14 Q6 -5 14 1 Z" fill="#3a3238"/>`, earL: '#e9984d', earR: '#3a3238' },
-  tuxedo: { name: '賓士', base: CAT_INK, line: CAT_INK, eye: '#a5d86b', ear: CE, whisker: CW,
+  tuxedo: { name: '吵吵貓', base: CAT_INK, line: CAT_INK, eye: '#a5d86b', ear: CE, whisker: CW,
     patches: (id) => `<g clip-path="url(#${id})"><path d="M28 64 Q34 72 46 74 L48 80 L28 80 Z" fill="#fbf7f1"/></g>`,
-    face: `<path d="M0 -2 Q-6 2 -9 10 Q0 15 9 10 Q6 2 0 -2 Z" fill="#fbf7f1"/>`, socks: '#fbf7f1' },
+    face: `<path d="M0 -2 Q-6 2 -9 10 Q0 15 9 10 Q6 2 0 -2 Z" fill="#fbf7f1"/>`, socks: '#fbf7f1', mouth: '#8a6e66' },
 };
 function coatHead(c) {
   const eL = c.earL || c.base, eR = c.earR || c.base;
@@ -770,7 +770,7 @@ function coatHead(c) {
     <ellipse cx="-7" cy="-1" rx="1.2" ry="3" fill="#2b2633"/><ellipse cx="7" cy="-1" rx="1.2" ry="3" fill="#2b2633"/>
     <circle cx="-6" cy="-3" r=".9" fill="#fff"/><circle cx="8" cy="-3" r=".9" fill="#fff"/>
     <path d="M-1.5 4.5 L1.5 4.5 L0 6 Z" fill="${CP}"/>
-    <path d="M0 6 Q-2 8.5 -3.5 7.5 M0 6 Q2 8.5 3.5 7.5" fill="none" stroke="${c.base === CAT_INK ? CW : '#8a6e66'}" stroke-width="1" stroke-linecap="round"/>
+    <path d="M0 6 Q-2 8.5 -3.5 7.5 M0 6 Q2 8.5 3.5 7.5" fill="none" stroke="${c.mouth || (c.base === CAT_INK ? CW : '#8a6e66')}" stroke-width="1.1" stroke-linecap="round"/>
     <path d="M-19 2 L-11 3 M-19 6 L-11 5 M19 2 L11 3 M19 6 L11 5" stroke="${c.whisker}" stroke-width=".8" stroke-linecap="round"/>
     <ellipse cx="-10.5" cy="6" rx="2.4" ry="1.3" fill="${CP}" opacity=".55"/><ellipse cx="10.5" cy="6" rx="2.4" ry="1.3" fill="${CP}" opacity=".55"/>`;
 }
