@@ -105,7 +105,8 @@ const isWeekend = () => [0, 6].includes(new Date().getDay());
 function toast(msg) {
   const t = document.createElement('div');
   t.className = 'toast'; t.textContent = msg;
-  $('#toasts').appendChild(t);
+  const box = $('#toasts'); box.appendChild(t);
+  while (box.children.length > 2) box.firstElementChild.remove();
   setTimeout(() => t.remove(), 3100);
 }
 function confetti(n = 70, colors) {
@@ -3189,7 +3190,7 @@ ACT.review = () => {
   const daysAtEnd = Math.floor((yEnd - annT) / 86400000) + 1;
   const slides = [
     { bg: 'linear-gradient(160deg,#ff6f91,#845ec2)', i: ic('ferris'), n: Y, t: '這一年的我們', s: `${nick(me())} & ${nick(p)}<br>往右點，一起回顧 →` },
-    { bg: 'linear-gradient(160deg,#ff9671,#ff6f91)', i: ic('ticket'), n: redeems.length, t: '張票券被兌換', s: top ? `最常用的是「${esc(top[0])}」<br>一共用了 ${top[1]} 次` : '明年多用一點吧 😉' },
+    { bg: 'linear-gradient(160deg,#ff9671,#ff6f91)', i: ic('ticket'), n: redeems.length, t: '張票券被兌換', s: top ? `最常用的是「${esc(top[0])}」<br>一共用了 ${top[1]} 次` : '明年多用一點吧' },
     { bg: 'linear-gradient(160deg,#845ec2,#2c73d2)', i: ic('gacha'), n: gacha.length, t: '次扭蛋和合成', s: `扭出 ${gacha.filter((g) => g.rarity === 'SSR').length} 張 SSR、${gacha.filter((g) => g.rarity === 'SR').length} 張 SR` },
     { bg: 'linear-gradient(160deg,#00c9a7,#2c73d2)', i: ic('map'), n: trips.length, t: '個一起去過的地方', s: trips.length ? trips.slice(0, 8).map((t) => esc(t.name)).join('・') : '明年一起去更多地方吧 ✈️' },
     { bg: 'linear-gradient(160deg,#ffc75f,#ff9671)', i: ic('target'), n: `${goals.filter((g) => g.done).length}/${goals.length}`, t: '個年度目標完成', s: goals.filter((g) => g.done).slice(0, 6).map((g) => '✓ ' + esc(g.title)).join('<br>') || '寫下明年的目標吧' },
