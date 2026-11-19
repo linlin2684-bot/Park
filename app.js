@@ -1060,6 +1060,7 @@ function doRender() {
   const a = document.activeElement;
   if (a && a.closest && a.closest('#main') && /INPUT|TEXTAREA|SELECT/.test(a.tagName)) { S.deferRender = true; renderTop(); renderNav(); return; }
   setSection(S.tab);
+  if (S.tab !== 'home') document.querySelectorAll('.cat-stroll').forEach((x) => x.remove());
   const A = annivInfo(); document.documentElement.dataset.anniv = A.is ? '1' : '';
   renderTop(); renderNav(); renderMain();
   if (A.is) { annivIntro(); annivRibbon(); }
