@@ -3559,16 +3559,6 @@ ACT.annivStory = () => {
   const bd = [[her, prof(her || '').bday || D.DEFAULT_DATES.herBirthday], [him, prof(him || '').bday || D.DEFAULT_DATES.hisBirthday]]
     .filter(([u]) => u).map(([u, md]) => `${esc(nick(u))}的生日 ${countMD(ann, md)} 次`);
   slides.push({ i: ic('tree'), n: hol.reduce((a, x) => a + x[1], 0), t: '個一起過的節日', s: hol.map(([k, n]) => `${n} 次${k}`).join('・') + (bd.length ? `<br>還有 ${bd.join('、')}` : '') });
-  // 每一年：時間軸裡寫下的回憶（可以在週年前先補進去）
-  const mems = list('memories').filter((x) => x.date).slice().sort((a, b) => a.date.localeCompare(b.date));
-  for (let k = 0; k < A.n; k++) {
-    const from = new Date(ann.getFullYear() + k, ann.getMonth(), ann.getDate()), to = new Date(ann.getFullYear() + k + 1, ann.getMonth(), ann.getDate());
-    const ys = mems.filter((x) => { const d = parseD(x.date); return d >= from && d < to; });
-    if (!ys.length) continue;
-    const cover = ys.find((x) => x.cover);
-    slides.push({ i: cover ? `<img class="story-photo" src="${cover.cover}" alt="">` : ic('photo'), n: `第 ${cnNum(k + 1)} 年`, t: `${from.getFullYear()}/${from.getMonth() + 1} – ${to.getFullYear()}/${to.getMonth() + 1}`,
-      s: ys.slice(0, 5).map((x) => `${x.date.slice(5).replace('-', '/')}　${esc(x.title)}`).join('<br>') + (ys.length > 5 ? `<br>…還有 ${ys.length - 5} 段` : '') });
-  }
   // App 裡累積的紀錄：有才放
   const redeems = list('cards').flatMap((c) => (c.log || []).filter((l) => l.how === 'redeem').map(() => c));
   const trips = list('trips'), misses = list('misses');
