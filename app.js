@@ -4066,10 +4066,10 @@ function petSVG(st, mood, wear, { blink = true } = {}) {
     scarf: `<path d="M37 51 Q50 58 63 51 L63 55 Q50 62 37 55 Z" fill="#7cc7a8" stroke="#3b8a6c" stroke-width=".8"/><path d="M56 56 L59 68 L64 66 L60 55" fill="#7cc7a8" stroke="#3b8a6c" stroke-width=".8" stroke-linejoin="round"/><path d="M40 53 L60 53" stroke="#fff" stroke-width=".8" stroke-dasharray="2 2" opacity=".7"/>`,
     flower: `<g transform="translate(36 17)">${[0, 72, 144, 216, 288].map((a) => `<ellipse rx="2.6" ry="4" transform="rotate(${a}) translate(0 -3.4)" fill="#fff" stroke="#e7b3c4" stroke-width=".6"/>`).join('')}<circle r="2.2" fill="#ffd45c"/></g>`,
     crown: `<path d="M40 16 L42 7 L46 12 L50 5 L54 12 L58 7 L60 16 Z" fill="#ffd45c" stroke="#b8862f" stroke-width="1" stroke-linejoin="round"/><circle cx="50" cy="12.5" r="1.4" fill="#e2445f"/>`,
-    ribbon: `<path d="M37 51.5 Q50 57 63 51.5" fill="none" stroke="#c8202f" stroke-width="2.4" stroke-linecap="round"/>
+    ribbon: `<g transform="translate(0 -6)"><path d="M37 51.5 Q50 57 63 51.5" fill="none" stroke="#c8202f" stroke-width="2.4" stroke-linecap="round"/>
       <path d="M47.5 56 L42.5 70 L46 68 L48.5 71 L50 57 Z M52.5 56 L57.5 70 L54 68 L51.5 71 L50 57 Z" fill="#b51a28"/>
       <path d="M50 54.5 C46 49.5 39 49 39 54.5 C39 60 46 59.5 50 54.5 Z M50 54.5 C54 49.5 61 49 61 54.5 C61 60 54 59.5 50 54.5 Z" fill="#d42433"/>
-      <rect x="47.6" y="51.6" width="4.8" height="5.8" rx="1.6" fill="#b51a28"/>`,
+      <rect x="47.6" y="51.6" width="4.8" height="5.8" rx="1.6" fill="#b51a28"/></g>`,
     cape: `<path d="M38 50 Q50 54 62 50 L70 80 Q50 86 30 80 Z" fill="#c42e52" opacity=".95"/><path d="M38 50 Q50 54 62 50" fill="none" stroke="#e9c77b" stroke-width="1.6"/><circle cx="50" cy="52.5" r="1.8" fill="#e9c77b"/>`,
     glasses: `<circle cx="43" cy="32.5" r="5.6" fill="none" stroke="#e9c77b" stroke-width="1.3"/><circle cx="57" cy="32.5" r="5.6" fill="none" stroke="#e9c77b" stroke-width="1.3"/><path d="M48.6 32 Q50 30.8 51.4 32" fill="none" stroke="#e9c77b" stroke-width="1.2"/>`,
     bowtie: `<path d="M50 52 L42 48 L42 56 Z M50 52 L58 48 L58 56 Z" fill="#3b5ba5" stroke="#26407e" stroke-width=".8" stroke-linejoin="round"/><circle cx="50" cy="52" r="2" fill="#26407e"/>`,
