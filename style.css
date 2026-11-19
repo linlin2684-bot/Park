@@ -626,3 +626,11 @@ html[data-theme="night"] .ach-g { --e-bg: #2a210f; --e-ink: #f2d58f; --e-acc: #8
 .craft-plus, .craft-minus { width: 32px; height: 32px; border-radius: 50%; background: var(--card2); font-size: 18px; font-weight: 800; flex: none; }
 .craft-plus { background: var(--accent); color: var(--accent-ink); }
 .craft-n { min-width: 18px; text-align: center; font-family: var(--serif); font-weight: 900; font-size: 18px; color: var(--accent); }
+
+/* 收藏冊封面 */
+.emb-W { --e-bg: #f2f1fb; --e-ink: #3d3a7a; --e-acc: #b4b1e6; }
+html[data-theme="night"] .emb-W { --e-bg: #17162b; --e-ink: #d7d5f7; --e-acc: #4c4991; }
+.book { margin-bottom: 18px; }
+.book-cover2 { display: block; width: 100%; padding: 0; border-radius: 16px; overflow: hidden; box-shadow: var(--shadow); }
+.book-cover2 .book-svg { display: block; width: 100%; height: auto; }
+.book-note { font-size: 12px; color: var(--muted); text-align: center; margin: 6px 0 10px; }
