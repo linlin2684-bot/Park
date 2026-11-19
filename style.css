@@ -714,3 +714,6 @@ html[data-theme="night"] .piggy-svg { filter: drop-shadow(0 4px 10px rgba(255, 1
 .piggy-emb { width: 112px; height: 112px; display: block; margin: 0 auto 2px; }
 .piggy-emb .pig-coin { opacity: 0; }
 .piggy.bounce .pig-coin { animation: pigcoin .7s ease-in; }
+.auth-logo .lg { animation: logofloat 4s ease-in-out infinite; font-size: 0; }
+.auth-logo .lg img { width: 132px; height: 132px; display: block; filter: drop-shadow(0 6px 18px rgba(196, 46, 82, .22)); }
+@keyframes logofloat { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-5px); } }

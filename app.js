@@ -124,10 +124,10 @@ function confetti(n = 70, colors) {
     setTimeout(() => c.remove(), 4200);
   }
 }
-function floaty(x, y, chars = ['💗', '💕', '💖', '❤️', '💘']) {
+function floaty(x, y, chars = ['#ff6f91', '#ff9db4', '#e2445f', '#ffc2d1', '#d9a53b']) {
   for (let i = 0; i < 6; i++) {
     const f = document.createElement('div');
-    f.className = 'floaty'; f.textContent = pick(chars);
+    f.className = 'floaty'; f.innerHTML = `<svg viewBox="0 0 24 24" width="1em" height="1em"><path d="M12 20.5 C5 15.5 2.5 12 2.5 8.5 C2.5 5.5 4.8 3.5 7.5 3.5 C9.5 3.5 11 4.6 12 6.2 C13 4.6 14.5 3.5 16.5 3.5 C19.2 3.5 21.5 5.5 21.5 8.5 C21.5 12 19 15.5 12 20.5 Z" fill="${pick(chars)}"/></svg>`;
     f.style.left = (x - 14 + Math.random() * 20) + 'px'; f.style.top = (y - 20) + 'px';
     f.style.setProperty('--dx', (Math.random() * 120 - 60) + 'px');
     f.style.animationDelay = (i * 0.06) + 's';
@@ -528,7 +528,7 @@ async function boot() {
     S.store = await createStore(firebaseConfig);
   } catch (e) {
     console.error(e);
-    $('#app').innerHTML = `<div class="auth-wrap"><div class="auth-logo"><span class="lg"><i data-ic="ferris"></i></span><h1>連不上 Firebase</h1><p>請檢查 config.js 的設定，或網路是否正常。<br><small>${esc(e.message || e)}</small></p></div></div>`;
+    $('#app').innerHTML = `<div class="auth-wrap"><div class="auth-logo"><span class="lg"><img src="logo.svg" alt=""></span><h1>連不上 Firebase</h1><p>請檢查 config.js 的設定，或網路是否正常。<br><small>${esc(e.message || e)}</small></p></div></div>`;
     return;
   }
   S.store.auth.onChange(async (u) => {
@@ -693,7 +693,7 @@ function renderLogin() {
   let signup = false;
   const draw = () => {
     $('#app').innerHTML = `<div class="auth-wrap">
-      <div class="auth-logo"><span class="lg"><i data-ic="ferris"></i></span><h1>兩人遊樂園</h1><p>只屬於我們兩個的遊樂園</p></div>
+      <div class="auth-logo"><span class="lg"><img src="logo.svg" alt=""></span><h1>兩人遊樂園</h1><p>只屬於我們兩個的遊樂園</p></div>
       <div class="card">
         <label>Email</label><input id="em" type="email" autocomplete="email" placeholder="you@example.com">
         <label>密碼（至少 6 個字）</label><input id="pw" type="password" autocomplete="${signup ? 'new-password' : 'current-password'}">
@@ -733,7 +733,7 @@ function renderOnboard() {
   const p = { nick: '', role: 'her', av: 'girl', emoji: '👧', bday: D.DEFAULT_DATES.herBirthday, spice: 1 };
   const draw = () => {
     $('#app').innerHTML = `<div class="auth-wrap">
-      <div class="auth-logo"><span class="lg"><i data-ic="ferris"></i></span><h1>歡迎光臨</h1><p>先介紹一下你自己</p></div>
+      <div class="auth-logo"><span class="lg"><img src="logo.svg" alt=""></span><h1>歡迎光臨</h1><p>先介紹一下你自己</p></div>
       <div class="card">
         <label>你的暱稱</label><input id="nk" maxlength="12" placeholder="對方在 app 裡看到的名字" value="${esc(p.nick)}">
         <label>你是</label>
@@ -948,7 +948,7 @@ ACT.settings = () => {
            <div class="list-row" id="s-reset"><span class="lr-i"><i data-ic="trash"></i></span><span class="grow">清空試玩資料</span>›</div>`
         : `<div class="list-row" id="s-out"><span class="lr-i"><i data-ic="logout"></i></span><span class="grow">登出</span>›</div>`}
     </div>
-    <p class="center small muted">兩人遊樂園 · 做給我們兩個 💗</p>`);
+    <p class="center small muted">兩人遊樂園 · 做給我們兩個</p>`);
   let sp = p.spice || 1;
   let av = p.av && AVATARS[p.av] ? p.av : '';
   const avPick = (k) => { av = k; $$('#s-av button', m).forEach((x) => x.classList.toggle('on', x.dataset.av === k)); };
@@ -1018,7 +1018,7 @@ function cardEditor({ title, pool = false, give = false, preset = {}, onDelete =
       <div class="grow"><label>限時</label><select id="ce-l"><option value="none">不限時</option><option value="7d">7 天內有效</option><option value="weekend">週末限定</option><option value="today">今天限定</option></select></div></div>` : ''}
     <div class="toggle mt"><label class="switch"><input type="checkbox" id="ce-m" ${t.mystery ? 'checked' : ''}><span></span></label><span class="small"><i data-ic="gift"></i> 神秘盲盒（內容先藏起來，兌換時才揭曉）</span></div>
     <div id="ce-sw" class="${t.mystery && give ? '' : 'hidden'}"><label>盲盒裡的真正內容</label><input id="ce-sec" maxlength="60" placeholder="兌換時才會顯示" value="${esc(t.secret)}"></div>
-    <button class="btn block mt" id="ce-ok">${give ? '送出 💌' : '儲存'}</button>
+    <button class="btn block mt" id="ce-ok">${give ? '<i data-ic="letter"></i> 送出' : '儲存'}</button>
     ${onDelete ? '<button class="btn ghost block mt" id="ce-del" style="color:#d4405f">從卡池刪除</button>' : ''}`);
   if (onDelete) $('#ce-del', m).onclick = async () => { if (await confirmBox('確定要從卡池刪掉這張？')) { closeModal(m); await onDelete(); } };
   const preview = () => {
@@ -1089,7 +1089,7 @@ function homeTodos() {
   if (!S.couple) return [];
   const t = [];
   const p = partner();
-  if (!p) t.push({ icon: '🔑', text: '對方還沒加入，把邀請碼傳給對方', act: 'invite', btn: '邀請' });
+  if (!p) t.push({ icon: '<i data-ic="key"></i>', text: '對方還沒加入，把邀請碼傳給對方', act: 'invite', btn: '邀請' });
   const ns = list('cards').filter((c) => c.owner === me() && !c.scratched).length;
   if (ns) t.push({ icon: '<i data-ic="ticket"></i>', text: `有 ${ns} 張新票券等你刮開`, act: 'goScratch', btn: '去刮' });
   const wl = list('wishes').filter((w) => w.status === 'pending' && w.by !== me()).length;
@@ -1106,7 +1106,7 @@ function homeTodos() {
   }
   const tr = S.couple.taskSwapReq;
   if (tr && tr.by !== me() && tr.wk === weekKey()) t.push({ icon: '<i data-ic="swap"></i>', text: `${nick(tr.by)} 想換掉每週任務「${weekTasks()[tr.i] || ''}」`, act: 'tab', tab: 'play', btn: '去看' });
-  if (needDownloadReminder()) t.push({ icon: '☁️', text: '這個月還沒把備份存到手機', act: 'downloadBackup', btn: '下載' });
+  if (needDownloadReminder()) t.push({ icon: '<i data-ic="cloud"></i>', text: '這個月還沒把備份存到手機', act: 'downloadBackup', btn: '下載' });
   const caps = list('capsules').filter((c) => c.openAt <= now() && !(c.opened || {})[me()]).length;
   if (caps) t.push({ icon: '<i data-ic="hourglass"></i>', text: `有 ${caps} 封時光膠囊可以打開了`, act: 'goCapsule', btn: '打開' });
   return t;
@@ -1244,7 +1244,7 @@ ACT.dailyHistory = () => {
 // ---------- 情話小紙條 ----------
 ACT.writeNote = async () => {
   if (!partner()) return toast('對方加入後才能藏紙條喔');
-  const text = await promptBox('💌 寫一張小紙條', { placeholder: `想對 ${nick(partner())} 說的話…`, multiline: true, ok: '藏起來' });
+  const text = await promptBox('寫一張小紙條', { placeholder: `想對 ${nick(partner())} 說的話…`, multiline: true, ok: '藏起來' });
   if (!text) return;
   const tab = pick(TABS).id;
   await col('notes').add({ by: me(), to: partner(), text, found: false, spot: { tab, x: 6 + Math.random() * 80, y: 8 + Math.random() * 84 }, at: now() });
@@ -1776,7 +1776,7 @@ ACT.walletFilter = (el) => { S.walletFilter = el.dataset.f; render(); };
 
 function walletSent() {
   const sent = list('cards').filter((c) => c.from === me() && c.owner !== me() && c.kind !== 'collect').sort((a, b) => b.at - a.at);
-  return `<p class="small muted" style="margin:0 0 10px">你送給 ${esc(nick(partner()))} 的票券。對方兌換的時候，你會收到通知，記得兌現喔 😉</p>
+  return `<p class="small muted" style="margin:0 0 10px">你送給 ${esc(nick(partner()))} 的票券。對方兌換的時候，你會收到通知，記得兌現喔</p>
     ${sent.length ? sent.map((c) => ticketHTML({ ...c, mystery: false }, { showFrom: false, act: 'openSent' })).join('') : '<div class="empty"><span class="big"><i data-ic="letter"></i></span>還沒送出任何票券</div>'}`;
 }
 ACT.openSent = (el) => {
@@ -1823,7 +1823,7 @@ async function sendAnimation(t, to) {
       <div class="sa-env-front"></div>
       <div class="sa-seal" id="sa-sl"><i data-ic="heart" class="ic-fill"></i></div>
     </div>
-    <div class="sa-text" id="sa-tx">送給 ${esc(nick(to))} 了 💌<small>等對方刮開吧</small></div>`;
+    <div class="sa-text" id="sa-tx">送給 ${esc(nick(to))} 了<small>等對方刮開吧</small></div>`;
   document.body.appendChild(el);
   let skip = false;
   el.onclick = () => { skip = true; };
@@ -1853,7 +1853,7 @@ async function sendAnimation(t, to) {
 ACT.giveCard = (el) => {
   if (!partner()) return toast('對方加入後才能發卡');
   const battleId = el?.dataset?.battle;
-  cardEditor({ title: `💌 發卡給 ${nick(partner())}`, give: true }, async (t) => {
+  cardEditor({ title: `發卡給 ${nick(partner())}`, give: true }, async (t) => {
     await giveCard(partner(), t);
     if (battleId) await col('battles').update(battleId, { paid: true });
     sendAnimation(t, partner());
@@ -1865,7 +1865,7 @@ ACT.scratch = (el) => {
   const c = list('cards').find((x) => x.id === el.dataset.id); if (!c) return;
   const R = D.RARITY[c.rarity];
   const m = openModal(`${mhead('刮刮卡')}
-    <p class="center small muted" style="margin:0">${c.from === 'sys' ? '遊樂園送你的' : esc(nick(c.from)) + ' 送你的'}，用手指刮開 👆</p>
+    <p class="center small muted" style="margin:0">${c.from === 'sys' ? '遊樂園送你的' : esc(nick(c.from)) + ' 送你的'}，用手指刮開</p>
     <div class="scratch-area" id="sa">
       <div class="under" style="--rc:${R.color}">
         <div class="rk" style="color:${R.color}">${c.kind === 'collect' ? '珍藏' : R.name + ' · ' + R.label}</div>
@@ -1887,7 +1887,7 @@ ACT.scratch = (el) => {
   g.font = 'bold 22px sans-serif'; g.textAlign = 'center';
   for (let y = 30; y < H; y += 46) for (let x = (y / 46 % 2) * 40 + 20; x < W; x += 80) g.fillText('?', x, y);
   g.font = 'bold 20px sans-serif'; g.fillStyle = night ? '#2a1a05' : '#5b5262';
-  g.fillText('刮開看看 ✨', W / 2, H / 2 + 7);
+  g.fillText('✦ 刮開看看 ✦', W / 2, H / 2 + 7);
   g.globalCompositeOperation = 'destination-out';
   let done = false, moves = 0, last = null;
   const reveal = async () => {
@@ -2015,7 +2015,7 @@ ACT.swapJudge = (el) => {
 ACT.writeSecret = async (el) => {
   const c = list('cards').find((x) => x.id === el.dataset.id); if (!c) return;
   closeAll();
-  const v = await promptBox('🎁 偷偷寫下盲盒內容', { placeholder: '對方兌換時才會看到…', value: c.secret || '', ok: '封存' });
+  const v = await promptBox('偷偷寫下盲盒內容', { placeholder: '對方兌換時才會看到…', value: c.secret || '', ok: '封存' });
   if (!v) return;
   await col('cards').update(c.id, { secret: v });
   if (!c.secret) await notify(c.owner, 'mystery', '你的神秘盲盒準備好了 🎁');
@@ -2034,12 +2034,12 @@ function walletWish() {
       <button class="btn" data-act="makeWish">許一個願</button></div>
     ${theirs.length ? `<h3 style="margin:4px 2px 8px">${esc(nick(partner()))} 的願望</h3>${theirs.map((w) => `<div class="card"><div class="row"><span class="chip" style="color:var(--r-${w.rarity.toLowerCase()})">${w.rarity}</span><b class="grow" style="font-family:var(--serif)">${esc(w.title)}</b></div>
       ${w.note ? `<p class="small muted" style="margin:6px 0 0">${esc(w.note)}</p>` : ''}
-      <div class="btn-row"><button class="btn ghost sm" data-act="wishNo" data-id="${w.id}">下次吧</button><button class="btn sm" data-act="wishOk" data-id="${w.id}">✨ 實現願望</button></div></div>`).join('')}` : ''}
+      <div class="btn-row"><button class="btn ghost sm" data-act="wishNo" data-id="${w.id}">下次吧</button><button class="btn sm" data-act="wishOk" data-id="${w.id}"><i data-ic="sparkle"></i> 實現願望</button></div></div>`).join('')}` : ''}
     ${rest.length ? `<h3 style="margin:10px 2px 8px">願望紀錄</h3>${rest.map((w) => `<div class="list-row"><span class="lr-i">${w.by === me() ? '<i data-ic="star"></i>' : '<i data-ic="heart"></i>'}</span><span class="grow">${esc(w.title)}<div class="small muted">${esc(nick(w.by))} · ${fmtDate(w.at)}</div></span><span class="small">${st[w.status]}</span></div>`).join('')}` : ''}`;
 }
 ACT.makeWish = () => {
   if (!partner()) return toast('對方加入後才能許願');
-  cardEditor({ title: '🌠 許一個願' }, async (t) => {
+  cardEditor({ title: '許一個願' }, async (t) => {
     await col('wishes').add({ by: me(), title: t.title, desc: t.desc, rarity: t.rarity, spice: t.spice, mark: t.mark || '', status: 'pending', at: now() });
     await notify(partner(), 'wish', '有人在許願池許了願 🌠');
     toast('願望送出了 🌠');
@@ -2285,9 +2285,9 @@ ACT.gacha = () => {
     if (rarity === 'SSR') { rays = document.createElement('div'); rays.className = 'ssr-rays'; document.body.appendChild(rays); confetti(150, ['#f6d365', '#fda085', '#f093fb', '#8fd3f4', '#fff']); vibrate([60, 40, 60, 40, 200]); }
     else if (rarity === 'SR') confetti(80, ['#a66bf0', '#d6b4ff', '#fff']);
     const card = { id, ...cardDoc(tpl, me(), from), scratched: true };
-    $('#gres', m).innerHTML = `<div class="center" style="font-family:var(--serif);font-weight:900;font-size:${rarity === 'SSR' ? 30 : 22}px;color:${R.color}">${rarity === 'SSR' ? '✨ SSR 傳說降臨 ✨' : rarity === 'SR' ? '稀有！SR' : rarity + ' · ' + R.label}</div>
+    $('#gres', m).innerHTML = `<div class="center" style="font-family:var(--serif);font-weight:900;font-size:${rarity === 'SSR' ? 30 : 22}px;color:${R.color}">${rarity === 'SSR' ? '✦ SSR 傳說降臨 ✦' : rarity === 'SR' ? '稀有！SR' : rarity + ' · ' + R.label}</div>
       <div class="reveal-card rarity-burst" style="--bc:${R.color};margin:10px 0">${ticketHTML(card, { act: '' })}</div>
-      ${tpl.mystery ? `<p class="small muted center">${esc(nick(partner()))} 會偷偷幫你寫盲盒內容 🎁</p>` : ''}
+      ${tpl.mystery ? `<p class="small muted center">${esc(nick(partner()))} 會偷偷幫你寫盲盒內容</p>` : ''}
       <div class="btn-row"><button class="btn ghost" id="g-again">再扭一次</button><button class="btn" data-act="close">收下</button></div>`;
     $('#g-again', m).onclick = () => { rays && rays.remove(); closeModal(m); ACT.gacha(); };
     m._onClose = () => rays && rays.remove();
@@ -2346,19 +2346,19 @@ ACT.fate = () => {
     await spinTo($('#wh', m), W.length, idx);
     const r = W[idx];
     let msg = '';
-    if (r.type === 'points') { await addPoints(me(), r.value, '命運轉盤'); msg = `獲得 ${r.value} 點 🪙`; }
-    if (r.type === 'ticket') { await addTicket(me(), 1); msg = '獲得一張扭蛋券 🎫'; }
+    if (r.type === 'points') { await addPoints(me(), r.value, '命運轉盤'); msg = `獲得 ${r.value} 點`; }
+    if (r.type === 'ticket') { await addTicket(me(), 1); msg = '獲得一張扭蛋券'; }
     if (r.type === 'hug') { msg = `去抱 ${nick(partner())} 10 秒 🤗`; await notify(partner(), 'card', `${nick(me())} 轉到了抱抱，準備被抱 🤗`); }
     if (r.type === 'card') {
       const tpl = drawFromPool(r.value, true);
       const from = partner() || 'sys';
       await giveCard(me(), tpl, { from, scratched: true });
       if (tpl.mystery) await notify(partner(), 'mystery', '有一張神秘盲盒等你寫內容 🎁');
-      msg = `獲得 ${r.value} 卡「${tpl.mystery ? '神秘盲盒' : tpl.title}」🎟️`;
+      msg = `獲得 ${r.value} 卡「${tpl.mystery ? '神秘盲盒' : tpl.title}」`;
     }
     confetti(60);
     $('#fres', m).innerHTML = `<div class="prompt-card">${esc(msg)}</div>`;
-    $('#fgo', m).textContent = '下週再來轉 👋';
+    $('#fgo', m).textContent = '下週再來轉';
   };
 };
 
@@ -2403,7 +2403,7 @@ ACT.tod = () => {
   const other = (u) => ms.find((x) => x !== u) || u;
   let lv = Math.min(+(localStorage.getItem('park-tod-lv') || 1), max);
   const m = openModal(`${mhead('<i data-ic="dice"></i> 真心話大冒險')}
-    <div class="seg" id="tlv">${[1, 2, 3].map((l) => `<button data-l="${l}" class="${l === lv ? 'on' : ''}" ${l > max ? 'disabled style="opacity:.4"' : ''}>${spiceIc(l)} ${D.SPICE[l].label}${l > max ? ' 🔒' : ''}</button>`).join('')}</div>
+    <div class="seg" id="tlv">${[1, 2, 3].map((l) => `<button data-l="${l}" class="${l === lv ? 'on' : ''}" ${l > max ? 'disabled style="opacity:.4"' : ''}>${spiceIc(l)} ${D.SPICE[l].label}${l > max ? ' <i data-ic="lock"></i>' : ''}</button>`).join('')}</div>
     ${max < 3 ? `<p class="small muted" style="margin:0">想解鎖更高等級？兩人都要到設定裡打開</p>` : ''}
     ${ms.length > 1 ? `<div class="row" style="justify-content:center;gap:8px;margin-top:10px"><span class="small muted">輪到</span>
       <div class="seg" id="tturn" style="padding:0">${ms.map((u) => `<button data-u="${u}" class="${u === turn ? 'on' : ''}">${avatar(u)} ${esc(nick(u))}</button>`).join('')}</div></div>` : ''}
@@ -2462,8 +2462,8 @@ ACT.quiz = () => {
       <div style="font-family:var(--serif);font-size:20px;font-weight:800">${esc(Q.q)}</div>
       ${Q.opts.map((o, i) => `<button class="quiz-opt ${both && mine === i ? 'mine' : ''} ${both && theirs === i ? 'theirs' : ''} ${!both && mine === i ? 'mine' : ''}" data-i="${i}" ${mine !== undefined ? 'disabled' : ''}>
         ${esc(o)}<span class="tags">${both ? `${mine === i ? avatar(me()) : ''}${theirs === i ? avatar(p) : ''}` : mine === i ? '✓' : ''}</span></button>`).join('')}
-      <div class="mt center">${both ? (mine === theirs ? `<div class="prompt-card">💞 心有靈犀！兩人各 +${D.POINTS.quizMatch} 點</div>` : `<div class="prompt-card">😆 不一樣！聊聊為什麼吧（各 +${D.POINTS.quizMiss} 點）</div>`)
-        : mine !== undefined ? `<p class="muted">已作答，等 ${esc(nick(p))} 回答後揭曉 🔒</p>` : theirs !== undefined ? `<p class="muted">${esc(nick(p))} 已經答好了，換你！</p>` : ''}</div>`;
+      <div class="mt center">${both ? (mine === theirs ? `<div class="prompt-card"><i data-ic="heart"></i> 心有靈犀！兩人各 +${D.POINTS.quizMatch} 點</div>` : `<div class="prompt-card">不一樣！聊聊為什麼吧（各 +${D.POINTS.quizMiss} 點）</div>`)
+        : mine !== undefined ? `<p class="muted">已作答，等 ${esc(nick(p))} 回答後揭曉 <i data-ic="lock"></i></p>` : theirs !== undefined ? `<p class="muted">${esc(nick(p))} 已經答好了，換你！</p>` : ''}</div>`;
     if (!m) m = openModal(html, { center: true }); else m.querySelector('.modal').innerHTML = html;
     $$('[data-i]', m).forEach((b) => b.onclick = async () => {
       const i = +b.dataset.i;
@@ -2515,7 +2515,7 @@ ACT.battle = () => {
   openModal(`${mhead('<i data-ic="swords"></i> 對戰挑戰')}
     <div class="row" style="justify-content:center;gap:18px;margin-bottom:12px;font-weight:800"><span>${avatar(me())} ${esc(nick(me()))} ${wins(me())} 勝</span><span class="muted">VS</span><span>${wins(p)} 勝 ${esc(nick(p))} ${avatar(p)}</span></div>
     ${body}
-    ${hist.length ? `<h3 style="font-size:15px;margin-top:14px">對戰紀錄</h3>${hist.slice(0, 10).map((x) => `<div class="list-row"><span class="grow">${esc(x.task)}</span><span class="small">${x.status === 'draw' ? '🤝 平手' : '<i data-ic="trophy"></i> ' + esc(nick(x.winner))}</span><span class="when">${fmtDate(x.at)}</span></div>`).join('')}` : ''}`);
+    ${hist.length ? `<h3 style="font-size:15px;margin-top:14px">對戰紀錄</h3>${hist.slice(0, 10).map((x) => `<div class="list-row"><span class="grow">${esc(x.task)}</span><span class="small">${x.status === 'draw' ? '平手' : '<i data-ic="trophy"></i> ' + esc(nick(x.winner))}</span><span class="when">${fmtDate(x.at)}</span></div>`).join('')}` : ''}`);
 };
 ACT.battleNew = async (el) => {
   if (!partner()) return toast('對方加入後才能對戰');
@@ -2565,7 +2565,7 @@ function stampCardHTML() {
 }
 ACT.giveStamp = () => {
   const p = partner(); if (!p) return toast('對方加入後才能蓋章');
-  const reasons = ['做家事 🧹', '好貼心 🥹', '哄我開心 🥰', '準時不遲到 ⏰', '煮飯給我吃 🍳', '今天好可愛 💕', '有乖乖 😇', '幫我很多忙 🙏'];
+  const reasons = ['做家事', '好貼心', '哄我開心', '準時不遲到', '煮飯給我吃', '今天好可愛', '有乖乖', '幫我很多忙'];
   const m = openModal(`${mhead(`幫 ${esc(nick(p))} 蓋章`)}
     <p class="small muted" style="margin-top:0">為什麼要蓋這個章？</p>
     ${reasons.map((r) => `<button class="quiz-opt" data-r="${esc(r)}">${esc(r)}</button>`).join('')}
@@ -2609,7 +2609,7 @@ function weeklyHTML() {
         : pending ? `<button class="small muted" data-act="taskSwapNo">取消</button>`
         : !anyDone && p && !req ? `<button class="small muted" data-act="taskSwapReq" data-i="${i}">換</button>` : ''}</div>`;
     }).join('')}
-    <p class="small muted" style="margin:6px 0 0">每週一換新任務，誠實打勾喔 😇</p></div>`;
+    <p class="small muted" style="margin:6px 0 0">每週一換新任務，誠實打勾喔</p></div>`;
 }
 ACT.taskSwapReq = async (el) => {
   const i = +el.dataset.i;
@@ -2675,7 +2675,7 @@ function travelFund() {
       <h3 style="justify-content:center">${esc(f.name)} <button class="small muted" data-act="fundEdit"><i data-ic="edit"></i></button></h3>
       <div class="fund-num">$${money(total)} <span class="small muted">/ $${money(f.goal)}</span></div>
       <div class="fund-bar"><div style="width:${pct}%"></div></div>
-      <div class="small muted">${pct >= 100 ? '🎉 存滿了！旅行限定券已經發到兩人的票夾' : `還差 $${money(Math.max(0, f.goal - total))} · 存滿會掉一張旅行限定卡 <i data-ic="plane"></i>`}</div>
+      <div class="small muted">${pct >= 100 ? '<i data-ic="sparkle"></i> 存滿了！旅行限定券已經發到兩人的票夾' : `還差 $${money(Math.max(0, f.goal - total))} · 存滿會掉一張旅行限定卡 <i data-ic="plane"></i>`}</div>
       <div class="row mt" style="justify-content:center;gap:20px">${ms.map((u) => `<div><div>${avatar(u, "av-md")}</div><b>$${money(sum(deps.filter((d) => d.uid === u), (d) => d.amt))}</b><div class="small muted">${esc(nick(u))}</div></div>`).join('')}</div>
       <div class="btn-row">${f.rewarded ? '<button class="btn ghost" data-act="fundNew">開始新的基金</button>' : ''}<button class="btn" data-act="deposit"><i data-ic="coins"></i> 存一筆</button></div>
     </div>
@@ -2922,7 +2922,7 @@ ACT.goalAdd = async () => {
 ACT.goalToggle = async (el) => {
   const g = list('goals').find((x) => x.id === el.dataset.id); if (!g) return;
   if (g.done) { if (await confirmBox('要取消「完成」嗎？')) await col('goals').update(g.id, { done: false, doneAt: 0 }); return; }
-  if (!(await confirmBox(`完成「${g.title}」了嗎？🎉`, '完成！'))) return;
+  if (!(await confirmBox(`完成「${g.title}」了嗎？`, '完成！'))) return;
   await col('goals').update(g.id, { done: true, doneAt: now(), doneBy: me() });
   if (!g.rewarded) {
     for (const u of S.couple.members) await addPoints(u, D.POINTS.goal, '年度目標：' + g.title);
@@ -2937,7 +2937,7 @@ ACT.goalDel = async (el) => { if (await confirmBox('刪掉這個目標？')) awa
 function timelineItems() {
   const it = [];
   const ann = S.couple.dates?.anniversary || D.DEFAULT_DATES.anniversary;
-  it.push({ at: parseD(ann).getTime(), icon: '💞', text: '我們在一起了' });
+  it.push({ at: parseD(ann).getTime(), icon: '<i data-ic="heart"></i>', text: '我們在一起了' });
   for (const t of list('trips')) it.push({ at: t.date ? parseD(t.date).getTime() : t.at, icon: '<i data-ic="map"></i>', text: `一起去了 ${t.name}`, sub: t.note });
   for (const c of list('cards')) for (const l of c.log || []) {
     if (l.how === 'craft') continue;
@@ -3176,7 +3176,7 @@ ACT.review = () => {
     { bg: 'linear-gradient(160deg,#ffc75f,#ff9671)', i: ic('target'), n: `${goals.filter((g) => g.done).length}/${goals.length}`, t: '個年度目標完成', s: goals.filter((g) => g.done).slice(0, 6).map((g) => '✓ ' + esc(g.title)).join('<br>') || '寫下明年的目標吧' },
     { bg: 'linear-gradient(160deg,#ff6f91,#ffc2d1)', i: ic('heart'), n: money(misses.length), t: '次「想你」', s: ms.map((u) => `${esc(nick(u))} 想了 ${misses.filter((x) => x.by === u).length} 次`).join('<br>') },
     { bg: 'linear-gradient(160deg,#4b4453,#845ec2)', i: ic('minds'), n: qrate + '%', t: '默契度', s: `一起答了 ${quiz.length} 題默契問答<br>${daily.length} 題每日一問<br>互相蓋了 ${stamps.length} 個章` },
-    { bg: 'linear-gradient(160deg,#c42e52,#3a0f1d)', i: ic('house'), n: `第 ${money(daysAtEnd)} 天`, t: D.BIRTHDAY_SLOGAN, s: `${Y + 1} 年也請多多指教 💞` },
+    { bg: 'linear-gradient(160deg,#c42e52,#3a0f1d)', i: ic('house'), n: `第 ${money(daysAtEnd)} 天`, t: D.BIRTHDAY_SLOGAN, s: `${Y + 1} 年也請多多指教` },
   ];
   let k = 0;
   const el = document.createElement('div');
