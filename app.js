@@ -578,7 +578,10 @@ function catHead(eyes = 'open') {
     <path d="M-19 2 L-11 3 M-19 6 L-11 5 M19 2 L11 3 M19 6 L11 5" stroke="${CW}" stroke-width=".8" stroke-linecap="round"/>
     <ellipse cx="-10.5" cy="6" rx="2.4" ry="1.3" fill="${CP}" opacity=".55"/><ellipse cx="10.5" cy="6" rx="2.4" ry="1.3" fill="${CP}" opacity=".55"/>`;
 }
-const head = (x, y, s = 1, eyes, rot = 0) => `<g transform="translate(${x} ${y}) rotate(${rot}) scale(${s})">${catHead(eyes)}</g>`;
+// 正在畫的姿勢要戴的配件（只放頭上、脖子上的；披風和小包只有坐著時才看得到）
+let CAT_WEAR = '';
+const CAT_BODY_ACC = ['cape', 'heartbag'];
+const head = (x, y, s = 1, eyes, rot = 0) => `<g transform="translate(${x} ${y}) rotate(${rot}) scale(${s})">${catHead(eyes)}${CAT_WEAR && !CAT_BODY_ACC.includes(CAT_WEAR) && typeof petAccArt === 'function' ? `<g transform="translate(-50 -34)">${petAccArt(CAT_WEAR)}</g>` : ''}</g>`;
 const shadow = (cx, w) => `<ellipse cx="${cx}" cy="88" rx="${w}" ry="3.5" fill="currentColor" opacity=".09"/>`;
 
 const CAT_POSES = {
@@ -689,8 +692,11 @@ const CAT_POSES = {
 };
 const CAT_EMPTY_POSES = ['sleep', 'stretch', 'yarn', 'box', 'loaf'];
 
-function catPose(pose = 'sit') {
-  return `<svg viewBox="0 0 100 92" class="cat-svg cat-${pose}" xmlns="http://www.w3.org/2000/svg">${(CAT_POSES[pose] || CAT_POSES.sit)()}</svg>`;
+function catPose(pose = 'sit', wear = '') {
+  CAT_WEAR = wear || '';
+  const out = `<svg viewBox="0 0 100 92" class="cat-svg cat-${pose}" xmlns="http://www.w3.org/2000/svg">${(CAT_POSES[pose] || CAT_POSES.sit)()}</svg>`;
+  CAT_WEAR = '';
+  return out;
 }
 // 舊的介面：catSVG('sit', 泡泡內容) / catSVG('sleep')
 function catSVG(pose = 'sit', extra = '') {
@@ -4049,18 +4055,9 @@ async function petXP(n, why = '') {
   if (after > before) setTimeout(() => { toast(`${petState().name} 長大了！變成${PET_STAGES[after].name}`); confetti(80, ['#2b2633', '#ffd970', '#c98aa0', '#fff']); }, 400);
 }
 
-function petSVG(st, mood, wear, { blink = true } = {}) {
+function petAccArt(wear) {
   const I = CAT_INK;
-  const eyes = mood === 'happy'
-    ? `<path d="M39.5 33 Q43 29 46.5 33 M53.5 33 Q57 29 60.5 33" fill="none" stroke="#ffd970" stroke-width="2.2" stroke-linecap="round"/>`
-    : `<g class="${blink ? 'pet-eyes' : ''}"><ellipse cx="43" cy="32.5" rx="3.6" ry="4.2" fill="#ffd970"/><ellipse cx="57" cy="32.5" rx="3.6" ry="4.2" fill="#ffd970"/>
-       <ellipse cx="43" cy="33" rx="1.2" ry="${mood === 'miss' ? 2 : 3}" fill="${I}"/><ellipse cx="57" cy="33" rx="1.2" ry="${mood === 'miss' ? 2 : 3}" fill="${I}"/>
-       <circle cx="44" cy="31" r=".9" fill="#fff"/><circle cx="58" cy="31" r=".9" fill="#fff"/></g>
-       ${mood === 'miss' ? `<path d="M38 29 L46 27 M62 29 L54 27" stroke="#efe6f2" stroke-width="1.1" stroke-linecap="round"/><path d="M61 38 Q62 41 61 43" stroke="#9fd0ff" stroke-width="1.6" stroke-linecap="round"/>` : ''}`;
-  const mouth = mood === 'miss'
-    ? `<path d="M47 42.5 Q50 40.5 53 42.5" fill="none" stroke="#efe6f2" stroke-width="1" stroke-linecap="round"/>`
-    : `<path d="M50 40 Q48 42.5 46.5 41.5 M50 40 Q52 42.5 53.5 41.5" fill="none" stroke="#efe6f2" stroke-width="1" stroke-linecap="round"/>${mood === 'happy' ? '<path d="M48.6 41.6 Q50 44.5 51.4 41.6 Z" fill="#ff9fb4"/>' : ''}`;
-  const acc = {
+  return {
     bow: `<g transform="translate(62 15) rotate(18)"><path d="M0 0 L-7 -5 L-7 5 Z M0 0 L7 -5 L7 5 Z" fill="#ff8fab" stroke="#c94f72" stroke-width=".8" stroke-linejoin="round"/><circle r="2" fill="#ff8fab" stroke="#c94f72" stroke-width=".8"/></g>`,
     bell: `<path d="M39 52 Q50 57 61 52" fill="none" stroke="#e2445f" stroke-width="3" stroke-linecap="round"/><circle cx="50" cy="57" r="3.2" fill="#ffd45c" stroke="#b8862f" stroke-width=".8"/><path d="M48.5 57.5 H51.5" stroke="#b8862f" stroke-width=".7"/>`,
     scarf: `<path d="M37 51 Q50 58 63 51 L63 55 Q50 62 37 55 Z" fill="#7cc7a8" stroke="#3b8a6c" stroke-width=".8"/><path d="M56 56 L59 68 L64 66 L60 55" fill="#7cc7a8" stroke="#3b8a6c" stroke-width=".8" stroke-linejoin="round"/><path d="M40 53 L60 53" stroke="#fff" stroke-width=".8" stroke-dasharray="2 2" opacity=".7"/>`,
@@ -4078,6 +4075,19 @@ function petSVG(st, mood, wear, { blink = true } = {}) {
     heartbag: `<path d="M62 54 Q66 62 64 70" fill="none" stroke="#7a5a3a" stroke-width="1"/><path d="M64 72 C60 68 58 66 60 63.5 C61.5 62 63 62.6 64 64 C65 62.6 66.5 62 68 63.5 C70 66 68 68 64 72 Z" fill="#ff8fab" stroke="#c94f72" stroke-width=".7"/>`,
     santa: `<path d="M35 20 Q44 4 60 9 Q66 12 70 24 L36 22 Z" fill="#e2445f" stroke="#9e2a3c" stroke-width=".8" stroke-linejoin="round"/><path d="M34 21 Q50 17 66 22 L66 26 Q50 21 34 25 Z" fill="#fff"/><circle cx="71" cy="25" r="3" fill="#fff"/>`,
   }[wear] || '';
+}
+function petSVG(st, mood, wear, { blink = true } = {}) {
+  const I = CAT_INK;
+  const eyes = mood === 'happy'
+    ? `<path d="M39.5 33 Q43 29 46.5 33 M53.5 33 Q57 29 60.5 33" fill="none" stroke="#ffd970" stroke-width="2.2" stroke-linecap="round"/>`
+    : `<g class="${blink ? 'pet-eyes' : ''}"><ellipse cx="43" cy="32.5" rx="3.6" ry="4.2" fill="#ffd970"/><ellipse cx="57" cy="32.5" rx="3.6" ry="4.2" fill="#ffd970"/>
+       <ellipse cx="43" cy="33" rx="1.2" ry="${mood === 'miss' ? 2 : 3}" fill="${I}"/><ellipse cx="57" cy="33" rx="1.2" ry="${mood === 'miss' ? 2 : 3}" fill="${I}"/>
+       <circle cx="44" cy="31" r=".9" fill="#fff"/><circle cx="58" cy="31" r=".9" fill="#fff"/></g>
+       ${mood === 'miss' ? `<path d="M38 29 L46 27 M62 29 L54 27" stroke="#efe6f2" stroke-width="1.1" stroke-linecap="round"/><path d="M61 38 Q62 41 61 43" stroke="#9fd0ff" stroke-width="1.6" stroke-linecap="round"/>` : ''}`;
+  const mouth = mood === 'miss'
+    ? `<path d="M47 42.5 Q50 40.5 53 42.5" fill="none" stroke="#efe6f2" stroke-width="1" stroke-linecap="round"/>`
+    : `<path d="M50 40 Q48 42.5 46.5 41.5 M50 40 Q52 42.5 53.5 41.5" fill="none" stroke="#efe6f2" stroke-width="1" stroke-linecap="round"/>${mood === 'happy' ? '<path d="M48.6 41.6 Q50 44.5 51.4 41.6 Z" fill="#ff9fb4"/>' : ''}`;
+  const acc = petAccArt(wear);
   const s = PET_STAGES[st].scale;
   return `<svg viewBox="0 0 100 92" class="pet-svg pet-${mood}" xmlns="http://www.w3.org/2000/svg">
     <ellipse cx="50" cy="88" rx="${26 * s}" ry="3.5" fill="currentColor" opacity=".1"/>
@@ -4105,7 +4115,7 @@ function petSVG(st, mood, wear, { blink = true } = {}) {
 function petTimePose() { const h = new Date().getHours(); return h >= 22 || h < 6 ? 'sleep' : h < 9 ? 'stretch' : ''; }
 function petArt(P, big) {
   const tp = petTimePose();
-  if (tp) return `<div class="pet-pose" data-pose="${tp}">${catPose(tp)}</div>`;
+  if (tp) return `<div class="pet-pose" data-pose="${tp}">${catPose(tp, P.wear)}</div>`;
   return petSVG(P.st, P.mood, P.wear);
 }
 const PET_TIME_TEXT = { sleep: '睡得正香，小聲一點', stretch: '剛睡醒，正在伸懶腰' };
@@ -4131,7 +4141,7 @@ ACT.petPat = async (el, e) => {
   const k = `park-petpat-${dkey()}-${me()}`;
   const card = el.closest('.pet-card, .modal');
   const holder = card && card.querySelector('.pet-stage, .pet-big');
-  if (holder) { const old = holder.innerHTML; holder.innerHTML = catPose('belly'); holder.classList.add('pet-flip'); setTimeout(() => { holder.innerHTML = old; holder.classList.remove('pet-flip'); }, 1400); }
+  if (holder) { const old = holder.innerHTML; holder.innerHTML = catPose('belly', petState().wear); holder.classList.add('pet-flip'); setTimeout(() => { holder.innerHTML = old; holder.classList.remove('pet-flip'); }, 1400); }
   const r = el.getBoundingClientRect(); floaty(r.left + r.width / 2, r.top, ['#2b2633', '#ff9db4', '#ffd970']);
   sfx('heart');
   if (localStorage.getItem(k)) return toast(`${petState().name} 呼嚕呼嚕～（今天摸過了，明天再來）`);
