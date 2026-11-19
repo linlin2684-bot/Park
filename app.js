@@ -2402,22 +2402,30 @@ ACT.gacha = () => {
 };
 
 // ---------- 轉盤元件 ----------
-const WHEEL_COLORS = ['#ff8fab', '#ffc75f', '#9b8cf5', '#5fd3bc', '#ff9671', '#7ab8ff', '#f9a8d4', '#b7e36b', '#ffb4a2', '#c4a1ff', '#80deea', '#ffd54f'];
+// 轉盤：徽章風，顏色跟著主題（兩色交錯＋外圈遊樂園燈泡）
 function wheelSVG(labels) {
-  const n = labels.length, seg = 360 / n, R = 150, cx = 150, cy = 150;
+  const n = labels.length, seg = 360 / n, cx = 150, cy = 150, R = 128;
   const pt = (a, r) => [cx + r * Math.sin(a * Math.PI / 180), cy - r * Math.cos(a * Math.PI / 180)];
   const base = n > 10 ? 11 : n > 7 ? 13 : 15;
-  let s = `<svg viewBox="0 0 300 300" id="wh"><circle cx="150" cy="150" r="149" fill="#fff"/>`;
+  let s = `<svg viewBox="0 0 300 300" id="wh" class="wheel-svg">
+    <circle cx="150" cy="150" r="148" class="wr-rim"/>
+    <circle cx="150" cy="150" r="141" class="wr-rim2"/>`;
+  for (let i = 0; i < 24; i++) { const [x, y] = pt(i * 15, 141); s += `<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="3.2" class="wr-bulb ${i % 2 ? 'b2' : ''}"/>`; }
+  s += `<circle cx="150" cy="150" r="${R + 4}" class="wr-edge"/>`;
   labels.forEach((l, i) => {
     const a0 = i * seg, a1 = (i + 1) * seg;
-    const [x0, y0] = pt(a0, R - 4), [x1, y1] = pt(a1, R - 4);
-    s += `<path d="M150 150 L${x0} ${y0} A${R - 4} ${R - 4} 0 ${seg > 180 ? 1 : 0} 1 ${x1} ${y1} Z" fill="${WHEEL_COLORS[i % WHEEL_COLORS.length]}" stroke="#fff" stroke-width="2"/>`;
-    const mid = a0 + seg / 2, [tx, ty] = pt(mid, R * 0.6);
-    // 字太長就縮小字體，超過 9 個字才截斷
+    const [x0, y0] = pt(a0, R), [x1, y1] = pt(a1, R);
+    const cls = n % 2 && i === n - 1 ? 'c' : i % 2 ? 'b' : 'a';
+    s += `<path d="M150 150 L${x0.toFixed(1)} ${y0.toFixed(1)} A${R} ${R} 0 ${seg > 180 ? 1 : 0} 1 ${x1.toFixed(1)} ${y1.toFixed(1)} Z" class="wseg ${cls}"/>`;
+    const mid = a0 + seg / 2, [tx, ty] = pt(mid, R * 0.62);
+    const [dx, dy] = pt(mid, R - 9);
+    s += `<circle cx="${dx.toFixed(1)}" cy="${dy.toFixed(1)}" r="1.6" class="wdot"/>`;
     const txt = l.length > 9 ? l.slice(0, 8) + '…' : l;
     const fs = txt.length > 5 ? Math.max(9, Math.round(base * 5 / txt.length)) : base;
-    s += `<text x="${tx}" y="${ty}" transform="rotate(${mid - 90} ${tx} ${ty})" text-anchor="middle" dominant-baseline="middle" font-size="${fs}" font-weight="800" fill="#3b2330" font-family="sans-serif">${esc(txt)}</text>`;
+    s += `<text x="${tx.toFixed(1)}" y="${ty.toFixed(1)}" transform="rotate(${mid - 90} ${tx.toFixed(1)} ${ty.toFixed(1)})" text-anchor="middle" dominant-baseline="middle" font-size="${fs}" class="wtxt ${cls}">${esc(txt)}</text>`;
   });
+  labels.forEach((_, i) => { const [x, y] = pt(i * seg, R); s += `<path d="M150 150 L${x.toFixed(1)} ${y.toFixed(1)}" class="wline"/>`; });
+  s += `<circle cx="150" cy="150" r="44" class="wr-inner"/><circle cx="150" cy="150" r="38" class="wr-inner2"/>`;
   return s + '</svg>';
 }
 function spinTo(svg, n, idx) {
@@ -3639,7 +3647,7 @@ function petState() {
   const next = PET_STAGES[st + 1];
   const last = Math.max(0, ...Object.values(pet.last || {}));
   const hrs = last ? (now() - last) / 3600000 : 999;
-  const mood = hrs < 12 ? 'happy' : hrs < 36 ? 'ok' : 'miss';
+  const mood = !last ? 'ok' : hrs < 12 ? 'happy' : hrs < 36 ? 'ok' : 'miss';
   const month = new Date().getMonth() + 1;
   const unlocked = PET_ACC.filter((a) => a.month ? a.month === month : xp >= a.xp);
   return { pet, xp, st, stage: PET_STAGES[st], next, mood, hrs, unlocked, name: pet.name || PET_DEFAULT_NAME, wear: pet.wear || '' };
@@ -3665,7 +3673,7 @@ function petSVG(st, mood, wear, { blink = true } = {}) {
     : `<g class="${blink ? 'pet-eyes' : ''}"><ellipse cx="43" cy="32.5" rx="3.6" ry="4.2" fill="#ffd970"/><ellipse cx="57" cy="32.5" rx="3.6" ry="4.2" fill="#ffd970"/>
        <ellipse cx="43" cy="33" rx="1.2" ry="${mood === 'miss' ? 2 : 3}" fill="${I}"/><ellipse cx="57" cy="33" rx="1.2" ry="${mood === 'miss' ? 2 : 3}" fill="${I}"/>
        <circle cx="44" cy="31" r=".9" fill="#fff"/><circle cx="58" cy="31" r=".9" fill="#fff"/></g>
-       ${mood === 'miss' ? `<path d="M38 27 L46 29 M62 27 L54 29" stroke="#efe6f2" stroke-width="1.1" stroke-linecap="round"/><path d="M61 38 Q62 41 61 43" stroke="#9fd0ff" stroke-width="1.6" stroke-linecap="round"/>` : ''}`;
+       ${mood === 'miss' ? `<path d="M38 29 L46 27 M62 29 L54 27" stroke="#efe6f2" stroke-width="1.1" stroke-linecap="round"/><path d="M61 38 Q62 41 61 43" stroke="#9fd0ff" stroke-width="1.6" stroke-linecap="round"/>` : ''}`;
   const mouth = mood === 'miss'
     ? `<path d="M47 42.5 Q50 40.5 53 42.5" fill="none" stroke="#efe6f2" stroke-width="1" stroke-linecap="round"/>`
     : `<path d="M50 40 Q48 42.5 46.5 41.5 M50 40 Q52 42.5 53.5 41.5" fill="none" stroke="#efe6f2" stroke-width="1" stroke-linecap="round"/>${mood === 'happy' ? '<path d="M48.6 41.6 Q50 44.5 51.4 41.6 Z" fill="#ff9fb4"/>' : ''}`;

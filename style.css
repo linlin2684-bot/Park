@@ -913,3 +913,28 @@ html[data-theme="night"] .polaroid { background: #f6efe6; }
 .pet-acc button .pet-thumb { width: 52px; height: 52px; border-radius: 50%; background: #f3e9f0; display: grid; place-items: center; overflow: hidden; }
 .pet-acc button .pet-thumb .pet-svg { width: 48px; filter: none !important; margin-top: 4px; }
 .pet-acc button span:not(.pet-thumb) { font-weight: 700; }
+/* ============ 轉盤（徽章風） ============ */
+.wheel-wrap { width: 300px; height: 300px; }
+.wheel-wrap svg { filter: drop-shadow(0 10px 24px rgba(0, 0, 0, .22)); }
+.wheel-svg .wr-rim { fill: color-mix(in srgb, var(--accent) 78%, #1a0b11); }
+.wheel-svg .wr-rim2 { fill: none; stroke: var(--accent2); stroke-width: 1; opacity: .55; }
+.wheel-svg .wr-bulb { fill: #fff3d6; animation: bulb 1.2s steps(1) infinite; }
+.wheel-svg .wr-bulb.b2 { animation-delay: .6s; }
+@keyframes bulb { 0% { fill: #fff3d6; filter: drop-shadow(0 0 2px #ffd970); } 50% { fill: color-mix(in srgb, var(--accent2) 60%, #fff); filter: none; } }
+.wheel-svg .wr-edge { fill: none; stroke: var(--accent2); stroke-width: 2.5; }
+.wheel-svg .wseg.a { fill: color-mix(in srgb, var(--accent) 22%, var(--card)); }
+.wheel-svg .wseg.b { fill: color-mix(in srgb, var(--accent2) 16%, var(--card)); }
+.wheel-svg .wseg.c { fill: color-mix(in srgb, var(--accent) 10%, var(--card)); }
+html[data-theme="day"] .wheel-svg .wseg.a { fill: color-mix(in srgb, var(--accent) 26%, #fff); }
+html[data-theme="day"] .wheel-svg .wseg.b { fill: color-mix(in srgb, var(--accent2) 20%, #fff); }
+html[data-theme="day"] .wheel-svg .wseg.c { fill: color-mix(in srgb, var(--accent) 10%, #fff); }
+.wheel-svg .wline { stroke: color-mix(in srgb, var(--accent2) 70%, transparent); stroke-width: 1; }
+.wheel-svg .wdot { fill: var(--accent2); }
+.wheel-svg .wtxt { font-family: var(--serif); font-weight: 800; fill: var(--ink); letter-spacing: .04em; }
+.wheel-svg .wr-inner { fill: color-mix(in srgb, var(--accent) 78%, #1a0b11); }
+.wheel-svg .wr-inner2 { fill: none; stroke: var(--accent2); stroke-width: 1; stroke-dasharray: 2 3; }
+.wheel-hub { width: 64px; height: 64px; background: var(--card); border: 2px solid var(--accent2); box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent) 78%, #1a0b11), 0 6px 14px rgba(0, 0, 0, .3); }
+.wheel-hub .ic { color: var(--accent) !important; }
+.wheel-pointer { top: -10px; width: 30px; height: 40px; border: 0; background: none; filter: drop-shadow(0 3px 3px rgba(0, 0, 0, .35)); }
+.wheel-pointer::before { content: ''; position: absolute; inset: 0; background: var(--accent2); clip-path: path('M15 40 C10 28 2 22 2 13 A13 13 0 0 1 28 13 C28 22 20 28 15 40 Z'); }
+.wheel-pointer::after { content: ''; position: absolute; left: 9px; top: 7px; width: 12px; height: 12px; border-radius: 50%; background: var(--card); box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--accent) 78%, #1a0b11); }
