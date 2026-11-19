@@ -3559,14 +3559,6 @@ ACT.annivStory = () => {
   const bd = [[her, prof(her || '').bday || D.DEFAULT_DATES.herBirthday], [him, prof(him || '').bday || D.DEFAULT_DATES.hisBirthday]]
     .filter(([u]) => u).map(([u, md]) => `${esc(nick(u))}的生日 ${countMD(ann, md)} 次`);
   slides.push({ i: ic('tree'), n: hol.reduce((a, x) => a + x[1], 0), t: '個一起過的節日', s: hol.map(([k, n]) => `${n} 次${k}`).join('・') + (bd.length ? `<br>還有 ${bd.join('、')}` : '') });
-  // App 裡累積的紀錄：有才放
-  const redeems = list('cards').flatMap((c) => (c.log || []).filter((l) => l.how === 'redeem').map(() => c));
-  const trips = list('trips'), misses = list('misses');
-  const daily = list('daily').filter((d) => d.answers && ms.every((u) => d.answers[u]));
-  if (redeems.length) { const cnt = {}; redeems.forEach((c) => cnt[c.title] = (cnt[c.title] || 0) + 1); const top = Object.entries(cnt).sort((a, b) => b[1] - a[1])[0]; slides.push({ i: ic('ticket'), n: redeems.length, t: '張票券被兌現', s: `兌現最多次的是「${esc(top[0])}」` }); }
-  if (trips.length) slides.push({ i: ic('map'), n: trips.length, t: '個一起去過的地方', s: trips.slice(0, 10).map((t) => esc(t.name)).join('・') });
-  if (misses.length) slides.push({ i: ic('heart'), n: money(misses.length), t: '次「想你」', s: ms.map((u) => `${esc(nick(u))} 按了 ${misses.filter((x) => x.by === u).length} 次`).join('<br>') });
-  if (daily.length) slides.push({ i: ic('chat'), n: daily.length, t: '題一起回答的每日一問', s: '每一題都是更認識彼此一點' });
   slides.push({ bg: gold, i: ic('house'), n: `第 ${cnNum(A.n + 1)} 年`, t: D.BIRTHDAY_SLOGAN, s: `${esc(nick(me()))}${p ? ' ♡ ' + esc(nick(p)) : ''}<br>也請多多指教` });
   playStory(slides, { finale: 140, colors: G });
 };
