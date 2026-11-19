@@ -412,31 +412,113 @@ const AVATARS = {
     </g>
     <path d="M12 18 L52 50" stroke="#8a5a32" stroke-width="1.4" stroke-linecap="round"/><path d="M12 18 L14 16" stroke="${AV_INK}" stroke-width="2"/>
     <path d="M48 14 L48 21 A2 2 0 1 1 46 19.5" fill="none" stroke="${AV_INK}" stroke-width="1.3" stroke-linecap="round"/>` },
+  blackcat: { name: '黑貓', bg: '#e9e3f5', art: `
+    <path d="M15 31 L17 12 L28 22 Z M49 31 L47 12 L36 22 Z" fill="#2b2633" stroke="#2b2633" stroke-width="1.8" stroke-linejoin="round"/>
+    <path d="M18.5 24 L19 16.5 L24 21 Z M45.5 24 L45 16.5 L40 21 Z" fill="#b48ad6"/>
+    <ellipse cx="32" cy="37" rx="18" ry="15" fill="#2b2633"/>
+    <ellipse cx="25" cy="35" rx="3.6" ry="4.2" fill="#ffe27a"/><ellipse cx="39" cy="35" rx="3.6" ry="4.2" fill="#ffe27a"/>
+    <ellipse cx="25" cy="35.5" rx="1.2" ry="3" fill="#2b2633"/><ellipse cx="39" cy="35.5" rx="1.2" ry="3" fill="#2b2633"/>
+    <circle cx="26" cy="33.5" r=".9" fill="#fff"/><circle cx="40" cy="33.5" r=".9" fill="#fff"/>
+    <path d="M30.5 41 L33.5 41 L32 42.6 Z" fill="#ff9fb4"/>
+    <path d="M32 42.6 Q30 45 28.5 44 M32 42.6 Q34 45 35.5 44" fill="none" stroke="#e7dff2" stroke-width="1.1" stroke-linecap="round"/>
+    <path d="M13 39 L21 40 M13 43 L21 42 M51 39 L43 40 M51 43 L43 42" stroke="#e7dff2" stroke-width=".9" stroke-linecap="round"/>
+    <path d="M36 14 L37 11 L38 14 L41 15 L38 16 L37 19 L36 16 L33 15 Z" fill="#ffe27a"/>` },
+  golden: { name: '黃金獵犬', bg: '#fff1d6', art: `
+    <path d="M18 22 Q8 24 9 40 Q10 47 17 45 Q20 36 21 28 Z M46 22 Q56 24 55 40 Q54 47 47 45 Q44 36 43 28 Z" fill="#d9953e" stroke="${AV_INK}" stroke-width="1.7" stroke-linejoin="round"/>
+    <path d="M17 34 Q16 18 32 17 Q48 18 47 34 Q47 50 32 52 Q17 50 17 34 Z" fill="#f1bc6a" stroke="${AV_INK}" stroke-width="1.7"/>
+    <path d="M24 42 Q24 36 32 36 Q40 36 40 42 Q40 50 32 50 Q24 50 24 42 Z" fill="#fbe2b4"/>
+    <path d="M28 20 Q32 24 36 20" fill="none" stroke="#d9953e" stroke-width="1.6" stroke-linecap="round"/>
+    <circle cx="25.5" cy="32" r="2.1" fill="${AV_INK}"/><circle cx="38.5" cy="32" r="2.1" fill="${AV_INK}"/>
+    <circle cx="26.2" cy="31.2" r=".7" fill="#fff"/><circle cx="39.2" cy="31.2" r=".7" fill="#fff"/>
+    <ellipse cx="32" cy="39.5" rx="3.2" ry="2.3" fill="${AV_INK}"/>
+    <path d="M32 41.8 L32 43.5 M28.5 44 Q32 47 35.5 44" fill="none" stroke="${AV_INK}" stroke-width="1.3" stroke-linecap="round"/>
+    <path d="M30.3 45.2 Q32 50 33.7 45.2" fill="#ff8fa8" stroke="${AV_INK}" stroke-width="1"/>` },
+  lopbunny: { name: '粉紅垂耳兔', bg: '#ffe4ec', art: `
+    <path d="M19 26 Q8 28 9 44 Q10 50 16 47 Q19 38 23 31 Z M45 26 Q56 28 55 44 Q54 50 48 47 Q45 38 41 31 Z" fill="#f6a9bf" stroke="${AV_INK}" stroke-width="1.7" stroke-linejoin="round"/>
+    <path d="M13 34 Q13 42 15 45 M51 34 Q51 42 49 45" fill="none" stroke="#ffd3df" stroke-width="2.4" stroke-linecap="round"/>
+    <ellipse cx="32" cy="38" rx="16" ry="14.5" fill="#f9bccd" stroke="${AV_INK}" stroke-width="1.7"/>
+    <circle cx="25.5" cy="37" r="2" fill="${AV_INK}"/><circle cx="38.5" cy="37" r="2" fill="${AV_INK}"/>
+    <path d="M30.6 41.5 L33.4 41.5 L32 43 Z" fill="#c9506f"/>
+    <path d="M32 43 Q30.5 45 29 44.2 M32 43 Q33.5 45 35 44.2" fill="none" stroke="${AV_INK}" stroke-width="1.2" stroke-linecap="round"/>
+    <ellipse cx="22" cy="42" rx="2.6" ry="1.5" fill="#f57c9b" opacity=".6"/><ellipse cx="42" cy="42" rx="2.6" ry="1.5" fill="#f57c9b" opacity=".6"/>
+    <g fill="#fff" stroke="${AV_INK}" stroke-width=".9"><circle cx="24" cy="23.5" r="2.6"/><circle cx="28.5" cy="21.5" r="2.6"/><circle cx="21.5" cy="27" r="2.6"/><circle cx="25.5" cy="26" r="2.6"/></g><circle cx="25.3" cy="24.6" r="1.6" fill="#ffd45c"/>` },
+  hamster: { name: '倉鼠', bg: '#fff0dc', art: `
+    <circle cx="19" cy="21" r="5.5" fill="#e9a964" stroke="${AV_INK}" stroke-width="1.7"/><circle cx="45" cy="21" r="5.5" fill="#e9a964" stroke="${AV_INK}" stroke-width="1.7"/>
+    <circle cx="19" cy="21" r="2.5" fill="#ffc2c9"/><circle cx="45" cy="21" r="2.5" fill="#ffc2c9"/>
+    <ellipse cx="32" cy="38" rx="19" ry="16" fill="#e9a964" stroke="${AV_INK}" stroke-width="1.7"/>
+    <path d="M15 42 Q20 33 32 34 Q44 33 49 42 Q46 53 32 54 Q18 53 15 42 Z" fill="#fff6e8"/>
+    <circle cx="25" cy="34" r="2" fill="${AV_INK}"/><circle cx="39" cy="34" r="2" fill="${AV_INK}"/>
+    <ellipse cx="32" cy="38.5" rx="1.8" ry="1.3" fill="#e46f8a"/>
+    <path d="M32 39.8 Q30 42 28.5 41 M32 39.8 Q34 42 35.5 41" fill="none" stroke="${AV_INK}" stroke-width="1.1" stroke-linecap="round"/>
+    <ellipse cx="20.5" cy="41" rx="3.4" ry="2.2" fill="#ffb3c4"/><ellipse cx="43.5" cy="41" rx="3.4" ry="2.2" fill="#ffb3c4"/>
+    <path d="M29 48 Q32 45 35 48 Q35 51 32 51 Q29 51 29 48 Z" fill="#a46a3a"/>` },
+  panda: { name: '熊貓', bg: '#e3f2e5', art: `
+    <circle cx="18" cy="22" r="7" fill="#2d2a2e"/><circle cx="46" cy="22" r="7" fill="#2d2a2e"/>
+    <ellipse cx="32" cy="37" rx="18" ry="16" fill="#fff" stroke="${AV_INK}" stroke-width="1.7"/>
+    <ellipse cx="24.5" cy="35" rx="4.6" ry="5.6" transform="rotate(25 24.5 35)" fill="#2d2a2e"/><ellipse cx="39.5" cy="35" rx="4.6" ry="5.6" transform="rotate(-25 39.5 35)" fill="#2d2a2e"/>
+    <circle cx="25" cy="34.5" r="1.6" fill="#fff"/><circle cx="39" cy="34.5" r="1.6" fill="#fff"/>
+    <ellipse cx="32" cy="41.5" rx="2.6" ry="1.8" fill="#2d2a2e"/>
+    <path d="M29 45 Q32 47.5 35 45" fill="none" stroke="${AV_INK}" stroke-width="1.3" stroke-linecap="round"/>
+    <ellipse cx="20.5" cy="43" rx="2.6" ry="1.5" fill="#ffb3c4"/><ellipse cx="43.5" cy="43" rx="2.6" ry="1.5" fill="#ffb3c4"/>
+    <path d="M47 10 Q53 12 50 19 Q46 15 47 10 Z" fill="#7cc488" stroke="${AV_INK}" stroke-width="1"/>` },
+  chick: { name: '小雞', bg: '#e1f0ff', art: `
+    <path d="M30 18 Q30 12 33 13 Q32 16 34 17 Q36 13 38 15 Q35 17 34 20" fill="#ffd45c" stroke="${AV_INK}" stroke-width="1.4" stroke-linejoin="round"/>
+    <ellipse cx="32" cy="38" rx="18" ry="17" fill="#ffe27a" stroke="${AV_INK}" stroke-width="1.7"/>
+    <path d="M14 42 Q8 38 10 34 Q14 37 16 37 M50 42 Q56 38 54 34 Q50 37 48 37" fill="#ffd45c" stroke="${AV_INK}" stroke-width="1.4" stroke-linejoin="round"/>
+    <circle cx="25.5" cy="35" r="2.1" fill="${AV_INK}"/><circle cx="38.5" cy="35" r="2.1" fill="${AV_INK}"/>
+    <circle cx="26.2" cy="34.2" r=".7" fill="#fff"/><circle cx="39.2" cy="34.2" r=".7" fill="#fff"/>
+    <path d="M28.5 40 L35.5 40 L32 44.5 Z" fill="#f5a142" stroke="${AV_INK}" stroke-width="1.1" stroke-linejoin="round"/>
+    <ellipse cx="21.5" cy="41" rx="2.8" ry="1.6" fill="#ffab8a"/><ellipse cx="42.5" cy="41" rx="2.8" ry="1.6" fill="#ffab8a"/>` },
+  frog: { name: '青蛙', bg: '#fff3d1', art: `
+    <circle cx="22" cy="24" r="7.5" fill="#8fd18a" stroke="${AV_INK}" stroke-width="1.7"/><circle cx="42" cy="24" r="7.5" fill="#8fd18a" stroke="${AV_INK}" stroke-width="1.7"/>
+    <path d="M12 42 Q12 27 32 27 Q52 27 52 42 Q52 54 32 54 Q12 54 12 42 Z" fill="#8fd18a" stroke="${AV_INK}" stroke-width="1.7"/>
+    <circle cx="22" cy="24" r="4.2" fill="#fff"/><circle cx="42" cy="24" r="4.2" fill="#fff"/>
+    <circle cx="22.8" cy="24.5" r="2.2" fill="${AV_INK}"/><circle cx="42.8" cy="24.5" r="2.2" fill="${AV_INK}"/>
+    <path d="M22 41 Q32 49 42 41" fill="none" stroke="${AV_INK}" stroke-width="1.6" stroke-linecap="round"/>
+    <ellipse cx="18" cy="40" rx="3.2" ry="2" fill="#ff9fb4" opacity=".8"/><ellipse cx="46" cy="40" rx="3.2" ry="2" fill="#ff9fb4" opacity=".8"/>
+    <circle cx="29" cy="33" r=".9" fill="${AV_INK}"/><circle cx="35" cy="33" r=".9" fill="${AV_INK}"/>` },
+  koala: { name: '無尾熊', bg: '#dff1f0', art: `
+    <circle cx="15" cy="27" r="9" fill="#a8acb8" stroke="${AV_INK}" stroke-width="1.7"/><circle cx="49" cy="27" r="9" fill="#a8acb8" stroke="${AV_INK}" stroke-width="1.7"/>
+    <circle cx="15" cy="27" r="5" fill="#f2e6ee"/><circle cx="49" cy="27" r="5" fill="#f2e6ee"/>
+    <ellipse cx="32" cy="38" rx="17" ry="15.5" fill="#bfc3cd" stroke="${AV_INK}" stroke-width="1.7"/>
+    <circle cx="25" cy="35" r="2" fill="${AV_INK}"/><circle cx="39" cy="35" r="2" fill="${AV_INK}"/>
+    <path d="M28 38 Q28 35 32 35 Q36 35 36 38 L36 42 Q36 46 32 46 Q28 46 28 42 Z" fill="#3b3640"/>
+    <path d="M29.5 48.5 Q32 50.5 34.5 48.5" fill="none" stroke="${AV_INK}" stroke-width="1.3" stroke-linecap="round"/>
+    <ellipse cx="21" cy="42" rx="2.6" ry="1.5" fill="#ffb3c4"/><ellipse cx="43" cy="42" rx="2.6" ry="1.5" fill="#ffb3c4"/>` },
 };
 function avatarSVG(id) {
   const a = AVATARS[id]; if (!a) return '';
   return `<svg viewBox="0 0 64 64" class="av-svg" xmlns="http://www.w3.org/2000/svg"><circle cx="32" cy="32" r="31" fill="${a.bg}"/><g>${a.art}</g><circle cx="32" cy="32" r="30.5" fill="none" stroke="rgba(74,46,42,.18)" stroke-width="1"/></svg>`;
 }
 
-// 旅行基金存錢筒（插畫風，和頭像同一套筆觸）
-const PIGGY_SVG = `<svg viewBox="0 0 120 96" class="piggy-svg" xmlns="http://www.w3.org/2000/svg">
-  <ellipse cx="60" cy="88" rx="34" ry="4" fill="rgba(74,46,42,.12)"/>
-  <g class="pig-coin"><ellipse cx="60" cy="14" rx="8" ry="8" fill="#ffd45c" stroke="${AV_INK}" stroke-width="2"/><path d="M60 9.5 V18.5" stroke="${AV_INK}" stroke-width="1.6" stroke-linecap="round"/></g>
-  <path d="M30 76 L30 85 Q30 87 32.5 87 L38 87 Q40 87 40 85 L40 78 Z M80 78 L80 85 Q80 87 82 87 L87.5 87 Q90 87 90 85 L90 76 Z" fill="#f7a8bb" stroke="${AV_INK}" stroke-width="2" stroke-linejoin="round"/>
-  <path d="M40 34 L36 21 Q35.5 18.5 38 19.5 L50 27 Z" fill="#f7a8bb" stroke="${AV_INK}" stroke-width="2" stroke-linejoin="round"/>
-  <path d="M19 52 Q12 52 12 46 Q12 42 15.5 42.5" fill="none" stroke="${AV_INK}" stroke-width="2" stroke-linecap="round"/>
-  <ellipse cx="58" cy="55" rx="40" ry="28" fill="#ffc2d1" stroke="${AV_INK}" stroke-width="2"/>
-  <path d="M30 41 Q40 31 58 30" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" opacity=".7"/>
-  <rect x="51" y="27.5" width="18" height="4" rx="2" fill="${AV_INK}"/>
-  <path d="M68 34 L74 22 Q75.5 19.5 77 22 L80 36 Z" fill="#ffc2d1" stroke="${AV_INK}" stroke-width="2" stroke-linejoin="round"/>
-  <path d="M73 31 L75 25.5 L76.5 32 Z" fill="#f48aa5"/>
-  <ellipse cx="97" cy="56" rx="9" ry="10.5" fill="#f7a8bb" stroke="${AV_INK}" stroke-width="2"/>
-  <ellipse cx="94.5" cy="56" rx="1.6" ry="2.6" fill="${AV_INK}"/><ellipse cx="99.5" cy="56" rx="1.6" ry="2.6" fill="${AV_INK}"/>
-  <path d="M78 47 Q81 44.5 84 47" fill="none" stroke="${AV_INK}" stroke-width="2" stroke-linecap="round"/>
-  <ellipse cx="80" cy="56" rx="4.5" ry="2.8" fill="#ff8fa8" opacity=".7"/>
-  <path d="M84 63 Q86.5 66 89.5 64" fill="none" stroke="${AV_INK}" stroke-width="1.8" stroke-linecap="round"/>
-  <path d="M28 63 Q32 61 36 63 M44 69 Q48 67 52 69" fill="none" stroke="#f48aa5" stroke-width="1.6" stroke-linecap="round" opacity=".8"/>
-</svg>`;
+
+// 旅行基金：徽章風存錢筒（外圈是存錢進度）
+function piggyEmblem(pct) {
+  const r = 44, C = 2 * Math.PI * r, p = Math.max(0, Math.min(100, pct || 0));
+  let dots = '';
+  for (let i = 0; i < 24; i++) { const a = i * 15 * Math.PI / 180; dots += `<circle cx="${(60 + Math.sin(a) * 54).toFixed(1)}" cy="${(60 - Math.cos(a) * 54).toFixed(1)}" r="${i % 6 ? .9 : 1.8}" class="e-ink-f"/>`; }
+  const S1 = (d, w = 1.5, cls = 'e-ink-s') => `<path d="${d}" class="${cls}" stroke-width="${w}" fill="none" stroke-linecap="round" stroke-linejoin="round"/>`;
+  return `<svg viewBox="0 0 120 120" class="piggy-emb emb-F-travel" xmlns="http://www.w3.org/2000/svg">
+    ${dots}
+    <circle cx="60" cy="60" r="50" class="e-bg e-ink-s" stroke-width="1.4"/>
+    <circle cx="60" cy="60" r="${r}" class="e-acc-s" stroke-width="3" opacity=".35"/>
+    <circle cx="60" cy="60" r="${r}" class="e-ink-s" stroke-width="3" stroke-linecap="round" stroke-dasharray="${(C * p / 100).toFixed(1)} ${C.toFixed(1)}" transform="rotate(-90 60 60)"/>
+    <circle cx="60" cy="60" r="38.5" class="e-acc-s" stroke-width=".8"/>
+    <g transform="translate(60 64)">
+      <g class="pig-coin"><circle cx="0" cy="-30" r="5" class="e-acc-f e-ink-s" stroke-width="1.2"/>${S1('M0 -33 V-27', 1)}</g>
+      <ellipse cx="0" cy="22" rx="18" ry="2.6" class="e-acc-f" opacity=".5"/>
+      ${S1('M-13 12 V19 M-6 14 V20 M7 14 V20 M14 12 V19', 2.2)}
+      <path d="M-24 2 C-24 -12 -12 -18 0 -18 C13 -18 22 -12 23 -3 L27 -3 C29 -3 29 6 27 6 L23 6 C21 12 14 16 0 16 C-14 16 -24 12 -24 2 Z" class="e-bg e-ink-s" stroke-width="1.6"/>
+      <path d="M8 -16 L12 -25 L16 -14" class="e-acc-f e-ink-s" stroke-width="1.3" stroke-linejoin="round"/>
+      ${S1('M-6 -18.5 H6', 2.4)}
+      <circle cx="13" cy="-5" r="1.5" class="e-ink-f"/>
+      ${S1('M25 -0.5 V2.5', 1)}
+      ${S1('M-24 0 C-29 0 -31 -4 -28 -6 C-26 -7 -26 -3 -29 -2', 1.2)}
+      ${S1('M-16 -8 Q-10 -13 -2 -13', 1.2, 'e-acc-s')}
+      <path d="M-6 4 L-3.5 6.5 L-1 4 L1.5 6.5 L4 4" class="e-acc-s" stroke-width="1" fill="none"/>
+    </g>
+  </svg>`;
+}
 // ============================================================
 //  啟動、登入、配對、外框
 // ============================================================
@@ -2589,7 +2671,7 @@ function travelFund() {
   const past = {};
   list('deposits').filter((d) => (d.round || 1) < (f.round || 1)).forEach((d) => (past[d.round || 1] ||= { total: 0, name: d.fundName || `第 ${d.round || 1} 期` }, past[d.round || 1].total += d.amt));
   return `<div class="card center">
-      <span class="piggy" id="pig">${PIGGY_SVG}</span>
+      <span class="piggy" id="pig">${piggyEmblem(pct)}</span>
       <h3 style="justify-content:center">${esc(f.name)} <button class="small muted" data-act="fundEdit"><i data-ic="edit"></i></button></h3>
       <div class="fund-num">$${money(total)} <span class="small muted">/ $${money(f.goal)}</span></div>
       <div class="fund-bar"><div style="width:${pct}%"></div></div>
