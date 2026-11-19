@@ -54,7 +54,7 @@ const me = () => S.me.uid;
 const partner = () => S.couple?.members?.find((u) => u !== S.me.uid) || null;
 const prof = (uid) => S.couple?.profiles?.[uid] || {};
 const nick = (uid) => uid === 'sys' ? '遊樂園' : (prof(uid).nick || (uid === me() ? '我' : '對方'));
-const avatarRaw = (p) => (p.av && AVATARS[p.av]) ? avatarSVG(p.av) : esc(p.emoji || (p.role === 'him' ? '👦' : '👧'));
+const avatarRaw = (p) => (p.av && (AVATARS[p.av] || p.av === 'blackcat')) ? avatarSVG(p.av) : esc(p.emoji || (p.role === 'him' ? '👦' : '👧'));
 const avatar = (uid, cls = '') => uid === 'sys' ? '<span class="av"><i data-ic="ferris"></i></span>' : `<span class="av ${cls}">${avatarRaw(prof(uid))}</span>`;
 const spiceLevel = () => {
   const ms = S.couple?.members || [];
@@ -442,17 +442,6 @@ const AVATARS = {
     </g>
     <path d="M12 18 L52 50" stroke="#8a5a32" stroke-width="1.4" stroke-linecap="round"/><path d="M12 18 L14 16" stroke="${AV_INK}" stroke-width="2"/>
     <path d="M48 14 L48 21 A2 2 0 1 1 46 19.5" fill="none" stroke="${AV_INK}" stroke-width="1.3" stroke-linecap="round"/>` },
-  blackcat: { name: '黑貓', bg: '#e9e3f5', art: `
-    <path d="M15 31 L17 12 L28 22 Z M49 31 L47 12 L36 22 Z" fill="#2b2633" stroke="#2b2633" stroke-width="1.8" stroke-linejoin="round"/>
-    <path d="M18.5 24 L19 16.5 L24 21 Z M45.5 24 L45 16.5 L40 21 Z" fill="#b48ad6"/>
-    <ellipse cx="32" cy="37" rx="18" ry="15" fill="#2b2633"/>
-    <ellipse cx="25" cy="35" rx="3.6" ry="4.2" fill="#ffe27a"/><ellipse cx="39" cy="35" rx="3.6" ry="4.2" fill="#ffe27a"/>
-    <ellipse cx="25" cy="35.5" rx="1.2" ry="3" fill="#2b2633"/><ellipse cx="39" cy="35.5" rx="1.2" ry="3" fill="#2b2633"/>
-    <circle cx="26" cy="33.5" r=".9" fill="#fff"/><circle cx="40" cy="33.5" r=".9" fill="#fff"/>
-    <path d="M30.5 41 L33.5 41 L32 42.6 Z" fill="#ff9fb4"/>
-    <path d="M32 42.6 Q30 45 28.5 44 M32 42.6 Q34 45 35.5 44" fill="none" stroke="#e7dff2" stroke-width="1.1" stroke-linecap="round"/>
-    <path d="M13 39 L21 40 M13 43 L21 42 M51 39 L43 40 M51 43 L43 42" stroke="#e7dff2" stroke-width=".9" stroke-linecap="round"/>
-    <path d="M36 14 L37 11 L38 14 L41 15 L38 16 L37 19 L36 16 L33 15 Z" fill="#ffe27a"/>` },
   golden: { name: '黃金獵犬', bg: '#fff1d6', art: `
     <path d="M18 22 Q8 24 9 40 Q10 47 17 45 Q20 36 21 28 Z M46 22 Q56 24 55 40 Q54 47 47 45 Q44 36 43 28 Z" fill="#d9953e" stroke="${AV_INK}" stroke-width="1.7" stroke-linejoin="round"/>
     <path d="M17 34 Q16 18 32 17 Q48 18 47 34 Q47 50 32 52 Q17 50 17 34 Z" fill="#f1bc6a" stroke="${AV_INK}" stroke-width="1.7"/>
@@ -537,6 +526,7 @@ const EMB_AV = [
 EMB_AV.forEach(([id, name, pal, motif]) => { AVATARS[id] = { name, emb: pal, motif }; });
 
 function avatarSVG(id) {
+  if (id === 'blackcat') id = 'mx_black'; // 舊的黑貓頭像併入小小黑
   const a = AVATARS[id]; if (!a) return '';
   if (a.cat) {
     const c = COATS[a.cat], tr = (COAT_TRAITS || {})[a.cat];
