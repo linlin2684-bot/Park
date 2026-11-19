@@ -54,7 +54,8 @@ const me = () => S.me.uid;
 const partner = () => S.couple?.members?.find((u) => u !== S.me.uid) || null;
 const prof = (uid) => S.couple?.profiles?.[uid] || {};
 const nick = (uid) => uid === 'sys' ? '遊樂園' : (prof(uid).nick || (uid === me() ? '我' : '對方'));
-const avatar = (uid) => uid === 'sys' ? '🎡' : (prof(uid).emoji || (prof(uid).role === 'him' ? '👦' : '👧'));
+const avatarRaw = (p) => (p.av && AVATARS[p.av]) ? avatarSVG(p.av) : esc(p.emoji || (p.role === 'him' ? '👦' : '👧'));
+const avatar = (uid, cls = '') => uid === 'sys' ? '<span class="av"><i data-ic="ferris"></i></span>' : `<span class="av ${cls}">${avatarRaw(prof(uid))}</span>`;
 const spiceLevel = () => {
   const ms = S.couple?.members || [];
   if (!ms.length) return 1;
@@ -217,6 +218,206 @@ setInterval(applyTheme, 60000);
   } catch (e) {}
 })();
 // ============================================================
+//  介面圖示：一套線條圖示（跟卡片圖騰同樣的筆觸），取代介面上的 emoji
+//  ic('home') → 內嵌 SVG，顏色跟著文字走（currentColor）
+// ============================================================
+
+const IC = {
+  // 分頁
+  home: '<path d="M4 11 L12 4 L20 11"/><path d="M6 10 V20 H18 V10"/><path d="M10 20 V14 H14 V20"/>',
+  ticket: '<path d="M3 8 V6 H21 V8 A2 2 0 0 0 21 12 A2 2 0 0 0 21 16 V18 H3 V16 A2 2 0 0 0 3 12 A2 2 0 0 0 3 8 Z"/><path d="M9 6 V18" stroke-dasharray="1.5 2"/>',
+  ferris: '<circle cx="12" cy="10" r="7"/><circle cx="12" cy="10" r="1.6"/><path d="M12 3 V17 M5 10 H19 M7 5 L17 15 M17 5 L7 15"/><path d="M8.5 21 L12 12 L15.5 21 M7 21 H17"/>',
+  map: '<path d="M3 6 L9 4 L15 6 L21 4 V18 L15 20 L9 18 L3 20 Z"/><path d="M9 4 V18 M15 6 V20"/>',
+  book: '<path d="M12 6 C9 4 6 4 3 5 V19 C6 18 9 18 12 20 C15 18 18 18 21 19 V5 C18 4 15 4 12 6 Z"/><path d="M12 6 V20"/>',
+  // 工具列
+  coin: '<circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="5.5" stroke-dasharray="1.5 1.8"/><path d="M12 9 V15 M10 10.5 H13.5"/>',
+  sun: '<circle cx="12" cy="12" r="4"/><path d="M12 2.5 V5 M12 19 V21.5 M2.5 12 H5 M19 12 H21.5 M5.3 5.3 L7 7 M17 17 L18.7 18.7 M5.3 18.7 L7 17 M17 7 L18.7 5.3"/>',
+  moon: '<path d="M19 15 A8 8 0 1 1 9 4 A6.5 6.5 0 0 0 19 15 Z"/><path d="M17 4 L17.6 5.4 L19 6 L17.6 6.6 L17 8 L16.4 6.6 L15 6 L16.4 5.4 Z" fill="currentColor" stroke="none"/>',
+  candle: '<path d="M9 10 H15 V21 H9 Z"/><path d="M12 10 V8"/><path d="M12 2.5 C14 5 14 7 12 8 C10 7 10 5 12 2.5 Z"/><path d="M6 21 H18"/>',
+  bell: '<path d="M6 16 V11 A6 6 0 0 1 18 11 V16 L19.5 18 H4.5 Z"/><path d="M10 20.5 A2 2 0 0 0 14 20.5"/>',
+  gear: '<circle cx="12" cy="12" r="3"/><path d="M12 2.8 L13.6 5.2 L16.4 4.4 L16.6 7.4 L19.4 8.6 L18 11.2 L19.8 13.6 L17.2 15 L17.2 18 L14.2 17.6 L12.6 20.2 L10.6 18 L7.8 19 L7.2 16 L4.4 15 L5.8 12.4 L4.2 10 L6.8 8.6 L6.8 5.6 L9.8 6 Z"/>',
+  // 區塊
+  pin: '<path d="M12 21 C9 16 5.5 13 5.5 9 A6.5 6.5 0 0 1 18.5 9 C18.5 13 15 16 12 21 Z"/><circle cx="12" cy="9" r="2.5"/>',
+  pushpin: '<path d="M9 3 H15 L14 9 L17 12 H7 L10 9 Z"/><path d="M12 12 V21"/>',
+  weather: '<circle cx="9" cy="9" r="3.2"/><path d="M9 3 V4.2 M3 9 H4.2 M4.8 4.8 L5.6 5.6 M13.2 4.8 L12.4 5.6"/><path d="M8 19 H18 A3.5 3.5 0 0 0 17.6 12 A5 5 0 0 0 8.5 13.4 A3 3 0 0 0 8 19 Z"/>',
+  heart: '<path d="M12 20 C6 15.5 3 12.5 3 8.8 C3 6 5.2 4 7.7 4 C9.6 4 11 5.1 12 6.6 C13 5.1 14.4 4 16.3 4 C18.8 4 21 6 21 8.8 C21 12.5 18 15.5 12 20 Z"/>',
+  letter: '<path d="M3 6 H21 V18 H3 Z"/><path d="M3 6 L12 13 L21 6"/><path d="M12 15.2 C10.6 14.1 9.8 13.3 9.8 12.4 C9.8 11.7 10.4 11.2 11 11.2 C11.5 11.2 11.8 11.5 12 11.9 C12.2 11.5 12.5 11.2 13 11.2 C13.6 11.2 14.2 11.7 14.2 12.4 C14.2 13.3 13.4 14.1 12 15.2 Z" fill="currentColor" stroke="none"/>',
+  chat: '<path d="M4 5 H20 V16 H11 L6 20 V16 H4 Z"/><path d="M8 10.5 H8.01 M12 10.5 H12.01 M16 10.5 H16.01" stroke-width="2.4"/>',
+  sparkle: '<path d="M12 3 L13.8 10.2 L21 12 L13.8 13.8 L12 21 L10.2 13.8 L3 12 L10.2 10.2 Z"/><path d="M19 3 V6 M17.5 4.5 H20.5"/>',
+  stamp: '<path d="M9 3 H15 V9 C15 10 17 10.5 19 11 V14 H5 V11 C7 10.5 9 10 9 9 Z"/><path d="M5 17 H19 M7 20 H17"/>',
+  clipboard: '<path d="M7 4 H17 V21 H7 Z"/><path d="M10 3 H14 V5.5 H10 Z"/><path d="M9.5 10 L11 11.5 L14.5 8.5 M9.5 15.5 L11 17 L14.5 14"/>',
+  target: '<circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1.5"/><path d="M14 10 L20 4 M17 4 H20 V7"/>',
+  clock: '<circle cx="12" cy="12" r="8.5"/><path d="M12 7 V12 L15.5 14"/>',
+  hourglass: '<path d="M6 3 H18 M6 21 H18"/><path d="M7.5 3 C7.5 8 12 9.5 12 12 C12 14.5 7.5 16 7.5 21 M16.5 3 C16.5 8 12 9.5 12 12 C12 14.5 16.5 16 16.5 21"/><path d="M9.5 19 C10.5 17.5 13.5 17.5 14.5 19"/>',
+  trophy: '<path d="M7 4 H17 V9 A5 5 0 0 1 7 9 Z"/><path d="M7 6 H4 A3 3 0 0 0 7 11 M17 6 H20 A3 3 0 0 1 17 11"/><path d="M12 14 V18 M8 21 H16 M9.5 18 H14.5"/>',
+  film: '<path d="M4 4 H20 V20 H4 Z"/><path d="M8 4 V20 M16 4 V20 M4 8 H8 M4 12 H8 M4 16 H8 M16 8 H20 M16 12 H20 M16 16 H20"/>',
+  key: '<circle cx="8" cy="12" r="4"/><path d="M12 12 H21 M18 12 V15 M15 12 V14"/>',
+  castle: '<path d="M4 21 V9 H6 V7 H8 V9 H10 V7 H14 V9 H16 V7 H18 V9 H20 V21 Z"/><path d="M10 21 V16 A2 2 0 0 1 14 16 V21"/><path d="M12 7 V3 L15 4 L12 5"/>',
+  piggy: '<path d="M5 12 C5 8 8.5 6 12.5 6 C16 6 18.5 7.5 19.2 10 H21 V14 H19.2 C18.7 15.5 17.8 16.5 16.5 17.2 V20 H14 V18 H10.5 V20 H8 V17 C6 16 5 14.2 5 12 Z"/><path d="M11 6.2 L10 3.5 L13 5"/><circle cx="16" cy="10.5" r=".6" fill="currentColor"/><path d="M5 12 C3.8 12 3.2 11.2 3.2 10.4"/>',
+  coins: '<ellipse cx="9" cy="7" rx="5" ry="2.2"/><path d="M4 7 V11 C4 12.2 6.2 13.2 9 13.2 S14 12.2 14 11 V7"/><ellipse cx="15" cy="14" rx="5" ry="2.2"/><path d="M10 14 V18 C10 19.2 12.2 20.2 15 20.2 S20 19.2 20 18 V14"/>',
+  gacha: '<circle cx="12" cy="8.5" r="6"/><path d="M8 7 A1.5 1.5 0 0 1 10.5 5.5 M13.5 10 A1.8 1.8 0 1 0 16 11.5"/><path d="M5.5 13 H18.5 V21 H5.5 Z"/><circle cx="9.5" cy="17" r="1.6"/><path d="M14 16 H16.5 V18.5 H14 Z"/>',
+  wheel: '<circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="1.8"/><path d="M12 3.5 V10.2 M12 13.8 V20.5 M3.5 12 H10.2 M13.8 12 H20.5 M6 6 L10.7 10.7 M13.3 13.3 L18 18 M18 6 L13.3 10.7 M10.7 13.3 L6 18"/><path d="M10.5 1.5 H13.5 L12 4 Z" fill="currentColor"/>',
+  dining: '<circle cx="12" cy="12" r="5.5"/><path d="M4 3 V9 M2.5 3 V7.5 A1.5 1.5 0 0 0 5.5 7.5 V3 M4 9 V21"/><path d="M20 3 C18.5 4 18 6.5 18 9 H20 V21"/>',
+  dice: '<rect x="4" y="4" width="16" height="16" rx="3.5"/><circle cx="8.5" cy="8.5" r="1.1" fill="currentColor"/><circle cx="15.5" cy="15.5" r="1.1" fill="currentColor"/><circle cx="12" cy="12" r="1.1" fill="currentColor"/><circle cx="15.5" cy="8.5" r="1.1" fill="currentColor"/><circle cx="8.5" cy="15.5" r="1.1" fill="currentColor"/>',
+  minds: '<circle cx="8.5" cy="12" r="5"/><circle cx="15.5" cy="12" r="5"/><path d="M12 9.6 C11.3 10.4 11.3 13.6 12 14.4"/><path d="M15.5 4 L16 5.5 L17.5 6 L16 6.5 L15.5 8 L15 6.5 L13.5 6 L15 5.5 Z" fill="currentColor" stroke="none"/>',
+  swords: '<path d="M4 4 L14 14 M4 4 H7.5 L16 12.5 M4 4 V7.5 L12.5 16"/><path d="M20 4 L10 14 M20 4 H16.5 M20 4 V7.5"/><path d="M13 17 L17 13 M15 15 L19 19 M7 13 L11 17 M9 15 L5 19"/>',
+  flask: '<path d="M9 3 H15 M10 3 V9 L4.5 18.5 A1.6 1.6 0 0 0 6 21 H18 A1.6 1.6 0 0 0 19.5 18.5 L14 9 V3"/><path d="M7 15 H17"/><circle cx="10" cy="17.5" r=".7" fill="currentColor"/><circle cx="13.5" cy="18" r=".9" fill="currentColor"/>',
+  star: '<path d="M12 3.5 L14.5 9 L20.5 9.6 L16 13.6 L17.3 19.5 L12 16.5 L6.7 19.5 L8 13.6 L3.5 9.6 L9.5 9 Z"/>',
+  shooting: '<path d="M15.5 3.5 L17 7 L20.5 7.4 L17.8 9.8 L18.6 13.3 L15.5 11.5 L12.4 13.3 L13.2 9.8 L10.5 7.4 L14 7 Z"/><path d="M10 12 L3 19 M12 15 L7 20 M7.5 10.5 L3.5 14.5" stroke-dasharray="1.5 2.2"/>',
+  cake: '<path d="M4 13 H20 V20 H4 Z"/><path d="M4 16 C6 17.5 8 17.5 10 16 C12 17.5 14 17.5 16 16 C18 17.5 19 17 20 16"/><path d="M8 13 V9 M12 13 V9 M16 13 V9"/><path d="M8 5.5 C9 6.5 9 7.5 8 8 C7 7.5 7 6.5 8 5.5 Z M12 5.5 C13 6.5 13 7.5 12 8 C11 7.5 11 6.5 12 5.5 Z M16 5.5 C17 6.5 17 7.5 16 8 C15 7.5 15 6.5 16 5.5 Z"/>',
+  rose: '<path d="M12 12 C8 12 6.5 9.5 7 6.5 C9 7.5 10 6 12 4 C14 6 15 7.5 17 6.5 C17.5 9.5 16 12 12 12 Z"/><path d="M12 12 V21 M12 17 C14 15 16.5 15 17.5 15.5 C16.5 17.5 14 18 12 17 M12 15 C10.5 13.8 8.5 13.8 7.5 14.3"/>',
+  tree: '<path d="M12 3 L17 9 H14.5 L18.5 14 H15.5 L19.5 19 H4.5 L8.5 14 H5.5 L9.5 9 H7 Z"/><path d="M12 19 V21.5"/>',
+  medal: '<circle cx="12" cy="15" r="5.5"/><path d="M8.5 3 L11 9.7 M15.5 3 L13 9.7"/><path d="M12 12.5 L12.8 14.3 L14.7 14.5 L13.3 15.8 L13.7 17.7 L12 16.7 L10.3 17.7 L10.7 15.8 L9.3 14.5 L11.2 14.3 Z"/>',
+  cloud: '<path d="M7 18 H17.5 A4 4 0 0 0 17 10 A5.5 5.5 0 0 0 6.6 11.6 A3.3 3.3 0 0 0 7 18 Z"/><path d="M12 11 V16 M10 13.5 L12 11 L14 13.5"/>',
+  swap: '<path d="M4 9 A8 8 0 0 1 18.5 6.5 M18.5 3 V6.5 H15"/><path d="M20 15 A8 8 0 0 1 5.5 17.5 M5.5 21 V17.5 H9"/>',
+  flag: '<path d="M5 21 V4 M5 4 C8 2.5 10 5.5 13 4 C15 3 17 3.5 19 4.5 V12 C17 11 15 10.5 13 11.5 C10 13 8 10 5 11.5"/>',
+  lock: '<path d="M6 11 H18 V20 H6 Z"/><path d="M8.5 11 V8 A3.5 3.5 0 0 1 15.5 8 V11"/><circle cx="12" cy="15.5" r="1.2" fill="currentColor"/>',
+  camera: '<path d="M3 8 H7 L9 5.5 H15 L17 8 H21 V19 H3 Z"/><circle cx="12" cy="13" r="3.8"/>',
+  violin: '<path d="M14.5 3 L20 8.5 M17 3.5 L19.5 6"/><path d="M15.5 6.5 L11 11"/><path d="M11 11 C9 9.5 6.5 10 5.5 11.8 C4.5 13.4 5.5 14.6 4.5 16 C3.6 17.3 4 19 5.5 20 C7 21 8.6 20.5 9.4 19.4 C10.6 18.3 11.8 19.3 13.2 18.2 C15 16.8 14.6 14 13 13 Z"/><path d="M7.5 15.5 L10 18 M9.5 13.5 L8.5 14.5"/>',
+  gift: '<path d="M4 10 H20 V20 H4 Z M3 7 H21 V10 H3 Z"/><path d="M12 7 V20"/><path d="M12 7 C10.5 4 7 3.5 7 5.5 C7 7 10 7 12 7 C14 7 17 7 17 5.5 C17 3.5 13.5 4 12 7 Z"/>',
+  house: '<path d="M4 11 L12 4 L20 11 V20 H4 Z"/><path d="M12 11 C10.8 10 9.6 10.4 9.6 11.6 C9.6 12.8 11 13.8 12 14.6 C13 13.8 14.4 12.8 14.4 11.6 C14.4 10.4 13.2 10 12 11 Z"/>',
+  plane: '<path d="M3 13 L10 11 L14 4 H16 L14.5 10.5 L20 9 A1.6 1.6 0 0 1 20.5 12 L5.5 16 Z"/><path d="M8 20 H17"/>',
+  photo: '<path d="M4 5 H20 V19 H4 Z"/><circle cx="9" cy="10" r="1.8"/><path d="M4 17 L9 13 L13 16 L16 13.5 L20 17"/>',
+  users: '<circle cx="9" cy="8" r="3.3"/><path d="M3 20 C3 15.8 5.7 13.5 9 13.5 C12.3 13.5 15 15.8 15 20"/><circle cx="16.5" cy="9" r="2.6"/><path d="M15.5 13.6 C18.6 13.4 21 15.5 21 19"/>',
+  hundred: '<path d="M4 7 L6 6 V17 M10.5 6.5 A2.5 5.5 0 1 0 10.6 6.5 Z M17.5 6.5 A2.5 5.5 0 1 0 17.6 6.5 Z"/><path d="M3 20 H21"/>',
+  edit: '<path d="M4 20 H8 L19 9 A2.1 2.1 0 0 0 16 6 L5 17 Z"/><path d="M14 8 L17 11"/>',
+  plus: '<path d="M12 5 V19 M5 12 H19"/>',
+  chevron: '<path d="M9 5 L16 12 L9 19"/>',
+  download: '<path d="M12 4 V15 M7.5 10.5 L12 15 L16.5 10.5 M5 19.5 H19"/>',
+  candy: '<path d="M8 12 A4 4 0 1 0 16 12 A4 4 0 1 0 8 12 Z"/><path d="M8 12 L4 9 V15 Z M16 12 L20 9 V15 Z"/><path d="M10.5 9.5 L13.5 14.5"/>',
+  logout: '<path d="M10 4 H5 V20 H10"/><path d="M14 8 L18 12 L14 16 M18 12 H9"/>',
+  trash: '<path d="M4 7 H20 M9 7 V4.5 H15 V7 M6.5 7 L7.5 20 H16.5 L17.5 7"/><path d="M10 11 V16 M14 11 V16"/>',
+  search: '<circle cx="11" cy="11" r="6"/><path d="M15.5 15.5 L20 20"/>',
+  check: '<path d="M5 12.5 L10 17 L19 7.5"/>',
+  // 心情天氣
+  w_sun: '<circle cx="12" cy="12" r="4.5"/><path d="M12 2 V4.5 M12 19.5 V22 M2 12 H4.5 M19.5 12 H22 M4.9 4.9 L6.7 6.7 M17.3 17.3 L19.1 19.1 M4.9 19.1 L6.7 17.3 M17.3 6.7 L19.1 4.9"/>',
+  w_partly: '<circle cx="9" cy="9" r="3.5"/><path d="M9 2.5 V4 M2.5 9 H4 M4.4 4.4 L5.4 5.4 M13.6 4.4 L12.6 5.4"/><path d="M8.5 19.5 H18 A3.5 3.5 0 0 0 17.6 12.5 A5 5 0 0 0 8.6 13.8 A2.9 2.9 0 0 0 8.5 19.5 Z"/>',
+  w_cloud: '<path d="M6.5 18 H17.5 A4 4 0 0 0 17.1 10 A5.6 5.6 0 0 0 6.4 11.4 A3.3 3.3 0 0 0 6.5 18 Z"/>',
+  w_rain: '<path d="M6.5 14.5 H17.5 A4 4 0 0 0 17.1 6.5 A5.6 5.6 0 0 0 6.4 7.9 A3.3 3.3 0 0 0 6.5 14.5 Z"/><path d="M8 17.5 L7 20.5 M12 17.5 L11 20.5 M16 17.5 L15 20.5"/>',
+  w_storm: '<path d="M6.5 13.5 H17.5 A4 4 0 0 0 17.1 5.5 A5.6 5.6 0 0 0 6.4 6.9 A3.3 3.3 0 0 0 6.5 13.5 Z"/><path d="M12.5 14 L10 18 H13 L11 22"/>',
+  w_rainbow: '<path d="M3 18 A9 9 0 0 1 21 18"/><path d="M6 18 A6 6 0 0 1 18 18"/><path d="M9 18 A3 3 0 0 1 15 18"/>',
+  w_sleep: '<path d="M17 15.5 A7.5 7.5 0 1 1 8.5 5 A6 6 0 0 0 17 15.5 Z"/><path d="M15 4 H19 L15 8 H19" stroke-width="1.4"/>',
+  w_fire: '<path d="M12 21 C8 21 6 18.5 6 15.5 C6 12 9 10.5 9 7 C11.5 8.5 12 10.5 11.8 12.2 C13 11.4 13.6 10 13.6 8.5 C16.5 10.5 18 13 18 15.5 C18 18.5 16 21 12 21 Z"/><path d="M12 21 C10.5 21 9.7 19.8 9.7 18.6 C9.7 17 11 16.3 11.4 15 C13 16 14.3 17.2 14.3 18.6 C14.3 19.8 13.5 21 12 21 Z"/>',
+};
+const spiceIc = (l) => `<i data-ic="${D.SPICE[l || 1].ic}"></i>`;
+// 心情：用存下來的 emoji 找對應的手繪天氣圖示
+const moodIc = (emoji, cls = '') => { const m = D.MOODS.find((x) => x.icon === emoji); return m ? `<i data-ic="${m.ic}" class="${cls}"></i>` : emoji; };
+function ic(name, cls = '') {
+  const p = IC[name]; if (!p) return '';
+  return `<svg class="ic ${cls}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${p}</svg>`;
+}
+// 徽章框裡的圖示（遊戲卡片、頁面標題用）
+function icMedal(name, cls = '') {
+  return `<span class="ic-medal ${cls}"><svg viewBox="0 0 48 48" class="ic-ring" aria-hidden="true"><circle cx="24" cy="24" r="22" fill="none" stroke="currentColor" stroke-width="1.2"/><circle cx="24" cy="24" r="19" fill="none" stroke="currentColor" stroke-width=".7" stroke-dasharray="1.2 2.4" opacity=".7"/></svg>${ic(name)}</span>`;
+}
+
+// 佔位 <i data-ic="名稱"> 自動換成 SVG（畫面一出現就換）
+function hydrateIcons(root) {
+  root.querySelectorAll('i[data-ic]').forEach((el) => {
+    const n = el.dataset.ic;
+    const html = el.hasAttribute('data-medal') ? icMedal(n, el.className) : ic(n, el.className);
+    if (html) el.outerHTML = html; else el.removeAttribute('data-ic');
+  });
+}
+new MutationObserver((ms) => {
+  for (const m of ms) for (const n of m.addedNodes) {
+    if (n.nodeType !== 1) continue;
+    if (n.matches('i[data-ic]')) { if (n.parentNode) hydrateIcons(n.parentNode); }
+    else if (n.querySelector('i[data-ic]')) hydrateIcons(n);
+  }
+}).observe(document.documentElement, { childList: true, subtree: true });
+// ============================================================
+//  手繪頭像（10 款）。profile.av = 'cat' 這種 id；沒有 av 就用 emoji
+// ============================================================
+
+const AV_INK = '#4a2e2a';
+const AVATARS = {
+  bunny: { name: '排球兔', bg: '#e7e1ff', art: `
+    <ellipse cx="24" cy="17" rx="5.5" ry="13" transform="rotate(-12 24 17)" fill="#fff" stroke="${AV_INK}" stroke-width="1.8"/>
+    <ellipse cx="24" cy="18" rx="2.4" ry="8.5" transform="rotate(-12 24 18)" fill="#ffc2d1"/>
+    <ellipse cx="40" cy="17" rx="5.5" ry="13" transform="rotate(12 40 17)" fill="#fff" stroke="${AV_INK}" stroke-width="1.8"/>
+    <ellipse cx="40" cy="18" rx="2.4" ry="8.5" transform="rotate(12 40 18)" fill="#ffc2d1"/>
+    <ellipse cx="32" cy="39" rx="16" ry="14" fill="#fff" stroke="${AV_INK}" stroke-width="1.8"/>
+    <circle cx="26" cy="37" r="1.9" fill="${AV_INK}"/><circle cx="38" cy="37" r="1.9" fill="${AV_INK}"/>
+    <path d="M29.5 42 Q31 44 32 42 Q33 44 34.5 42" fill="none" stroke="${AV_INK}" stroke-width="1.4" stroke-linecap="round"/>
+    <ellipse cx="22.5" cy="42" rx="3" ry="1.8" fill="#ffb3c4"/><ellipse cx="41.5" cy="42" rx="3" ry="1.8" fill="#ffb3c4"/>
+    <circle cx="48" cy="50" r="7" fill="#fff" stroke="${AV_INK}" stroke-width="1.5"/>
+    <path d="M42 48 Q47 50 49 56 M47 43.5 Q48 49 54 51 M42.5 52.5 Q46 46 52 45" fill="none" stroke="#6c8de0" stroke-width="1.3"/>` },
+  cat: { name: '貓咪', bg: '#ffdbe4', art: `
+    <path d="M15 31 L17 13 L28 23 Z M49 31 L47 13 L36 23 Z" fill="#fff4e8" stroke="${AV_INK}" stroke-width="1.8" stroke-linejoin="round"/>
+    <path d="M18.5 25 L19 17 L24 22 Z M45.5 25 L45 17 L40 22 Z" fill="#ffb8c8"/>
+    <ellipse cx="32" cy="37" rx="18" ry="15" fill="#fff4e8" stroke="${AV_INK}" stroke-width="1.8"/>
+    <path d="M23 35 Q25.5 32.5 28 35 M36 35 Q38.5 32.5 41 35" fill="none" stroke="${AV_INK}" stroke-width="1.7" stroke-linecap="round"/>
+    <path d="M30.5 39.5 L33.5 39.5 L32 41.2 Z" fill="#ff8fa8"/>
+    <path d="M32 41.2 Q30 44 28 43 M32 41.2 Q34 44 36 43" fill="none" stroke="${AV_INK}" stroke-width="1.2" stroke-linecap="round"/>
+    <path d="M14 38 L22 39 M14 42 L22 41 M50 38 L42 39 M50 42 L42 41" stroke="${AV_INK}" stroke-width="1" stroke-linecap="round"/>
+    <ellipse cx="22" cy="44" rx="2.8" ry="1.6" fill="#ffb3c4"/><ellipse cx="42" cy="44" rx="2.8" ry="1.6" fill="#ffb3c4"/>` },
+  bear: { name: '小熊', bg: '#ffe9cc', art: `
+    <circle cx="18" cy="22" r="7.5" fill="#c99b74" stroke="${AV_INK}" stroke-width="1.8"/><circle cx="18" cy="22" r="3.5" fill="#f2c9a6"/>
+    <circle cx="46" cy="22" r="7.5" fill="#c99b74" stroke="${AV_INK}" stroke-width="1.8"/><circle cx="46" cy="22" r="3.5" fill="#f2c9a6"/>
+    <circle cx="32" cy="37" r="18" fill="#c99b74" stroke="${AV_INK}" stroke-width="1.8"/>
+    <ellipse cx="32" cy="43" rx="9" ry="7" fill="#f6dcc3"/>
+    <ellipse cx="32" cy="40.5" rx="3.2" ry="2.3" fill="${AV_INK}"/>
+    <path d="M32 43 L32 45 M29.5 46.5 Q32 48.5 34.5 46.5" fill="none" stroke="${AV_INK}" stroke-width="1.3" stroke-linecap="round"/>
+    <circle cx="25" cy="34" r="2" fill="${AV_INK}"/><circle cx="39" cy="34" r="2" fill="${AV_INK}"/>` },
+  fox: { name: '狐狸', bg: '#ffe2cf', art: `
+    <path d="M14 16 L25 26 L20 33 Z M50 16 L39 26 L44 33 Z" fill="#f29a52" stroke="${AV_INK}" stroke-width="1.8" stroke-linejoin="round"/>
+    <path d="M16.5 19 L22 25 L19.5 28 Z M47.5 19 L42 25 L44.5 28 Z" fill="${AV_INK}" opacity=".8"/>
+    <path d="M14 30 Q14 22 32 22 Q50 22 50 30 Q50 44 32 53 Q14 44 14 30 Z" fill="#f29a52" stroke="${AV_INK}" stroke-width="1.8" stroke-linejoin="round"/>
+    <path d="M17 33 Q24 34 32 45 Q40 34 47 33 Q46 44 32 53 Q18 44 17 33 Z" fill="#fff6ec"/>
+    <ellipse cx="32" cy="47" rx="2.6" ry="1.9" fill="${AV_INK}"/>
+    <path d="M23.5 33 Q26 31 28.5 33 M35.5 33 Q38 31 40.5 33" fill="none" stroke="${AV_INK}" stroke-width="1.7" stroke-linecap="round"/>` },
+  dog: { name: '小狗', bg: '#d9f0e4', art: `
+    <ellipse cx="32" cy="36" rx="16" ry="16" fill="#fff8ee" stroke="${AV_INK}" stroke-width="1.8"/>
+    <path d="M17 24 Q9 26 11 40 Q14 44 18 38 Z M47 24 Q55 26 53 40 Q50 44 46 38 Z" fill="#b98457" stroke="${AV_INK}" stroke-width="1.8" stroke-linejoin="round"/>
+    <ellipse cx="38" cy="30" rx="5.5" ry="4.5" fill="#e6c49f"/>
+    <circle cx="26" cy="34" r="2" fill="${AV_INK}"/><circle cx="38" cy="34" r="2" fill="${AV_INK}"/>
+    <ellipse cx="32" cy="40" rx="3" ry="2.2" fill="${AV_INK}"/>
+    <path d="M32 42 L32 44 M28.5 44.5 Q32 47 35.5 44.5" fill="none" stroke="${AV_INK}" stroke-width="1.3" stroke-linecap="round"/>
+    <path d="M30.5 45.5 Q32 50 33.5 45.5" fill="#ff8fa8" stroke="${AV_INK}" stroke-width="1"/>` },
+  penguin: { name: '企鵝', bg: '#d8e9ff', art: `
+    <ellipse cx="32" cy="38" rx="17" ry="17" fill="#2f3b57" stroke="${AV_INK}" stroke-width="1.8"/>
+    <path d="M32 27 Q38 22 43 28 Q48 36 42 46 Q37 52 32 52 Q27 52 22 46 Q16 36 21 28 Q26 22 32 27 Z" fill="#fff"/>
+    <circle cx="26.5" cy="35" r="2" fill="#2f3b57"/><circle cx="37.5" cy="35" r="2" fill="#2f3b57"/>
+    <path d="M29 39 L35 39 L32 43 Z" fill="#f5a142" stroke="${AV_INK}" stroke-width="1" stroke-linejoin="round"/>
+    <ellipse cx="23" cy="41" rx="2.6" ry="1.6" fill="#ffb3c4"/><ellipse cx="41" cy="41" rx="2.6" ry="1.6" fill="#ffb3c4"/>` },
+  girl: { name: '女孩', bg: '#ffd8e2', art: `
+    <path d="M14 36 Q12 14 32 13 Q52 14 50 36 L52 52 Q46 50 44 44 L20 44 Q18 50 12 52 Z" fill="#4b3330"/>
+    <circle cx="32" cy="35" r="14" fill="#ffe3d3" stroke="${AV_INK}" stroke-width="1.6"/>
+    <path d="M18 33 Q20 19 32 19 Q44 19 46 33 Q40 26 34 27 Q30 22 25 27 Q21 29 18 33 Z" fill="#4b3330"/>
+    <circle cx="27" cy="37" r="1.8" fill="${AV_INK}"/><circle cx="37" cy="37" r="1.8" fill="${AV_INK}"/>
+    <path d="M29.5 42 Q32 44 34.5 42" fill="none" stroke="${AV_INK}" stroke-width="1.4" stroke-linecap="round"/>
+    <ellipse cx="24" cy="41" rx="2.6" ry="1.6" fill="#ffb3c4"/><ellipse cx="40" cy="41" rx="2.6" ry="1.6" fill="#ffb3c4"/>
+    <path d="M42 19 L47 15 L47 23 Z M42 19 L37 15 L37 23 Z" fill="#ff7a9a" stroke="${AV_INK}" stroke-width="1"/><circle cx="42" cy="19" r="1.6" fill="#ff7a9a" stroke="${AV_INK}" stroke-width="1"/>` },
+  boy: { name: '男孩', bg: '#d6ebff', art: `
+    <circle cx="32" cy="36" r="15" fill="#ffe3d3" stroke="${AV_INK}" stroke-width="1.6"/>
+    <path d="M16 34 Q14 18 30 16 Q34 12 38 16 Q50 18 48 34 Q45 27 40 26 Q41 23 38 22 Q35 27 28 25 Q22 26 16 34 Z" fill="#3e2c26"/>
+    <circle cx="27" cy="38" r="1.8" fill="${AV_INK}"/><circle cx="37" cy="38" r="1.8" fill="${AV_INK}"/>
+    <path d="M28.5 43 Q32 46 35.5 43" fill="none" stroke="${AV_INK}" stroke-width="1.4" stroke-linecap="round"/>
+    <ellipse cx="23.5" cy="42" rx="2.4" ry="1.4" fill="#ffc0b0"/><ellipse cx="40.5" cy="42" rx="2.4" ry="1.4" fill="#ffc0b0"/>` },
+  star: { name: '星星', bg: '#fff2c4', art: `
+    <path d="M32 11 L38.5 25 L53.5 26.5 L42 36.5 L45.5 51.5 L32 43.5 L18.5 51.5 L22 36.5 L10.5 26.5 L25.5 25 Z" fill="#ffd45c" stroke="${AV_INK}" stroke-width="1.8" stroke-linejoin="round"/>
+    <circle cx="27.5" cy="32" r="1.8" fill="${AV_INK}"/><circle cx="36.5" cy="32" r="1.8" fill="${AV_INK}"/>
+    <path d="M29 37 Q32 40 35 37" fill="none" stroke="${AV_INK}" stroke-width="1.4" stroke-linecap="round"/>
+    <ellipse cx="24.5" cy="36" rx="2.4" ry="1.4" fill="#ffab8a"/><ellipse cx="39.5" cy="36" rx="2.4" ry="1.4" fill="#ffab8a"/>
+    <path d="M51 12 L52 15 L55 16 L52 17 L51 20 L50 17 L47 16 L50 15 Z" fill="#fff" stroke="${AV_INK}" stroke-width=".8"/>` },
+  violin: { name: '小提琴', bg: '#f5e6d6', art: `
+    <g transform="rotate(30 32 34)">
+      <path d="M32 26 C26 26 22 29 23 33 C24 36 26 36 26 38 C26 40 22 41 22 46 C22 52 27 55 32 55 C37 55 42 52 42 46 C42 41 38 40 38 38 C38 36 40 36 41 33 C42 29 38 26 32 26 Z" fill="#c9783e" stroke="${AV_INK}" stroke-width="1.7"/>
+      <path d="M29 35 Q28 37 29 39 M35 35 Q36 37 35 39" fill="none" stroke="${AV_INK}" stroke-width="1.2" stroke-linecap="round"/>
+      <path d="M30.5 8 L33.5 8 L33.5 46 L30.5 46 Z" fill="#3e2a22"/>
+      <path d="M31.3 12 L31.3 50 M32.7 12 L32.7 50" stroke="#f3dfc4" stroke-width=".5"/>
+      <path d="M28 49 L36 49" stroke="${AV_INK}" stroke-width="1.6" stroke-linecap="round"/>
+      <circle cx="32" cy="8" r="3" fill="#3e2a22"/>
+    </g>
+    <path d="M12 18 L52 50" stroke="#8a5a32" stroke-width="1.4" stroke-linecap="round"/><path d="M12 18 L14 16" stroke="${AV_INK}" stroke-width="2"/>
+    <path d="M48 14 L48 21 A2 2 0 1 1 46 19.5" fill="none" stroke="${AV_INK}" stroke-width="1.3" stroke-linecap="round"/>` },
+};
+function avatarSVG(id) {
+  const a = AVATARS[id]; if (!a) return '';
+  return `<svg viewBox="0 0 64 64" class="av-svg" xmlns="http://www.w3.org/2000/svg"><circle cx="32" cy="32" r="31" fill="${a.bg}"/><g>${a.art}</g><circle cx="32" cy="32" r="30.5" fill="none" stroke="rgba(74,46,42,.18)" stroke-width="1"/></svg>`;
+}
+// ============================================================
 //  啟動、登入、配對、外框
 // ============================================================
 
@@ -225,7 +426,7 @@ async function boot() {
     S.store = await createStore(firebaseConfig);
   } catch (e) {
     console.error(e);
-    $('#app').innerHTML = `<div class="auth-wrap"><div class="auth-logo"><span class="lg">🎡</span><h1>連不上 Firebase</h1><p>請檢查 config.js 的設定，或網路是否正常。<br><small>${esc(e.message || e)}</small></p></div></div>`;
+    $('#app').innerHTML = `<div class="auth-wrap"><div class="auth-logo"><span class="lg"><i data-ic="ferris"></i></span><h1>連不上 Firebase</h1><p>請檢查 config.js 的設定，或網路是否正常。<br><small>${esc(e.message || e)}</small></p></div></div>`;
     return;
   }
   S.store.auth.onChange(async (u) => {
@@ -249,8 +450,8 @@ async function ensureDemo() {
   const cid = 'DEMO01';
   if (await S.store.getCouple(cid)) return;
   const A = 'demo-her', B = 'demo-him';
-  await S.store.createCouple(cid, newCoupleData(A, { nick: '寶貝', role: 'her', emoji: '👧', bday: D.DEFAULT_DATES.herBirthday, spice: 3 }, true));
-  await S.store.updateCouple(cid, { members: [A, B], [`profiles.${B}`]: { nick: '好寶', role: 'him', emoji: '👦', bday: D.DEFAULT_DATES.hisBirthday, spice: 3 } });
+  await S.store.createCouple(cid, newCoupleData(A, { nick: '寶貝', role: 'her', av: 'bunny', emoji: '👧', bday: D.DEFAULT_DATES.herBirthday, spice: 3 }, true));
+  await S.store.updateCouple(cid, { members: [A, B], [`profiles.${B}`]: { nick: '好寶', role: 'him', av: 'violin', emoji: '👦', bday: D.DEFAULT_DATES.hisBirthday, spice: 3 } });
   await S.store.setUser(A, { coupleId: cid });
   await S.store.setUser(B, { coupleId: cid });
   await seedPool(cid);
@@ -390,7 +591,7 @@ function renderLogin() {
   let signup = false;
   const draw = () => {
     $('#app').innerHTML = `<div class="auth-wrap">
-      <div class="auth-logo"><span class="lg">🎡</span><h1>兩人遊樂園</h1><p>只屬於我們兩個的遊樂園</p></div>
+      <div class="auth-logo"><span class="lg"><i data-ic="ferris"></i></span><h1>兩人遊樂園</h1><p>只屬於我們兩個的遊樂園</p></div>
       <div class="card">
         <label>Email</label><input id="em" type="email" autocomplete="email" placeholder="you@example.com">
         <label>密碼（至少 6 個字）</label><input id="pw" type="password" autocomplete="${signup ? 'new-password' : 'current-password'}">
@@ -427,27 +628,27 @@ function authErr(err) {
 
 // ---------- 第一次設定（建立或加入空間） ----------
 function renderOnboard() {
-  const p = { nick: '', role: 'her', emoji: '👧', bday: D.DEFAULT_DATES.herBirthday, spice: 1 };
+  const p = { nick: '', role: 'her', av: 'girl', emoji: '👧', bday: D.DEFAULT_DATES.herBirthday, spice: 1 };
   const draw = () => {
     $('#app').innerHTML = `<div class="auth-wrap">
-      <div class="auth-logo"><span class="lg">🎡</span><h1>歡迎光臨</h1><p>先介紹一下你自己</p></div>
+      <div class="auth-logo"><span class="lg"><i data-ic="ferris"></i></span><h1>歡迎光臨</h1><p>先介紹一下你自己</p></div>
       <div class="card">
         <label>你的暱稱</label><input id="nk" maxlength="12" placeholder="對方在 app 裡看到的名字" value="${esc(p.nick)}">
         <label>你是</label>
         <div class="role-pick">
-          <button data-role="her" class="${p.role === 'her' ? 'on' : ''}"><span>👧</span>女生</button>
-          <button data-role="him" class="${p.role === 'him' ? 'on' : ''}"><span>👦</span>男生</button>
+          <button data-role="her" class="${p.role === 'her' ? 'on' : ''}"><span class="av av-lg">${avatarSVG('girl')}</span>女生</button>
+          <button data-role="him" class="${p.role === 'him' ? 'on' : ''}"><span class="av av-lg">${avatarSVG('boy')}</span>男生</button>
         </div>
         <label>你的生日（月-日）</label><input id="bd" placeholder="03-16" value="${esc(p.bday)}" inputmode="numeric">
       </div>
       <div class="card">
-        <h3>🏰 建立我們的遊樂園</h3>
+        <h3><i data-ic="castle"></i> 建立我們的遊樂園</h3>
         <p class="small muted" style="margin:0 0 8px">建立後會拿到一組邀請碼，傳給對方輸入就配對好了。</p>
         <div class="toggle"><label class="switch"><input type="checkbox" id="sb" checked><span></span></label><span class="small">把「生日系列」卡組送給對方（對方加入時會收到）</span></div>
         <button class="btn block mt" id="mk">建立空間</button>
       </div>
       <div class="card">
-        <h3>🔑 我有邀請碼</h3>
+        <h3><i data-ic="key"></i> 我有邀請碼</h3>
         <input id="cd" placeholder="輸入 6 碼邀請碼" maxlength="6" style="text-transform:uppercase;letter-spacing:.2em;font-weight:800">
         <button class="btn ghost block mt" id="jn">加入</button>
       </div>
@@ -455,7 +656,7 @@ function renderOnboard() {
     </div>`;
     $$('[data-role]').forEach((b) => b.onclick = () => {
       p.nick = $('#nk').value; p.role = b.dataset.role;
-      p.emoji = p.role === 'him' ? '👦' : '👧';
+      p.emoji = p.role === 'him' ? '👦' : '👧'; p.av = p.role === 'him' ? 'boy' : 'girl';
       p.bday = p.role === 'him' ? D.DEFAULT_DATES.hisBirthday : D.DEFAULT_DATES.herBirthday;
       draw();
     });
@@ -515,11 +716,11 @@ ACT.invite = () => {
 
 // ---------- 外框 ----------
 const TABS = [
-  { id: 'home', icon: '🏠', name: '首頁' },
-  { id: 'wallet', icon: '🎟️', name: '票夾' },
-  { id: 'play', icon: '🎰', name: '遊樂區' },
-  { id: 'travel', icon: '🗺️', name: '旅行' },
-  { id: 'memory', icon: '📖', name: '回憶' },
+  { id: 'home', icon: '<i data-ic="home"></i>', name: '首頁' },
+  { id: 'wallet', icon: '<i data-ic="ticket"></i>', name: '票夾' },
+  { id: 'play', icon: '<i data-ic="gacha"></i>', name: '遊樂區' },
+  { id: 'travel', icon: '<i data-ic="map"></i>', name: '旅行' },
+  { id: 'memory', icon: '<i data-ic="clock"></i>', name: '回憶' },
 ];
 function renderShell() {
   $('#app').innerHTML = `<header class="topbar" id="top"></header><main id="main"></main><nav class="nav" id="nav"></nav>
@@ -549,11 +750,11 @@ function renderTop() {
   const n = unreadEvents().length;
   const tk = tickets(me());
   top.innerHTML = `
-    <div class="brand">🎡 兩人遊樂園</div>
-    <button class="pill" data-act="pointsLog">🪙 ${balance(me())}${tk ? ` · 🎫${tk}` : ''}</button>
-    <button class="icon-btn" data-act="theme" title="日夜模式">${mode === 'auto' ? '🕯️' : t === 'day' ? '☀️' : '🌙'}</button>
-    <button class="icon-btn" data-act="inbox">🔔${n ? `<span class="badge-dot">${n > 9 ? '9+' : n}</span>` : ''}</button>
-    <button class="icon-btn" data-act="settings">⚙️</button>`;
+    <div class="brand"><i data-ic="ferris"></i> 兩人遊樂園</div>
+    <button class="pill" data-act="pointsLog"><i data-ic="coin"></i> ${balance(me())}${tk ? ` · <i data-ic="ticket"></i>${tk}` : ''}</button>
+    <button class="icon-btn" data-act="theme" title="日夜模式">${mode === 'auto' ? '<i data-ic="candle"></i>' : t === 'day' ? '<i data-ic="sun"></i>' : '<i data-ic="moon"></i>'}</button>
+    <button class="icon-btn" data-act="inbox"><i data-ic="bell"></i>${n ? `<span class="badge-dot">${n > 9 ? '9+' : n}</span>` : ''}</button>
+    <button class="icon-btn" data-act="settings"><i data-ic="gear"></i></button>`;
   const db = $('#demobar');
   if (db) db.innerHTML = `試玩模式：現在是「${esc(nick(me()))}」 <button data-act="demoSwitch">切換成${esc(nick(partner()))}</button>`;
 }
@@ -590,19 +791,19 @@ function renderMain() {
 }
 
 // ---------- 通知中心 ----------
-const EV_ICON = { card: '🎟️', redeem: '✂️', stamp: '📮', miss: '💗', mood: '🌦️', wish: '🌠', battle: '⚔️', note: '💌', capsule: '⏳', fund: '💰', trip: '🗺️', goal: '🎯', daily: '💬', quiz: '🧠', mystery: '🎁' };
+const EV_ICON = { card: '<i data-ic="ticket"></i>', redeem: '<i data-ic="ticket"></i>', stamp: '<i data-ic="stamp"></i>', miss: '<i data-ic="heart"></i>', mood: '<i data-ic="weather"></i>', wish: '<i data-ic="shooting"></i>', battle: '<i data-ic="swords"></i>', note: '<i data-ic="letter"></i>', capsule: '<i data-ic="hourglass"></i>', fund: '<i data-ic="coins"></i>', trip: '<i data-ic="map"></i>', goal: '<i data-ic="target"></i>', daily: '<i data-ic="chat"></i>', quiz: '<i data-ic="minds"></i>', mystery: '<i data-ic="gift"></i>' };
 ACT.inbox = async () => {
   const evs = list('events').filter((e) => e.to === me()).sort((a, b) => b.at - a.at).slice(0, 60);
   openModal(`${mhead('通知')}
-    ${evs.length ? evs.map((e) => `<div class="list-row ${e.read ? '' : 'unread'}"><span class="lr-i">${EV_ICON[e.type] || '✨'}</span>
+    ${evs.length ? evs.map((e) => `<div class="list-row ${e.read ? '' : 'unread'}"><span class="lr-i">${EV_ICON[e.type] || '<i data-ic="sparkle"></i>'}</span>
       <div class="grow">${esc(e.text)}${e.detail ? `<div class="small muted">${esc(e.detail)}</div>` : ''}</div><span class="when">${ago(e.at)}</span></div>`).join('')
-      : '<div class="empty"><span class="big">🔕</span>還沒有通知</div>'}`);
+      : '<div class="empty"><span class="big"><i data-ic="bell"></i></span>還沒有通知</div>'}`);
   for (const e of evs) if (!e.read) col('events').update(e.id, { read: true });
 };
 
 ACT.pointsLog = () => {
   const ps = list('points').filter((p) => p.uid === me()).sort((a, b) => b.at - a.at).slice(0, 80);
-  openModal(`${mhead('🪙 我的點數')}
+  openModal(`${mhead('<i data-ic="coin"></i> 我的點數')}
     <div class="row" style="gap:14px;margin-bottom:10px">
       <div class="card grow center" style="margin:0"><div class="fund-num">${balance(me())}</div><div class="small muted">點數</div></div>
       <div class="card grow center" style="margin:0"><div class="fund-num">${tickets(me())}</div><div class="small muted">扭蛋券</div></div>
@@ -615,47 +816,54 @@ ACT.pointsLog = () => {
 ACT.settings = () => {
   const p = prof(me());
   const c = S.couple;
-  const m = openModal(`${mhead('⚙️ 設定')}
+  const m = openModal(`${mhead('<i data-ic="gear"></i> 設定')}
     <div class="card">
       <h3>我的資料</h3>
-      <div class="row"><div style="width:70px"><label>頭像</label><input id="s-em" maxlength="2" value="${esc(p.emoji || '')}" style="text-align:center;font-size:22px"></div>
-      <div class="grow"><label>暱稱</label><input id="s-nk" maxlength="12" value="${esc(p.nick || '')}"></div></div>
+      <label>頭像</label>
+      <div class="av-grid" id="s-av">${Object.entries(AVATARS).map(([k, a]) => `<button data-av="${k}" class="${p.av === k ? 'on' : ''}" title="${a.name}"><span class="av">${avatarSVG(k)}</span></button>`).join('')}
+        <button data-av="" class="av-emoji ${p.av && AVATARS[p.av] ? '' : 'on'}" title="用 Emoji"><span class="av"><input id="s-em" maxlength="2" value="${esc(p.emoji || '')}" aria-label="Emoji 頭像"></span></button></div>
+      <p class="small muted" style="margin:2px 0 0">最後一格可以自己輸入任何 Emoji</p>
+      <label>暱稱</label><input id="s-nk" maxlength="12" value="${esc(p.nick || '')}">
       <label>我的生日（月-日）</label><input id="s-bd" value="${esc(p.bday || '')}" placeholder="03-16">
     </div>
     <div class="card">
       <h3>我們</h3>
       <label>在一起的日子</label><input id="s-an" type="date" value="${esc(c.dates?.anniversary || '')}">
       <label>尺度上限（兩人都打開才會出現更高的等級）</label>
-      <div class="seg" id="s-sp">${[1, 2, 3].map((l) => `<button data-l="${l}" class="${(p.spice || 1) === l ? 'on' : ''}">${D.SPICE[l].icon} ${D.SPICE[l].label}</button>`).join('')}</div>
-      <p class="small muted" style="margin:0" id="s-lv">目前兩人共同等級：${D.SPICE[spiceLevel()].icon} ${D.SPICE[spiceLevel()].label}</p>
+      <div class="seg" id="s-sp">${[1, 2, 3].map((l) => `<button data-l="${l}" class="${(p.spice || 1) === l ? 'on' : ''}">${spiceIc(l)} ${D.SPICE[l].label}</button>`).join('')}</div>
+      <p class="small muted" style="margin:0" id="s-lv">目前兩人共同等級：${spiceIc(spiceLevel())} ${D.SPICE[spiceLevel()].label}</p>
     </div>
     <button class="btn block" id="s-save">儲存</button>
     <div class="card mt">
       <h3>更多</h3>
-      <div class="list-row" data-act="poolManager"><span class="lr-i">🎰</span><span class="grow">管理扭蛋卡池</span>›</div>
-      <div class="list-row" data-act="backup"><span class="lr-i">☁️</span><span class="grow">備份與還原<div class="small muted">每週自動備份，也可以存一份到手機</div></span>›</div>
-      <div class="list-row" data-act="invite"><span class="lr-i">🔑</span><span class="grow">邀請碼 ${esc(S.cid)}</span>›</div>
-      <div class="list-row" id="s-noti"><span class="lr-i">🔔</span><span class="grow">開啟瀏覽器通知<div class="small muted">開著 app 的時候才收得到，內容一律低調</div></span>›</div>
-      <div class="list-row" data-act="theme"><span class="lr-i">🕯️</span><span class="grow">切換日夜模式（自動／白天／夜晚）</span>›</div>
+      <div class="list-row" data-act="poolManager"><span class="lr-i"><i data-ic="gacha"></i></span><span class="grow">管理扭蛋卡池</span>›</div>
+      <div class="list-row" data-act="backup"><span class="lr-i"><i data-ic="cloud"></i></span><span class="grow">備份與還原<div class="small muted">每週自動備份，也可以存一份到手機</div></span>›</div>
+      <div class="list-row" data-act="invite"><span class="lr-i"><i data-ic="key"></i></span><span class="grow">邀請碼 ${esc(S.cid)}</span>›</div>
+      <div class="list-row" id="s-noti"><span class="lr-i"><i data-ic="bell"></i></span><span class="grow">開啟瀏覽器通知<div class="small muted">開著 app 的時候才收得到，內容一律低調</div></span>›</div>
+      <div class="list-row" data-act="theme"><span class="lr-i"><i data-ic="candle"></i></span><span class="grow">切換日夜模式（自動／白天／夜晚）</span>›</div>
       ${S.store.mode === 'demo'
-        ? `<div class="list-row" data-act="demoSwitch"><span class="lr-i">🔁</span><span class="grow">切換成對方身份</span>›</div>
-           <div class="list-row" id="s-reset"><span class="lr-i">🧹</span><span class="grow">清空試玩資料</span>›</div>`
-        : `<div class="list-row" id="s-out"><span class="lr-i">🚪</span><span class="grow">登出</span>›</div>`}
+        ? `<div class="list-row" data-act="demoSwitch"><span class="lr-i"><i data-ic="swap"></i></span><span class="grow">切換成對方身份</span>›</div>
+           <div class="list-row" id="s-reset"><span class="lr-i"><i data-ic="trash"></i></span><span class="grow">清空試玩資料</span>›</div>`
+        : `<div class="list-row" id="s-out"><span class="lr-i"><i data-ic="logout"></i></span><span class="grow">登出</span>›</div>`}
     </div>
     <p class="center small muted">兩人遊樂園 · 做給我們兩個 💗</p>`);
   let sp = p.spice || 1;
+  let av = p.av && AVATARS[p.av] ? p.av : '';
+  const avPick = (k) => { av = k; $$('#s-av button', m).forEach((x) => x.classList.toggle('on', x.dataset.av === k)); };
+  $$('#s-av button', m).forEach((b) => b.onclick = () => { avPick(b.dataset.av); if (!b.dataset.av) $('#s-em', m).focus(); });
+  $('#s-em', m).oninput = () => avPick('');
   $$('#s-sp button', m).forEach((b) => b.onclick = () => { sp = +b.dataset.l; $$('#s-sp button', m).forEach((x) => x.classList.toggle('on', x === b)); });
   $('#s-save', m).onclick = async () => {
     const bd = $('#s-bd', m).value.trim();
     if (bd && !/^\d{2}-\d{2}$/.test(bd)) return toast('生日格式是 月-日，例如 03-16');
     await S.store.updateCouple(S.cid, {
-      [`profiles.${me()}`]: { ...p, nick: $('#s-nk', m).value.trim() || p.nick, emoji: $('#s-em', m).value.trim() || p.emoji, bday: bd || p.bday, spice: sp },
+      [`profiles.${me()}`]: { ...p, nick: $('#s-nk', m).value.trim() || p.nick, av, emoji: $('#s-em', m).value.trim() || p.emoji, bday: bd || p.bday, spice: sp },
       'dates.anniversary': $('#s-an', m).value || c.dates?.anniversary,
     });
     // 儲存後留在設定頁，按鈕短暫顯示「已儲存」
     const btn = $('#s-save', m);
     btn.textContent = '已儲存 ✓'; btn.disabled = true;
-    setTimeout(() => { btn.textContent = '儲存'; btn.disabled = false; const lv = $('#s-lv', m); if (lv) lv.textContent = `目前兩人共同等級：${D.SPICE[spiceLevel()].icon} ${D.SPICE[spiceLevel()].label}`; }, 1200);
+    setTimeout(() => { btn.textContent = '儲存'; btn.disabled = false; const lv = $('#s-lv', m); if (lv) lv.innerHTML = `目前兩人共同等級：${spiceIc(spiceLevel())} ${D.SPICE[spiceLevel()].label}`; }, 1200);
   };
   $('#s-noti', m).onclick = async () => {
     if (!('Notification' in window)) return toast('這個瀏覽器不支援通知。iPhone 要先「加入主畫面」再從主畫面打開');
@@ -702,11 +910,11 @@ function cardEditor({ title, pool = false, give = false, preset = {}, onDelete =
     <label>稀有度</label>
     <div class="rarity-pick" id="ce-r">${D.RARITY_ORDER.map((r) => `<button data-r="${r}" style="--rc:var(--r-${r.toLowerCase()})" class="${t.rarity === r ? 'on' : ''}">${r}</button>`).join('')}</div>
     <label>尺度</label>
-    <div class="seg" id="ce-s">${[1, 2, 3].map((l) => `<button data-l="${l}" class="${t.spice === l ? 'on' : ''}">${D.SPICE[l].icon} ${D.SPICE[l].label}</button>`).join('')}</div>
+    <div class="seg" id="ce-s">${[1, 2, 3].map((l) => `<button data-l="${l}" class="${t.spice === l ? 'on' : ''}">${spiceIc(l)} ${D.SPICE[l].label}</button>`).join('')}</div>
     ${pool ? `<label>誰來兌現</label><select id="ce-g"><option value="">兩個人都可以</option><option value="him">只有男生能兌現（只有女生扭得到）</option><option value="her">只有女生能兌現（只有男生扭得到）</option></select>` : ''}
     ${give ? `<div class="row"><div class="grow"><label>張數</label><input id="ce-q" type="number" min="1" max="20" value="${t.qty}"></div>
       <div class="grow"><label>限時</label><select id="ce-l"><option value="none">不限時</option><option value="7d">7 天內有效</option><option value="weekend">週末限定</option><option value="today">今天限定</option></select></div></div>` : ''}
-    <div class="toggle mt"><label class="switch"><input type="checkbox" id="ce-m" ${t.mystery ? 'checked' : ''}><span></span></label><span class="small">🎁 神秘盲盒（內容先藏起來，兌換時才揭曉）</span></div>
+    <div class="toggle mt"><label class="switch"><input type="checkbox" id="ce-m" ${t.mystery ? 'checked' : ''}><span></span></label><span class="small"><i data-ic="gift"></i> 神秘盲盒（內容先藏起來，兌換時才揭曉）</span></div>
     <div id="ce-sw" class="${t.mystery && give ? '' : 'hidden'}"><label>盲盒裡的真正內容</label><input id="ce-sec" maxlength="60" placeholder="兌換時才會顯示" value="${esc(t.secret)}"></div>
     <button class="btn block mt" id="ce-ok">${give ? '送出 💌' : '儲存'}</button>
     ${onDelete ? '<button class="btn ghost block mt" id="ce-del" style="color:#d4405f">從卡池刪除</button>' : ''}`);
@@ -763,15 +971,15 @@ function countdowns() {
   const annY = +annStr.slice(0, 4);
   const items = [];
   const a = nextOf(annStr.slice(5));
-  items.push({ name: `${a.date.getFullYear() - annY} 週年`, ...a, icon: '💞' });
+  items.push({ name: `${a.date.getFullYear() - annY} 週年`, ...a, icon: '<i data-ic="heart"></i>' });
   for (const u of c.members) {
     const p = prof(u); if (!p.bday) continue;
-    items.push({ name: `${p.nick || ''}生日`, ...nextOf(p.bday), icon: '🎂' });
+    items.push({ name: `${p.nick || ''}生日`, ...nextOf(p.bday), icon: '<i data-ic="cake"></i>' });
   }
-  items.push({ name: '情人節', ...nextOf('02-14'), icon: '🌹' });
-  items.push({ name: '聖誕節', ...nextOf('12-25'), icon: '🎄' });
+  items.push({ name: '情人節', ...nextOf('02-14'), icon: '<i data-ic="rose"></i>' });
+  items.push({ name: '聖誕節', ...nextOf('12-25'), icon: '<i data-ic="tree"></i>' });
   const dt = daysTogether(), next100 = Math.ceil((dt + 1) / 100) * 100;
-  items.push({ name: `第 ${next100} 天`, days: next100 - dt, icon: '💯' });
+  items.push({ name: `第 ${next100} 天`, days: next100 - dt, icon: '<i data-ic="hundred"></i>' });
   return items.sort((x, y) => x.days - y.days);
 }
 
@@ -781,24 +989,24 @@ function homeTodos() {
   const p = partner();
   if (!p) t.push({ icon: '🔑', text: '對方還沒加入，把邀請碼傳給對方', act: 'invite', btn: '邀請' });
   const ns = list('cards').filter((c) => c.owner === me() && !c.scratched).length;
-  if (ns) t.push({ icon: '🎟️', text: `有 ${ns} 張新票券等你刮開`, act: 'goScratch', btn: '去刮' });
+  if (ns) t.push({ icon: '<i data-ic="ticket"></i>', text: `有 ${ns} 張新票券等你刮開`, act: 'goScratch', btn: '去刮' });
   const wl = list('wishes').filter((w) => w.status === 'pending' && w.by !== me()).length;
-  if (wl) t.push({ icon: '🌠', text: `${nick(p)} 在許願池許了 ${wl} 個願`, act: 'wishes', btn: '看看' });
+  if (wl) t.push({ icon: '<i data-ic="shooting"></i>', text: `${nick(p)} 在許願池許了 ${wl} 個願`, act: 'wishes', btn: '看看' });
   for (const c of list('cards').filter((c) => c.mystery && !c.secret && c.from === me() && c.owner !== me())) {
-    t.push({ icon: '🎁', text: `${nick(c.owner)} 扭到了神秘盲盒，換你偷偷寫內容`, act: 'writeSecret', id: c.id, btn: '去寫' });
+    t.push({ icon: '<i data-ic="gift"></i>', text: `${nick(c.owner)} 扭到了神秘盲盒，換你偷偷寫內容`, act: 'writeSecret', id: c.id, btn: '去寫' });
   }
   for (const b of list('battles')) {
-    if (b.status === 'claimed' && b.claimer !== me()) t.push({ icon: '⚔️', text: `${nick(b.claimer)} 說自己完成挑戰「${b.task}」了`, act: 'battleJudge', id: b.id, btn: '確認' });
-    if (b.status === 'done' && b.loser === me() && !b.paid) t.push({ icon: '🏳️', text: `挑戰輸了，要發一張卡給 ${nick(b.winner)}`, act: 'battlePay', id: b.id, btn: '發卡' });
+    if (b.status === 'claimed' && b.claimer !== me()) t.push({ icon: '<i data-ic="swords"></i>', text: `${nick(b.claimer)} 說自己完成挑戰「${b.task}」了`, act: 'battleJudge', id: b.id, btn: '確認' });
+    if (b.status === 'done' && b.loser === me() && !b.paid) t.push({ icon: '<i data-ic="flag"></i>', text: `挑戰輸了，要發一張卡給 ${nick(b.winner)}`, act: 'battlePay', id: b.id, btn: '發卡' });
   }
   for (const c of list('cards').filter((c) => c.owner === p && c.swapReq)) {
-    t.push({ icon: '🔄', text: `${nick(p)} 想把「${c.title}」換一張`, act: 'swapJudge', id: c.id, btn: '看看' });
+    t.push({ icon: '<i data-ic="swap"></i>', text: `${nick(p)} 想把「${c.title}」換一張`, act: 'swapJudge', id: c.id, btn: '看看' });
   }
   const tr = S.couple.taskSwapReq;
-  if (tr && tr.by !== me() && tr.wk === weekKey()) t.push({ icon: '🔄', text: `${nick(tr.by)} 想換掉每週任務「${weekTasks()[tr.i] || ''}」`, act: 'tab', tab: 'play', btn: '去看' });
+  if (tr && tr.by !== me() && tr.wk === weekKey()) t.push({ icon: '<i data-ic="swap"></i>', text: `${nick(tr.by)} 想換掉每週任務「${weekTasks()[tr.i] || ''}」`, act: 'tab', tab: 'play', btn: '去看' });
   if (needDownloadReminder()) t.push({ icon: '☁️', text: '這個月還沒把備份存到手機', act: 'downloadBackup', btn: '下載' });
   const caps = list('capsules').filter((c) => c.openAt <= now() && !(c.opened || {})[me()]).length;
-  if (caps) t.push({ icon: '⏳', text: `有 ${caps} 封時光膠囊可以打開了`, act: 'goCapsule', btn: '打開' });
+  if (caps) t.push({ icon: '<i data-ic="hourglass"></i>', text: `有 ${caps} 封時光膠囊可以打開了`, act: 'goCapsule', btn: '打開' });
   return t;
 }
 ACT.goScratch = () => { S.tab = 'wallet'; S.sub.wallet = 'mine'; render(); window.scrollTo(0, 0); };
@@ -821,26 +1029,26 @@ PAGES.home = {
     <div class="card hero">
       <div class="small muted">我們在一起</div>
       <div class="days">第 ${money(daysTogether())} <small>天</small></div>
-      <div class="couple"><span>${avatar(me())} ${esc(nick(me()))}</span><span class="heart">💗</span><span>${p ? `${avatar(p)} ${esc(nick(p))}` : '<span class="muted">等待對方加入…</span>'}</span></div>
+      <div class="couple"><span>${avatar(me())} ${esc(nick(me()))}</span><span class="heart"><i data-ic="heart" class="ic-fill"></i></span><span>${p ? `${avatar(p)} ${esc(nick(p))}` : '<span class="muted">等待對方加入…</span>'}</span></div>
       <div class="countdowns">${cds.map((x) => `<div class="cd ${x.days === 0 ? 'today' : ''}">${x.icon} ${esc(x.name)}<b>${x.days === 0 ? '就是今天！' : x.days + ' 天'}</b></div>`).join('')}</div>
     </div>
 
-    ${todos.length ? `<div class="card"><h3>📌 待辦</h3>${todos.map((t) => `<div class="todo-item"><span class="ti">${t.icon}</span><span class="grow">${esc(t.text)}</span>
+    ${todos.length ? `<div class="card"><h3><i data-ic="pushpin"></i> 待辦</h3>${todos.map((t) => `<div class="todo-item"><span class="ti">${t.icon}</span><span class="grow">${esc(t.text)}</span>
       <button class="btn sm" data-act="${t.act}" ${t.id ? `data-id="${t.id}"` : ''} ${t.tab ? `data-tab="${t.tab}"` : ''}>${t.btn}</button></div>`).join('')}</div>` : ''}
 
     <div class="card">
-      <h3>🌦️ 心情天氣 <span class="sub">點自己的換心情</span></h3>
+      <h3><i data-ic="weather"></i> 心情天氣 <span class="sub">點自己的換心情</span></h3>
       <div class="mood-row">
-        <button class="mood-box" data-act="mood"><div class="mi">${mm ? mm.icon : '❔'}</div><b>${mm ? esc(mm.label) : '還沒設定'}</b><div class="who">${esc(nick(me()))}${mm ? ' · ' + ago(mm.at) : ''}</div></button>
-        <div class="mood-box"><div class="mi">${pm ? pm.icon : '❔'}</div><b>${pm ? esc(pm.label) : '還沒設定'}</b><div class="who">${p ? esc(nick(p)) : '對方'}${pm ? ' · ' + ago(pm.at) : ''}</div>
+        <button class="mood-box" data-act="mood"><div class="mi">${mm ? moodIc(mm.icon) : '<i data-ic="weather" class="ic-faint"></i>'}</div><b>${mm ? esc(mm.label) : '還沒設定'}</b><div class="who">${esc(nick(me()))}${mm ? ' · ' + ago(mm.at) : ''}</div></button>
+        <div class="mood-box"><div class="mi">${pm ? moodIc(pm.icon) : '<i data-ic="weather" class="ic-faint"></i>'}</div><b>${pm ? esc(pm.label) : '還沒設定'}</b><div class="who">${p ? esc(nick(p)) : '對方'}${pm ? ' · ' + ago(pm.at) : ''}</div>
           ${pm && (pm.icon === '🌧️' || pm.icon === '⛈️') ? '<div class="small" style="color:var(--accent);font-weight:700">需要哄哄！</div>' : ''}</div>
       </div>
     </div>
 
     <div class="card">
-      <h3>💗 想你按鈕</h3>
+      <h3><i data-ic="heart"></i> 想你按鈕</h3>
       <div class="miss-wrap">
-        <button class="miss-btn" data-act="miss" id="missbtn">💗</button>
+        <button class="miss-btn" data-act="miss" id="missbtn"><i data-ic="heart" class="ic-fill"></i></button>
         <div class="grow small">
           <div>今天我想了 ${esc(nick(p))} <b style="font-size:18px;color:var(--accent)">${myToday}</b> 次</div>
           <div>今天 ${esc(nick(p))} 想了我 <b style="font-size:18px;color:var(--accent)">${theirToday}</b> 次</div>
@@ -852,7 +1060,7 @@ PAGES.home = {
     ${dailyCardHTML()}
 
     <div class="card">
-      <h3>💌 情話小紙條</h3>
+      <h3><i data-ic="letter"></i> 情話小紙條</h3>
       <p class="small muted" style="margin:0 0 10px">寫一張小紙條，它會偷偷藏在 app 的某個角落，等 ${esc(nick(p))} 自己發現。</p>
       <div class="row"><button class="btn" data-act="writeNote">藏一張小紙條</button>
         <span class="small muted">${list('notes').filter((n) => n.by === me() && !n.found).length} 張還沒被找到</span></div>
@@ -864,7 +1072,7 @@ PAGES.home = {
 ACT.mood = () => {
   const cur = (S.couple.moods || {})[me()];
   const m = openModal(`${mhead('今天的心情天氣')}
-    <div class="mood-pick">${D.MOODS.map((x, i) => `<button data-i="${i}" class="${cur && cur.icon === x.icon ? 'on' : ''}"><span>${x.icon}</span>${x.label}<small class="muted">${x.hint}</small></button>`).join('')}</div>`, { center: true });
+    <div class="mood-pick">${D.MOODS.map((x, i) => `<button data-i="${i}" class="${cur && cur.icon === x.icon ? 'on' : ''}"><span><i data-ic="${x.ic}"></i></span>${x.label}<small class="muted">${x.hint}</small></button>`).join('')}</div>`, { center: true });
   $$('[data-i]', m).forEach((b) => b.onclick = async () => {
     const x = D.MOODS[+b.dataset.i];
     await S.store.updateCouple(S.cid, { [`moods.${me()}`]: { icon: x.icon, label: x.label, at: now() } });
@@ -902,10 +1110,10 @@ function dailyCardHTML() {
   const p = partner();
   const mine = ans[me()], theirs = p ? ans[p] : null;
   return `<div class="card">
-    <h3>💬 每日一問 <span class="sub"><button class="link" data-act="dailyHistory">看以前的</button></span></h3>
+    <h3><i data-ic="chat"></i> 每日一問 <span class="sub"><button class="link" data-act="dailyHistory">看以前的</button></span></h3>
     <div style="font-family:var(--serif);font-size:17px;font-weight:700;margin-bottom:10px">${esc(q)}</div>
     ${mine ? `<div class="todo-item" style="display:block"><div class="small muted">${esc(nick(me()))}</div>${esc(mine)}</div>
-      <div class="todo-item" style="display:block"><div class="small muted">${esc(nick(p))}</div>${theirs ? esc(theirs) : '<span class="muted">🔒 等對方回答後就看得到</span>'}</div>`
+      <div class="todo-item" style="display:block"><div class="small muted">${esc(nick(p))}</div>${theirs ? esc(theirs) : '<span class="muted"><i data-ic="lock"></i> 等對方回答後就看得到</span>'}</div>`
       : `<textarea id="daily-in" placeholder="寫下你的答案…（兩人都回答才看得到對方的）"></textarea>
          <div class="row mt"><button class="btn" data-act="dailyAnswer">送出 +${D.POINTS.daily} 點</button>
          <span class="small muted">${theirs ? `${esc(nick(p))} 已經回答了，快來看` : ''}</span></div>`}
@@ -925,10 +1133,10 @@ ACT.dailyAnswer = async () => {
 ACT.dailyHistory = () => {
   const p = partner();
   const ds = list('daily').filter((d) => d.answers && d.answers[me()] && p && d.answers[p]).sort((a, b) => b.id.localeCompare(a.id));
-  openModal(`${mhead('💬 以前的每日一問')}
+  openModal(`${mhead('<i data-ic="chat"></i> 以前的每日一問')}
     ${ds.map((d) => `<div class="card"><div class="small muted">${d.id}</div><b style="font-family:var(--serif)">${esc(D.DAILY_QUESTIONS[d.qi] || '')}</b>
       <div class="small mt"><b>${esc(nick(me()))}：</b>${esc(d.answers[me()])}</div><div class="small"><b>${esc(nick(p))}：</b>${esc(d.answers[p])}</div></div>`).join('')
-      || '<div class="empty"><span class="big">💬</span>兩人都回答過的題目會出現在這裡</div>'}`);
+      || '<div class="empty"><span class="big"><i data-ic="chat"></i></span>兩人都回答過的題目會出現在這裡</div>'}`);
 };
 
 // ---------- 情話小紙條 ----------
@@ -944,7 +1152,7 @@ function placeHiddenNotes(main) {
   for (const n of list('notes')) {
     if (n.to !== me() || n.found || !n.spot || n.spot.tab !== S.tab) continue;
     const b = document.createElement('button');
-    b.className = 'hidden-note'; b.textContent = '💌';
+    b.className = 'hidden-note'; b.innerHTML = ic('letter');
     b.dataset.act = 'findNote'; b.dataset.id = n.id;
     b.style.left = n.spot.x + '%'; b.style.top = n.spot.y + '%';
     main.appendChild(b);
@@ -954,7 +1162,7 @@ ACT.findNote = async (el) => {
   const n = list('notes').find((x) => x.id === el.dataset.id);
   if (!n) return;
   vibrate(40); confetti(40, ['#ff6f91', '#ffc2d1', '#fff']);
-  openModal(`${mhead('💌 你找到一張小紙條！')}
+  openModal(`${mhead('<i data-ic="letter"></i> 你找到一張小紙條！')}
     <div class="letter">${esc(n.text)}</div>
     <p class="small muted center">—— ${esc(nick(n.by))} · ${fmtFull(n.at)}</p>`, { center: true });
   await col('notes').update(n.id, { found: true, foundAt: now() });
@@ -1420,7 +1628,7 @@ function ticketHTML(c, { act = 'openCard', showFrom = true, showOwner = false } 
   if (c.series) meta.push(`<span class="chip">${esc(c.series)}</span>`);
   if (c.weekendOnly) meta.push('<span class="chip">週末限定</span>');
   if (c.expiresAt && !exp && rem > 0) meta.push(`<span class="chip">⏰ ${fmtDate(c.expiresAt)} 前</span>`);
-  if ((c.spice || 1) > 1) meta.push(`<span class="chip">${D.SPICE[c.spice].icon}</span>`);
+  if ((c.spice || 1) > 1) meta.push(`<span class="chip">${spiceIc(c.spice)}</span>`);
   if (c.mystery && !c.secret) meta.push('<span class="chip">等待對方寫內容</span>');
   return `<div class="ticket ${c.rarity} emb-${embPalette(c)} ${used ? 'used' : ''} ${exp ? 'expired used' : ''} ${hideMystery ? 'mystery' : ''} ${collect ? 'collect' : ''}" ${act ? `data-act="${act}" data-id="${c.id}"` : ''}>
     <div class="stub"><span class="rk">${collect ? '珍' : R.name}</span><span class="rl">${collect ? '珍藏' : R.label}</span></div>
@@ -1441,7 +1649,7 @@ PAGES.wallet = {
     const sub = S.sub.wallet;
     const tabs = [['mine', '我的票夾'], ['sent', '我送出的'], ['wish', '許願池'], ['craft', '合成'], ['book', '收藏冊']];
     const wishN = list('wishes').filter((w) => w.status === 'pending' && w.by !== me()).length;
-    return `<div class="page-title"><h2>🎟️ 票夾</h2><span>${list('cards').filter((c) => c.owner === me() && c.kind !== 'collect' && remaining(c) > 0 && !isExpired(c)).length} 種可以用</span></div>
+    return `<div class="page-title"><h2><i data-ic="ticket"></i> 票夾</h2><span>${list('cards').filter((c) => c.owner === me() && c.kind !== 'collect' && remaining(c) > 0 && !isExpired(c)).length} 種可以用</span></div>
       <div class="seg">${tabs.map(([k, n]) => `<button class="${sub === k ? 'on' : ''}" data-act="sub" data-page="wallet" data-sub="${k}">${n}${k === 'wish' && wishN ? ` (${wishN})` : ''}</button>`).join('')}</div>
       ${({ mine: walletMine, sent: walletSent, wish: walletWish, craft: walletCraft, book: walletBook }[sub] || walletMine)()}`;
   },
@@ -1456,18 +1664,18 @@ function walletMine() {
   if (filter === 'used') cards = cards.filter((c) => remaining(c) === 0 || isExpired(c));
   cards.sort((a, b) => (filter === 'ok' ? rarityRank(b.rarity) - rarityRank(a.rarity) : 0) || b.at - a.at);
   return `
-    ${fresh.length ? `<div class="card"><h3>✨ 新票券 <span class="sub">刮開看看是什麼</span></h3>
+    ${fresh.length ? `<div class="card"><h3><i data-ic="sparkle"></i> 新票券 <span class="sub">刮開看看是什麼</span></h3>
       <div class="new-tickets">${fresh.map((c) => `<button class="scratch-thumb" data-act="scratch" data-id="${c.id}"><span class="q">?</span>刮刮卡<span class="small">${c.from === 'sys' ? '遊樂園送的' : '來自 ' + esc(nick(c.from))}</span></button>`).join('')}</div></div>` : ''}
-    <button class="btn block" data-act="giveCard" style="margin-bottom:14px">💌 發一張卡給 ${esc(nick(partner()))}</button>
+    <button class="btn block" data-act="giveCard" style="margin-bottom:14px"><i data-ic="letter"></i> 發一張卡給 ${esc(nick(partner()))}</button>
     <div class="seg">${[['ok', '可以用'], ['used', '用過的'], ['all', '全部']].map(([k, n]) => `<button class="${filter === k ? 'on' : ''}" data-act="walletFilter" data-f="${k}">${n}</button>`).join('')}</div>
-    ${cards.length ? cards.map((c) => ticketHTML(c)).join('') : `<div class="empty"><span class="big">🎟️</span>${filter === 'ok' ? '目前沒有可以用的票券<br>去遊樂區扭蛋，或許個願吧' : '這裡空空的'}</div>`}`;
+    ${cards.length ? cards.map((c) => ticketHTML(c)).join('') : `<div class="empty"><span class="big"><i data-ic="ticket"></i></span>${filter === 'ok' ? '目前沒有可以用的票券<br>去遊樂區扭蛋，或許個願吧' : '這裡空空的'}</div>`}`;
 }
 ACT.walletFilter = (el) => { S.walletFilter = el.dataset.f; render(); };
 
 function walletSent() {
   const sent = list('cards').filter((c) => c.from === me() && c.owner !== me() && c.kind !== 'collect').sort((a, b) => b.at - a.at);
   return `<p class="small muted" style="margin:0 0 10px">你送給 ${esc(nick(partner()))} 的票券。對方兌換的時候，你會收到通知，記得兌現喔 😉</p>
-    ${sent.length ? sent.map((c) => ticketHTML({ ...c, mystery: false }, { showFrom: false, act: 'openSent' })).join('') : '<div class="empty"><span class="big">💌</span>還沒送出任何票券</div>'}`;
+    ${sent.length ? sent.map((c) => ticketHTML({ ...c, mystery: false }, { showFrom: false, act: 'openSent' })).join('') : '<div class="empty"><span class="big"><i data-ic="letter"></i></span>還沒送出任何票券</div>'}`;
 }
 ACT.openSent = (el) => {
   const c = list('cards').find((x) => x.id === el.dataset.id); if (!c) return;
@@ -1509,9 +1717,9 @@ async function sendAnimation(t, to) {
       <div class="sa-flap" id="sa-fl"></div>
       <div class="sa-env-back"></div>
       <div class="sa-card" id="sa-cd" style="--rc:${R.color}"><div class="sa-stub" style="${t.rarity === 'SSR' ? 'background:var(--ssr-grad);color:#4a2508' : ''}">${R.name}</div>
-        <div class="sa-body">${t.mystery ? '🎁 神秘盲盒' : esc(t.title)}</div></div>
+        <div class="sa-body">${t.mystery ? '神秘盲盒' : esc(t.title)}</div></div>
       <div class="sa-env-front"></div>
-      <div class="sa-seal" id="sa-sl">💗</div>
+      <div class="sa-seal" id="sa-sl"><i data-ic="heart" class="ic-fill"></i></div>
     </div>
     <div class="sa-text" id="sa-tx">送給 ${esc(nick(to))} 了 💌<small>等對方刮開吧</small></div>`;
   document.body.appendChild(el);
@@ -1558,8 +1766,8 @@ ACT.scratch = (el) => {
     <p class="center small muted" style="margin:0">${c.from === 'sys' ? '遊樂園送你的' : esc(nick(c.from)) + ' 送你的'}，用手指刮開 👆</p>
     <div class="scratch-area" id="sa">
       <div class="under" style="--rc:${R.color}">
-        <div class="rk" style="color:${R.color}">${c.kind === 'collect' ? '💝 珍藏' : R.name + ' · ' + R.label}</div>
-        <div class="tt">${c.mystery ? '🎁 神秘盲盒' : esc(c.title)}</div>
+        <div class="rk" style="color:${R.color}">${c.kind === 'collect' ? '珍藏' : R.name + ' · ' + R.label}</div>
+        <div class="tt">${c.mystery ? '神秘盲盒' : esc(c.title)}</div>
         <div class="small muted">${c.mystery ? '兌換時才揭曉' : esc(c.desc || '')}</div>
       </div>
       <canvas id="sc"></canvas>
@@ -1717,15 +1925,15 @@ function walletWish() {
   const ws = list('wishes').sort((a, b) => (a.status === 'pending' ? -1 : 0) - (b.status === 'pending' ? -1 : 0) || b.at - a.at);
   const theirs = ws.filter((w) => w.by !== me() && w.status === 'pending');
   const rest = ws.filter((w) => !(w.by !== me() && w.status === 'pending'));
-  const st = { pending: '⏳ 等待中', ok: '✨ 實現了', no: '💤 下次吧' };
+  const st = { pending: '<i data-ic="hourglass"></i> 等待中', ok: '<i data-ic="sparkle"></i> 實現了', no: '<i data-ic="w_sleep"></i> 下次吧' };
   return `<div class="card center" style="background:linear-gradient(160deg,color-mix(in srgb,var(--r-sr) 22%,var(--card)),var(--card))">
-      <div style="font-size:46px">🌠</div><h3 style="justify-content:center">許願池</h3>
+      <div style="font-size:46px"><i data-ic="shooting"></i></div><h3 style="justify-content:center">許願池</h3>
       <p class="small muted" style="margin:0 0 10px">想要什麼票券，就對流星許願吧。${esc(nick(partner()))} 點頭，票券就會飛進你的票夾。</p>
       <button class="btn" data-act="makeWish">許一個願</button></div>
     ${theirs.length ? `<h3 style="margin:4px 2px 8px">${esc(nick(partner()))} 的願望</h3>${theirs.map((w) => `<div class="card"><div class="row"><span class="chip" style="color:var(--r-${w.rarity.toLowerCase()})">${w.rarity}</span><b class="grow" style="font-family:var(--serif)">${esc(w.title)}</b></div>
       ${w.note ? `<p class="small muted" style="margin:6px 0 0">${esc(w.note)}</p>` : ''}
       <div class="btn-row"><button class="btn ghost sm" data-act="wishNo" data-id="${w.id}">下次吧</button><button class="btn sm" data-act="wishOk" data-id="${w.id}">✨ 實現願望</button></div></div>`).join('')}` : ''}
-    ${rest.length ? `<h3 style="margin:10px 2px 8px">願望紀錄</h3>${rest.map((w) => `<div class="list-row"><span class="lr-i">${w.by === me() ? '🙋' : '💁'}</span><span class="grow">${esc(w.title)}<div class="small muted">${esc(nick(w.by))} · ${fmtDate(w.at)}</div></span><span class="small">${st[w.status]}</span></div>`).join('')}` : ''}`;
+    ${rest.length ? `<h3 style="margin:10px 2px 8px">願望紀錄</h3>${rest.map((w) => `<div class="list-row"><span class="lr-i">${w.by === me() ? '<i data-ic="star"></i>' : '<i data-ic="heart"></i>'}</span><span class="grow">${esc(w.title)}<div class="small muted">${esc(nick(w.by))} · ${fmtDate(w.at)}</div></span><span class="small">${st[w.status]}</span></div>`).join('')}` : ''}`;
 }
 ACT.makeWish = () => {
   if (!partner()) return toast('對方加入後才能許願');
@@ -1768,7 +1976,7 @@ function walletCraft() {
   const total = craftTotal(), r = craftRarity();
   const to = r ? D.RARITY_ORDER[rarityRank(r) + 1] : '';
   const groups = ['N', 'R', 'SR'].map((rr) => [rr, cs.filter((c) => c.rarity === rr).sort((a, b) => a.title.localeCompare(b.title))]).filter(([, a]) => a.length);
-  return `<div class="card center"><div style="font-size:40px">⚗️</div><h3 style="justify-content:center">合成工坊</h3>
+  return `<div class="card center"><div style="font-size:40px"><i data-ic="flask"></i></div><h3 style="justify-content:center">合成工坊</h3>
       <p class="small muted" style="margin:0">挑 ${n} 張<b>同稀有度</b>、不想要的票券，合成 1 張高一級的隨機卡（從卡池抽，由 ${esc(nick(partner()))} 兌現）</p></div>
     <div class="craft-bar card">
       <div class="row"><div class="grow"><b style="font-family:var(--serif);font-size:17px">已選 ${total} / ${n}</b>${r ? ` <span class="chip" style="color:var(--r-${r.toLowerCase()})">${r}</span>` : ''}
@@ -1787,7 +1995,7 @@ function walletCraft() {
           ${!off && sel < rem && total < n ? `<button class="craft-plus" data-act="craftAdd" data-id="${c.id}">＋</button>` : ''}
         </div>`;
       }).join('')}`).join('')
-      : '<div class="empty"><span class="big">⚗️</span>目前沒有可以合成的票券</div>'}
+      : '<div class="empty"><span class="big"><i data-ic="flask"></i></span>目前沒有可以合成的票券</div>'}
     <p class="small muted center" style="margin-top:12px">SSR、生日／節日／旅行等系列卡、收藏卡和神秘盲盒不能合成</p>`;
 }
 ACT.craftAdd = (el, e) => {
@@ -1819,7 +2027,7 @@ ACT.craft = async () => {
   }
   S.craftSel = {};
   const tpl = drawFromPool(to, true);
-  const m = openModal(`<div class="center" style="padding:20px 0"><div style="font-size:70px;animation:spin 1s linear infinite">⚗️</div><h2>合成中…</h2></div>`, { center: true });
+  const m = openModal(`<div class="center" style="padding:20px 0"><div style="font-size:70px;animation:spin 1s linear infinite"><i data-ic="flask"></i></div><h2>合成中…</h2></div>`, { center: true });
   await sleep(1300);
   closeModal(m);
   const id = await giveCard(me(), tpl, { from: tpl.by && tpl.by !== 'sys' && tpl.by !== me() ? tpl.by : (partner() || 'sys') });
@@ -1921,15 +2129,15 @@ PAGES.play = {
     const quizNew = q ? !(q.answers || {})[me()] : true;
     const fateUsed = (S.couple.spins || {})[me()] === weekKey();
     const bt = activeBattle();
-    return `<div class="page-title"><h2>🎰 遊樂區</h2><span>🪙 ${balance(me())} 點${tickets(me()) ? ` · 🎫 ${tickets(me())}` : ''}</span></div>
+    return `<div class="page-title"><h2><i data-ic="gacha"></i> 遊樂區</h2><span><i data-ic="coin"></i> ${balance(me())} 點${tickets(me()) ? ` · <i data-ic="ticket"></i> ${tickets(me())}` : ''}</span></div>
     <div class="game-tiles">
       <button class="game-tile wide" data-act="gacha" style="background:linear-gradient(135deg,color-mix(in srgb,var(--accent) 22%,var(--card)),var(--card))">
-        <span class="gi" style="font-size:44px">🎰</span><div class="grow"><b>扭蛋機</b><br><span>${D.POINTS.gachaCost} 點扭一次 · SSR 機率 ${D.RARITY.SSR.weight}%</span></div><span style="font-size:22px">›</span></button>
-      <button class="game-tile" data-act="fate"><span class="gi">🎡</span><b>命運轉盤</b><span>${fateUsed ? '這週轉過了' : '每週免費一次！'}</span>${fateUsed ? '' : '<span class="badge-dot">1</span>'}</button>
-      <button class="game-tile" data-act="food"><span class="gi">🍽️</span><b>今天吃什麼</b><span>選擇障礙救星</span></button>
-      <button class="game-tile" data-act="tod"><span class="gi">🎲</span><b>真心話大冒險</b><span>${D.SPICE[spiceLevel()].icon} 目前：${D.SPICE[spiceLevel()].label}</span></button>
-      <button class="game-tile" data-act="quiz"><span class="gi">🧠</span><b>默契問答</b><span>${quizNew ? '今天的題目來了' : (q && p && q.answers[p] ? '看結果' : '等對方作答')}</span>${quizNew ? '<span class="badge-dot">!</span>' : ''}</button>
-      <button class="game-tile wide" data-act="battle"><span class="gi">⚔️</span><div class="grow"><b>對戰挑戰</b><br><span>${bt ? `進行中：${esc(bt.task)}` : '一週內誰先完成？輸的人發卡'}</span></div><span style="font-size:22px">›</span></button>
+        <span class="gi" style="font-size:44px"><i data-ic="gacha" data-medal></i></span><div class="grow"><b>扭蛋機</b><br><span>${D.POINTS.gachaCost} 點扭一次 · SSR 機率 ${D.RARITY.SSR.weight}%</span></div><span style="font-size:22px">›</span></button>
+      <button class="game-tile" data-act="fate"><span class="gi"><i data-ic="ferris" data-medal></i></span><b>命運轉盤</b><span>${fateUsed ? '這週轉過了' : '每週免費一次！'}</span>${fateUsed ? '' : '<span class="badge-dot">1</span>'}</button>
+      <button class="game-tile" data-act="food"><span class="gi"><i data-ic="dining" data-medal></i></span><b>今天吃什麼</b><span>選擇障礙救星</span></button>
+      <button class="game-tile" data-act="tod"><span class="gi"><i data-ic="dice" data-medal></i></span><b>真心話大冒險</b><span>${spiceIc(spiceLevel())} 目前：${D.SPICE[spiceLevel()].label}</span></button>
+      <button class="game-tile" data-act="quiz"><span class="gi"><i data-ic="minds" data-medal></i></span><b>默契問答</b><span>${quizNew ? '今天的題目來了' : (q && p && q.answers[p] ? '看結果' : '等對方作答')}</span>${quizNew ? '<span class="badge-dot">!</span>' : ''}</button>
+      <button class="game-tile wide" data-act="battle"><span class="gi"><i data-ic="swords" data-medal></i></span><div class="grow"><b>對戰挑戰</b><br><span>${bt ? `進行中：${esc(bt.task)}` : '一週內誰先完成？輸的人發卡'}</span></div><span style="font-size:22px">›</span></button>
     </div>
     ${stampCardHTML()}
     ${weeklyHTML()}`;
@@ -1942,12 +2150,12 @@ ACT.gacha = () => {
     const c = pick(['#ff6f91', '#ffc75f', '#845ec2', '#4fd1c5', '#5a9bf0', '#f9a8d4', '#a3e635']);
     return `<div class="gm-ball" style="--c:${c};left:${8 + (i % 5) * 36 + (Math.floor(i / 5) % 2) * 16}px;top:${110 - Math.floor(i / 5) * 34 + Math.random() * 6}px;transform:rotate(${Math.random() * 360}deg)"></div>`;
   }).join('');
-  const m = openModal(`${mhead('🎰 扭蛋機')}
+  const m = openModal(`${mhead('<i data-ic="gacha"></i> 扭蛋機')}
     <div class="gacha-machine" id="gm"><div class="gm-dome">${balls}</div><div class="gm-base"><div class="gm-knob" id="kn"></div><div class="gm-slot"></div><div class="gm-out" id="go"></div></div></div>
     <div id="gres"></div>
     <div id="gbtns">
-      <div class="btn-row"><button class="btn" id="g-pt">扭一次（${D.POINTS.gachaCost} 點）</button>${tickets(me()) ? `<button class="btn gold" id="g-tk">用扭蛋券 🎫${tickets(me())}</button>` : ''}</div>
-      <p class="center small muted">我的點數：🪙 ${balance(me())} · 機率 N ${D.RARITY.N.weight}% / R ${D.RARITY.R.weight}% / SR ${D.RARITY.SR.weight}% / SSR ${D.RARITY.SSR.weight}%</p>
+      <div class="btn-row"><button class="btn" id="g-pt">扭一次（${D.POINTS.gachaCost} 點）</button>${tickets(me()) ? `<button class="btn gold" id="g-tk">用扭蛋券 <i data-ic="ticket"></i>${tickets(me())}</button>` : ''}</div>
+      <p class="center small muted">我的點數：<i data-ic="coin"></i> ${balance(me())} · 機率 N ${D.RARITY.N.weight}% / R ${D.RARITY.R.weight}% / SR ${D.RARITY.SR.weight}% / SSR ${D.RARITY.SSR.weight}%</p>
     </div>`, { center: true });
   const go = async (useTicket) => {
     if (useTicket) { if (tickets(me()) < 1) return toast('沒有扭蛋券'); }
@@ -2022,9 +2230,9 @@ function weightedIndex(ws) { let x = Math.random() * sum(ws, (w) => w); for (let
 ACT.fate = () => {
   const used = (S.couple.spins || {})[me()] === weekKey();
   const W = D.FATE_WHEEL;
-  const m = openModal(`${mhead('🎡 命運轉盤')}
+  const m = openModal(`${mhead('<i data-ic="ferris"></i> 命運轉盤')}
     <p class="center small muted" style="margin:0">每週免費轉一次，看看這週的運氣</p>
-    <div class="wheel-wrap"><div class="wheel-pointer"></div>${wheelSVG(W.map((x) => x.label))}<div class="wheel-hub">🎡</div></div>
+    <div class="wheel-wrap"><div class="wheel-pointer"></div>${wheelSVG(W.map((x) => x.label))}<div class="wheel-hub"><i data-ic="ferris"></i></div></div>
     <div id="fres"></div>
     <button class="btn block" id="fgo" ${used ? 'disabled' : ''}>${used ? '這週已經轉過了，下週一再來' : '轉！'}</button>`, { center: true });
   $('#fgo', m).onclick = async () => {
@@ -2055,8 +2263,8 @@ ACT.fate = () => {
 // ---------- 今天吃什麼 ----------
 ACT.food = () => {
   const foods = S.couple.food && S.couple.food.length ? S.couple.food : D.DEFAULT_FOOD;
-  const m = openModal(`${mhead('🍽️ 今天吃什麼')}
-    <div class="wheel-wrap"><div class="wheel-pointer"></div>${wheelSVG(foods)}<div class="wheel-hub">🍽️</div></div>
+  const m = openModal(`${mhead('<i data-ic="dining"></i> 今天吃什麼')}
+    <div class="wheel-wrap"><div class="wheel-pointer"></div>${wheelSVG(foods)}<div class="wheel-hub"><i data-ic="dining"></i></div></div>
     <div id="fdres"></div>
     <div class="btn-row"><button class="btn ghost" id="fed">編輯選項</button><button class="btn" id="fsp">轉！</button></div>`, { center: true });
   $('#fsp', m).onclick = async () => {
@@ -2092,12 +2300,12 @@ ACT.tod = () => {
   let turn = ms.includes(localStorage.getItem('park-tod-turn')) ? localStorage.getItem('park-tod-turn') : me();
   const other = (u) => ms.find((x) => x !== u) || u;
   let lv = Math.min(+(localStorage.getItem('park-tod-lv') || 1), max);
-  const m = openModal(`${mhead('🎲 真心話大冒險')}
-    <div class="seg" id="tlv">${[1, 2, 3].map((l) => `<button data-l="${l}" class="${l === lv ? 'on' : ''}" ${l > max ? 'disabled style="opacity:.4"' : ''}>${D.SPICE[l].icon} ${D.SPICE[l].label}${l > max ? ' 🔒' : ''}</button>`).join('')}</div>
+  const m = openModal(`${mhead('<i data-ic="dice"></i> 真心話大冒險')}
+    <div class="seg" id="tlv">${[1, 2, 3].map((l) => `<button data-l="${l}" class="${l === lv ? 'on' : ''}" ${l > max ? 'disabled style="opacity:.4"' : ''}>${spiceIc(l)} ${D.SPICE[l].label}${l > max ? ' 🔒' : ''}</button>`).join('')}</div>
     ${max < 3 ? `<p class="small muted" style="margin:0">想解鎖更高等級？兩人都要到設定裡打開</p>` : ''}
     ${ms.length > 1 ? `<div class="row" style="justify-content:center;gap:8px;margin-top:10px"><span class="small muted">輪到</span>
       <div class="seg" id="tturn" style="padding:0">${ms.map((u) => `<button data-u="${u}" class="${u === turn ? 'on' : ''}">${avatar(u)} ${esc(nick(u))}</button>`).join('')}</div></div>` : ''}
-    <div class="dice" id="dc">🎲</div>
+    <div class="dice" id="dc"><i data-ic="dice"></i></div>
     <div id="tres"></div>
     <div class="btn-row"><button class="btn ghost" data-k="truth">真心話</button><button class="btn" data-k="rand">讓骰子決定</button><button class="btn ghost" data-k="dare">大冒險</button></div>`, { center: true });
   $$('#tlv button', m).forEach((b) => b.onclick = () => { if (+b.dataset.l > max) return; lv = +b.dataset.l; localStorage.setItem('park-tod-lv', lv); $$('#tlv button', m).forEach((x) => x.classList.toggle('on', x === b)); });
@@ -2115,11 +2323,11 @@ ACT.tod = () => {
     for (let l = 1; l <= lv; l++) pool.push(...(k === 'truth' ? D.TRUTH : D.DARE)[l].map((t) => ({ t, l })));
     const pref = pool.filter((x) => x.l === lv);
     const x = Math.random() < .65 && pref.length ? pick(pref) : pick(pool);
-    dc.textContent = k === 'truth' ? '💬' : '🔥';
+    dc.innerHTML = ic(k === 'truth' ? 'chat' : 'w_fire');
     const answerer = turn, asker = other(turn);
     const show = (x) => {
       const txt = ms.length > 1 ? personalize(x.t, nick(asker), nick(answerer)) : x.t;
-      $('#tres', m).innerHTML = `<div class="prompt-card"><div class="small muted" style="font-family:var(--sans)">${k === 'truth' ? '真心話' : '大冒險'} · ${D.SPICE[x.l].icon} · ${esc(nick(answerer))} ${k === 'truth' ? '回答' : '挑戰'}</div>${esc(txt)}</div>
+      $('#tres', m).innerHTML = `<div class="prompt-card"><div class="small muted" style="font-family:var(--sans)">${k === 'truth' ? '真心話' : '大冒險'} · ${spiceIc(x.l)} · ${esc(nick(answerer))} ${k === 'truth' ? '回答' : '挑戰'}</div>${esc(txt)}</div>
         <div class="center"><button class="link" id="t-swap" style="margin-top:8px">換一題（兩個人都同意才換）</button></div>`;
       $('#t-swap', m).onclick = async () => {
         if (!(await confirmBox('兩個人都同意換一題嗎？', '都同意，換！'))) return;
@@ -2147,7 +2355,7 @@ ACT.quiz = () => {
     const both = mine !== undefined && theirs !== undefined;
     const done = list('quiz').filter((x) => x.match !== undefined);
     const rate = done.length ? Math.round(done.filter((x) => x.match).length / done.length * 100) : 0;
-    const html = `${mhead('🧠 默契問答')}
+    const html = `${mhead('<i data-ic="minds"></i> 默契問答')}
       <p class="small muted" style="margin:0 0 8px">兩人各自作答，答案一樣兩人都拿 ${D.POINTS.quizMatch} 點。目前默契度 ${rate}%（${done.length} 題）</p>
       <div style="font-family:var(--serif);font-size:20px;font-weight:800">${esc(Q.q)}</div>
       ${Q.opts.map((o, i) => `<button class="quiz-opt ${both && mine === i ? 'mine' : ''} ${both && theirs === i ? 'theirs' : ''} ${!both && mine === i ? 'mine' : ''}" data-i="${i}" ${mine !== undefined ? 'disabled' : ''}>
@@ -2189,23 +2397,23 @@ ACT.battle = () => {
     const left = b.deadline - now();
     const over = left < 0;
     body = `<div class="card center" style="background:linear-gradient(135deg,color-mix(in srgb,var(--accent) 18%,var(--card)),var(--card))">
-      <div style="font-size:44px">⚔️</div><h3 style="justify-content:center">${esc(b.task)}</h3>
+      <div style="font-size:44px"><i data-ic="swords"></i></div><h3 style="justify-content:center">${esc(b.task)}</h3>
       <p class="small muted" style="margin:0">${esc(nick(b.by))} 發起 · ${over ? '時間到了！' : `剩 ${Math.ceil(left / 86400000)} 天`}</p>
       <p class="small" style="margin:6px 0 0">輸的人要發一張卡給贏的人</p></div>
       ${b.status === 'claimed'
         ? (b.claimer === me() ? `<p class="center muted">等 ${esc(nick(p))} 確認中…</p>` : `<p class="center"><b>${esc(nick(b.claimer))}</b> 說自己完成了！</p><div class="btn-row"><button class="btn ghost" data-act="battleReject" data-id="${b.id}">還沒啦</button><button class="btn" data-act="battleJudge" data-id="${b.id}">確認對方贏了</button></div>`)
         : over ? `<button class="btn ghost block" data-act="battleDraw" data-id="${b.id}">都沒完成，平手收場</button>`
-        : `<button class="btn block" data-act="battleClaim" data-id="${b.id}">🏁 我完成了！</button>`}`;
+        : `<button class="btn block" data-act="battleClaim" data-id="${b.id}"><i data-ic="flag"></i> 我完成了！</button>`}`;
   } else {
     body = `<p class="small muted" style="margin-top:0">選一個挑戰，7 天內誰先完成誰贏，輸的人要發一張卡給贏的人。</p>
       ${D.BATTLE_TASKS.map((t) => `<button class="quiz-opt" data-act="battleNew" data-t="${esc(t)}">${esc(t)}</button>`).join('')}
-      <button class="quiz-opt" data-act="battleNew" data-t="">✏️ 自己出題…</button>`;
+      <button class="quiz-opt" data-act="battleNew" data-t=""><i data-ic="edit"></i> 自己出題…</button>`;
   }
   closeAll();
-  openModal(`${mhead('⚔️ 對戰挑戰')}
+  openModal(`${mhead('<i data-ic="swords"></i> 對戰挑戰')}
     <div class="row" style="justify-content:center;gap:18px;margin-bottom:12px;font-weight:800"><span>${avatar(me())} ${esc(nick(me()))} ${wins(me())} 勝</span><span class="muted">VS</span><span>${wins(p)} 勝 ${esc(nick(p))} ${avatar(p)}</span></div>
     ${body}
-    ${hist.length ? `<h3 style="font-size:15px;margin-top:14px">對戰紀錄</h3>${hist.slice(0, 10).map((x) => `<div class="list-row"><span class="grow">${esc(x.task)}</span><span class="small">${x.status === 'draw' ? '🤝 平手' : '🏆 ' + esc(nick(x.winner))}</span><span class="when">${fmtDate(x.at)}</span></div>`).join('')}` : ''}`);
+    ${hist.length ? `<h3 style="font-size:15px;margin-top:14px">對戰紀錄</h3>${hist.slice(0, 10).map((x) => `<div class="list-row"><span class="grow">${esc(x.task)}</span><span class="small">${x.status === 'draw' ? '🤝 平手' : '<i data-ic="trophy"></i> ' + esc(nick(x.winner))}</span><span class="when">${fmtDate(x.at)}</span></div>`).join('')}` : ''}`);
 };
 ACT.battleNew = async (el) => {
   if (!partner()) return toast('對方加入後才能對戰');
@@ -2247,9 +2455,9 @@ function stampCardHTML() {
   const filled = n % per;
   const recent = list('points').filter((p) => p.uid === me() && p.tag === 'stamp').sort((a, b) => b.at - a.at)[0];
   return `<div class="card">
-    <h3>📮 集點章 <span class="sub">已集滿 ${Math.floor(n / per)} 張</span></h3>
-    <div class="stamp-sheet">${Array.from({ length: per }, (_, i) => `<div class="stamp-slot ${i < filled ? 'on' : ''}">${i < filled ? '💮' : i + 1}</div>`).join('')}</div>
-    <p class="small muted" style="margin:8px 0">集滿 ${per} 個章送一張扭蛋券 🎫${recent ? ` · 最近：${esc(recent.reason.replace('蓋章：', ''))}` : ''}</p>
+    <h3><i data-ic="stamp"></i> 集點章 <span class="sub">已集滿 ${Math.floor(n / per)} 張</span></h3>
+    <div class="stamp-sheet">${Array.from({ length: per }, (_, i) => `<div class="stamp-slot ${i < filled ? 'on' : ''}">${i < filled ? '<i data-ic="stamp"></i>' : i + 1}</div>`).join('')}</div>
+    <p class="small muted" style="margin:8px 0">集滿 ${per} 個章送一張扭蛋券${recent ? ` · 最近：${esc(recent.reason.replace('蓋章：', ''))}` : ''}</p>
     <button class="btn block" data-act="giveStamp">幫 ${esc(nick(partner()))} 蓋一個章</button>
   </div>`;
 }
@@ -2259,7 +2467,7 @@ ACT.giveStamp = () => {
   const m = openModal(`${mhead(`幫 ${esc(nick(p))} 蓋章`)}
     <p class="small muted" style="margin-top:0">為什麼要蓋這個章？</p>
     ${reasons.map((r) => `<button class="quiz-opt" data-r="${esc(r)}">${esc(r)}</button>`).join('')}
-    <button class="quiz-opt" data-r="">✏️ 自己寫…</button>`, { center: true });
+    <button class="quiz-opt" data-r=""><i data-ic="edit"></i> 自己寫…</button>`, { center: true });
   $$('[data-r]', m).forEach((b) => b.onclick = async () => {
     let r = b.dataset.r;
     if (!r) { closeModal(m); r = await promptBox('蓋章的原因', { placeholder: '例如：幫我按摩' }); if (!r) return; }
@@ -2286,7 +2494,7 @@ function weekTasks() { return weekTaskIdx().map((i) => D.WEEKLY_TASKS[i] || '');
 function weeklyHTML() {
   const wk = weekKey(), p = partner();
   const done = (i, u) => list('taskDone').some((x) => x.id === `${wk}_${i}_${u}`);
-  return `<div class="card"><h3>📋 每週任務 <span class="sub">完成一項 +${D.POINTS.weeklyTask} 點</span></h3>
+  return `<div class="card"><h3><i data-ic="clipboard"></i> 每週任務 <span class="sub">完成一項 +${D.POINTS.weeklyTask} 點</span></h3>
     ${weekTasks().map((t, i) => {
       const req = S.couple.taskSwapReq;
       const pending = req && req.wk === wk && req.i === i;
@@ -2341,8 +2549,8 @@ ACT.taskDo = async (el) => {
 PAGES.travel = {
   html() {
     const sub = S.sub.travel;
-    return `<div class="page-title"><h2>🗺️ 旅行</h2><span>去過 ${list('trips').length} 個地方</span></div>
-      <div class="seg">${[['fund', '💰 旅行基金'], ['map', '📍 足跡地圖']].map(([k, n]) => `<button class="${sub === k ? 'on' : ''}" data-act="sub" data-page="travel" data-sub="${k}">${n}</button>`).join('')}</div>
+    return `<div class="page-title"><h2><i data-ic="map"></i> 旅行</h2><span>去過 ${list('trips').length} 個地方</span></div>
+      <div class="seg">${[['fund', '<i data-ic="coins"></i> 旅行基金'], ['map', '<i data-ic="pin"></i> 足跡地圖']].map(([k, n]) => `<button class="${sub === k ? 'on' : ''}" data-act="sub" data-page="travel" data-sub="${k}">${n}</button>`).join('')}</div>
       ${sub === 'map' ? travelMap() : travelFund()}`;
   },
   after(main) { if (S.sub.travel === 'map') mountMap(main); },
@@ -2361,22 +2569,22 @@ function travelFund() {
   const past = {};
   list('deposits').filter((d) => (d.round || 1) < (f.round || 1)).forEach((d) => (past[d.round || 1] ||= { total: 0, name: d.fundName || `第 ${d.round || 1} 期` }, past[d.round || 1].total += d.amt));
   return `<div class="card center">
-      <span class="piggy" id="pig">🐷</span>
-      <h3 style="justify-content:center">${esc(f.name)} <button class="small muted" data-act="fundEdit">✏️</button></h3>
+      <span class="piggy" id="pig"><i data-ic="piggy"></i></span>
+      <h3 style="justify-content:center">${esc(f.name)} <button class="small muted" data-act="fundEdit"><i data-ic="edit"></i></button></h3>
       <div class="fund-num">$${money(total)} <span class="small muted">/ $${money(f.goal)}</span></div>
       <div class="fund-bar"><div style="width:${pct}%"></div></div>
       <div class="small muted">${pct >= 100 ? '🎉 存滿了！旅行限定券已經發到兩人的票夾' : `還差 $${money(Math.max(0, f.goal - total))} · 存滿會掉一張旅行限定卡 ✈️`}</div>
-      <div class="row mt" style="justify-content:center;gap:20px">${ms.map((u) => `<div><div style="font-size:22px">${avatar(u)}</div><b>$${money(sum(deps.filter((d) => d.uid === u), (d) => d.amt))}</b><div class="small muted">${esc(nick(u))}</div></div>`).join('')}</div>
-      <div class="btn-row">${f.rewarded ? '<button class="btn ghost" data-act="fundNew">開始新的基金</button>' : ''}<button class="btn" data-act="deposit">💰 存一筆</button></div>
+      <div class="row mt" style="justify-content:center;gap:20px">${ms.map((u) => `<div><div>${avatar(u, "av-md")}</div><b>$${money(sum(deps.filter((d) => d.uid === u), (d) => d.amt))}</b><div class="small muted">${esc(nick(u))}</div></div>`).join('')}</div>
+      <div class="btn-row">${f.rewarded ? '<button class="btn ghost" data-act="fundNew">開始新的基金</button>' : ''}<button class="btn" data-act="deposit"><i data-ic="coins"></i> 存一筆</button></div>
     </div>
     <div class="card"><h3>存錢紀錄</h3>
       ${deps.length ? deps.sort((a, b) => b.at - a.at).slice(0, 30).map((d) => `<div class="list-row"><span class="lr-i">${avatar(d.uid)}</span><span class="grow">${esc(d.note || '存進基金')}<div class="small muted">${esc(nick(d.uid))}</div></span><b style="color:${d.amt >= 0 ? 'var(--accent)' : 'var(--muted)'}">${d.amt >= 0 ? '+' : ''}$${money(d.amt)}</b><span class="when">${fmtDate(d.at)}</span></div>`).join('')
-        : '<div class="empty"><span class="big">🪙</span>存下第一筆，旅行就開始了</div>'}
+        : '<div class="empty"><span class="big"><i data-ic="coin"></i></span>存下第一筆，旅行就開始了</div>'}
     </div>
     ${Object.keys(past).length ? `<div class="card"><h3>以前的基金</h3>${Object.entries(past).map(([r, x]) => `<div class="list-row"><span class="grow">${esc(x.name)}</span><b>$${money(x.total)}</b></div>`).join('')}</div>` : ''}`;
 }
 ACT.deposit = () => {
-  const m = openModal(`${mhead('💰 存一筆')}
+  const m = openModal(`${mhead('<i data-ic="coins"></i> 存一筆')}
     <label>金額</label><input id="dp-a" type="number" inputmode="numeric" placeholder="例如 500">
     <div class="row wrap mt">${[100, 500, 1000, 2000].map((v) => `<button class="chip" data-v="${v}">$${v}</button>`).join('')}</div>
     <label>備註（可以不寫）</label><input id="dp-n" maxlength="30" placeholder="例如：這個月的零用錢">
@@ -2463,11 +2671,11 @@ async function checkFund() {
 function travelMap() {
   const ts = list('trips').sort((a, b) => (b.date || '').localeCompare(a.date || ''));
   return `<div class="card" style="padding:8px"><div id="map-slot"></div></div>
-    <button class="btn block" data-act="addTrip" style="margin-bottom:14px">📍 新增一個足跡</button>
+    <button class="btn block" data-act="addTrip" style="margin-bottom:14px"><i data-ic="pin"></i> 新增一個足跡</button>
     ${ts.length ? ts.map((t) => `<div class="trip-item" data-act="openTrip" data-id="${t.id}">
-      <div class="cover" style="${t.cover ? `background-image:url(${t.cover})` : ''}">${t.cover ? '' : '📍'}</div>
+      <div class="cover" style="${t.cover ? `background-image:url(${t.cover})` : ''}">${t.cover ? '' : '<i data-ic="pin"></i>'}</div>
       <div class="grow"><b>${esc(t.name)}</b><div class="small muted">${esc(t.date || '')}</div><div class="small" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(t.note || '')}</div></div></div>`).join('')
-      : '<div class="empty"><span class="big">🧳</span>還沒有足跡，記下你們一起去過的地方吧</div>'}`;
+      : '<div class="empty"><span class="big"><i data-ic="pin"></i></span>還沒有足跡，記下你們一起去過的地方吧</div>'}`;
 }
 function mountMap(main) {
   const slot = $('#map-slot', main); if (!slot) return;
@@ -2485,7 +2693,7 @@ function mountMap(main) {
   const pts = [];
   for (const t of list('trips')) {
     if (t.lat == null) continue;
-    const icon = L.divIcon({ html: '<div style="font-size:28px;line-height:1;transform:translate(-4px,-22px)">📍</div>', className: '', iconSize: [20, 20] });
+    const icon = L.divIcon({ html: `<div class="map-pin">${ic('pin')}</div>`, className: '', iconSize: [20, 20] });
     L.marker([t.lat, t.lng], { icon }).addTo(S.mapLayer)
       .bindPopup(`${t.cover ? `<img src="${t.cover}">` : ''}<b>${esc(t.name)}</b><br><small>${esc(t.date || '')}</small>`);
     pts.push([t.lat, t.lng]);
@@ -2513,9 +2721,9 @@ function compressImage(file, max = 480) {
 
 ACT.addTrip = () => {
   const t = { name: '', date: dkey(), note: '', cover: '', lat: null, lng: null };
-  const m = openModal(`${mhead('📍 新增足跡')}
+  const m = openModal(`${mhead('<i data-ic="pin"></i> 新增足跡')}
     <label>地點名稱</label>
-    <div class="row"><input id="tr-n" maxlength="30" placeholder="例如：京都・嵐山" class="grow"><button class="btn sm ghost" id="tr-s">🔍 找</button></div>
+    <div class="row"><input id="tr-n" maxlength="30" placeholder="例如：京都・嵐山" class="grow"><button class="btn sm ghost" id="tr-s"><i data-ic="search"></i> 找</button></div>
     <label>在地圖上點一下標出位置（可以不標）</label>
     <div class="mini-map" id="tr-map"></div>
     <label>日期</label><input id="tr-d" type="date" value="${t.date}">
@@ -2527,7 +2735,7 @@ ACT.addTrip = () => {
   const setPt = (lat, lng) => {
     t.lat = lat; t.lng = lng;
     if (!mm) return;
-    if (mk) mk.setLatLng([lat, lng]); else mk = L.marker([lat, lng], { icon: L.divIcon({ html: '<div style="font-size:28px;transform:translate(-4px,-22px)">📍</div>', className: '', iconSize: [20, 20] }) }).addTo(mm);
+    if (mk) mk.setLatLng([lat, lng]); else mk = L.marker([lat, lng], { icon: L.divIcon({ html: `<div class="map-pin">${ic('pin')}</div>`, className: '', iconSize: [20, 20] }) }).addTo(mm);
   };
   setTimeout(() => {
     if (!window.L) { $('#tr-map', m).outerHTML = '<p class="small muted">地圖載入失敗，先不標位置也可以</p>'; return; }
@@ -2562,7 +2770,7 @@ ACT.addTrip = () => {
 };
 ACT.openTrip = (el) => {
   const t = list('trips').find((x) => x.id === el.dataset.id); if (!t) return;
-  const m = openModal(`${mhead('📍 ' + esc(t.name))}
+  const m = openModal(`${mhead('<i data-ic="pin"></i> ' + esc(t.name))}
     ${t.cover ? `<img src="${t.cover}" style="width:100%;border-radius:16px;display:block">` : ''}
     <p class="small muted">${esc(t.date || '')} · ${esc(nick(t.by))} 記錄</p>
     ${t.note ? `<div class="letter">${esc(t.note)}</div>` : ''}
@@ -2577,10 +2785,10 @@ ACT.openTrip = (el) => {
 PAGES.memory = {
   html() {
     const sub = S.sub.memory;
-    const tabs = [['goals', '🎯 年度清單'], ['timeline', '🕰️ 時間軸'], ['capsule', '⏳ 時光膠囊'], ['ach', '🏆 成就']];
-    return `<div class="page-title"><h2>📖 回憶</h2><span>第 ${money(daysTogether())} 天</span></div>
+    const tabs = [['goals', '<i data-ic="target"></i> 年度清單'], ['timeline', '<i data-ic="clock"></i> 時間軸'], ['capsule', '<i data-ic="hourglass"></i> 時光膠囊'], ['ach', '<i data-ic="trophy"></i> 成就']];
+    return `<div class="page-title"><h2><i data-ic="book"></i> 回憶</h2><span>第 ${money(daysTogether())} 天</span></div>
       <button class="card" data-act="review" style="width:100%;text-align:left;display:flex;align-items:center;gap:12px;background:linear-gradient(135deg,#ff6f91,#845ec2);color:#fff">
-        <span style="font-size:36px">🎞️</span><span class="grow"><b style="font-family:var(--serif);font-size:17px">${new Date().getFullYear()} 年度回顧</b><br><span class="small" style="opacity:.9">看看我們這一年一起做了什麼</span></span><span style="font-size:22px">›</span></button>
+        <span class="review-ic"><i data-ic="film"></i></span><span class="grow"><b style="font-family:var(--serif);font-size:17px">${new Date().getFullYear()} 年度回顧</b><br><span class="small" style="opacity:.9">看看我們這一年一起做了什麼</span></span><span style="font-size:22px">›</span></button>
       <div class="seg">${tabs.map(([k, n]) => `<button class="${sub === k ? 'on' : ''}" data-act="sub" data-page="memory" data-sub="${k}">${n}</button>`).join('')}</div>
       ${({ goals: memGoals, timeline: memTimeline, capsule: memCapsule, ach: memAch }[sub] || memGoals)()}`;
   },
@@ -2593,7 +2801,7 @@ function memGoals() {
   const done = gs.filter((g) => g.done).length;
   const years = [...new Set([new Date().getFullYear(), new Date().getFullYear() + 1, ...list('goals').map((g) => g.year)])].sort();
   return `<div class="card">
-    <h3>🎯 ${y} 年想一起做的事 <span class="sub">${done} / ${gs.length}</span></h3>
+    <h3><i data-ic="target"></i> ${y} 年想一起做的事 <span class="sub">${done} / ${gs.length}</span></h3>
     <div class="fund-bar" style="height:10px;margin-top:0"><div style="width:${gs.length ? done / gs.length * 100 : 0}%"></div></div>
     <div class="row mt"><input id="goal-in" class="grow" maxlength="40" placeholder="例如：一起去看極光"><button class="btn sm" data-act="goalAdd">新增</button></div>
     <div class="mt">${gs.map((g) => `<div class="goal ${g.done ? 'done' : ''}"><button class="ck" data-act="goalToggle" data-id="${g.id}">${g.done ? '✓' : ''}</button>
@@ -2628,24 +2836,24 @@ function timelineItems() {
   const it = [];
   const ann = S.couple.dates?.anniversary || D.DEFAULT_DATES.anniversary;
   it.push({ at: parseD(ann).getTime(), icon: '💞', text: '我們在一起了' });
-  for (const t of list('trips')) it.push({ at: t.date ? parseD(t.date).getTime() : t.at, icon: '🗺️', text: `一起去了 ${t.name}`, sub: t.note });
+  for (const t of list('trips')) it.push({ at: t.date ? parseD(t.date).getTime() : t.at, icon: '<i data-ic="map"></i>', text: `一起去了 ${t.name}`, sub: t.note });
   for (const c of list('cards')) for (const l of c.log || []) {
     if (l.how === 'craft') continue;
-    it.push({ at: l.at, icon: l.how === 'birthday' ? '🎂' : '✂️', text: `${nick(c.owner)} 用了「${c.mystery ? '神秘盲盒：' + c.secret : c.title}」` });
+    it.push({ at: l.at, icon: l.how === 'birthday' ? '<i data-ic="cake"></i>' : '<i data-ic="ticket"></i>', text: `${nick(c.owner)} 用了「${c.mystery ? '神秘盲盒：' + c.secret : c.title}」` });
   }
-  for (const g of list('goals')) if (g.done) it.push({ at: g.doneAt, icon: '🎯', text: `完成目標「${g.title}」` });
-  for (const b of list('battles')) if (b.status === 'done') it.push({ at: b.doneAt || b.at, icon: '⚔️', text: `${nick(b.winner)} 贏了挑戰「${b.task}」` });
-  for (const g of list('gacha')) if (g.rarity === 'SSR') it.push({ at: g.at, icon: '🌟', text: `${nick(g.uid)} ${g.how === 'craft' ? '合成' : '扭'}到 SSR「${g.title}」` });
-  for (const w of list('wishes')) if (w.status === 'ok') it.push({ at: w.doneAt || w.at, icon: '🌠', text: `${nick(w.by)} 的願望「${w.title}」實現了` });
-  for (const c of list('capsules')) if (c.firstOpenAt) it.push({ at: c.firstOpenAt, icon: '⏳', text: `打開了時光膠囊「${c.title}」` });
-  for (const n of list('notes')) if (n.found) it.push({ at: n.foundAt, icon: '💌', text: `${nick(n.to)} 找到了一張小紙條` });
+  for (const g of list('goals')) if (g.done) it.push({ at: g.doneAt, icon: '<i data-ic="target"></i>', text: `完成目標「${g.title}」` });
+  for (const b of list('battles')) if (b.status === 'done') it.push({ at: b.doneAt || b.at, icon: '<i data-ic="swords"></i>', text: `${nick(b.winner)} 贏了挑戰「${b.task}」` });
+  for (const g of list('gacha')) if (g.rarity === 'SSR') it.push({ at: g.at, icon: '<i data-ic="star"></i>', text: `${nick(g.uid)} ${g.how === 'craft' ? '合成' : '扭'}到 SSR「${g.title}」` });
+  for (const w of list('wishes')) if (w.status === 'ok') it.push({ at: w.doneAt || w.at, icon: '<i data-ic="shooting"></i>', text: `${nick(w.by)} 的願望「${w.title}」實現了` });
+  for (const c of list('capsules')) if (c.firstOpenAt) it.push({ at: c.firstOpenAt, icon: '<i data-ic="hourglass"></i>', text: `打開了時光膠囊「${c.title}」` });
+  for (const n of list('notes')) if (n.found) it.push({ at: n.foundAt, icon: '<i data-ic="letter"></i>', text: `${nick(n.to)} 找到了一張小紙條` });
   for (const mm of list('memories')) it.push({ at: mm.date ? parseD(mm.date).getTime() : mm.at, icon: (MEM_KINDS.find((k) => k.id === mm.kind) || MEM_KINDS[MEM_KINDS.length - 1]).icon, text: mm.title, sub: mm.note, cover: mm.cover, mid: mm.id });
   return it.filter((x) => x.at).sort((a, b) => b.at - a.at);
 }
 const MEM_KINDS = [
-  { id: 'anniv', icon: '💞', label: '紀念日' }, { id: 'first', icon: '✨', label: '第一次' }, { id: 'date', icon: '🍽️', label: '約會' },
-  { id: 'trip', icon: '✈️', label: '旅行' }, { id: 'life', icon: '🏠', label: '生活' }, { id: 'gift', icon: '🎁', label: '驚喜' },
-  { id: 'music', icon: '🎻', label: '音樂' }, { id: 'other', icon: '📸', label: '其他' },
+  { id: 'anniv', icon: '<i data-ic="heart"></i>', label: '紀念日' }, { id: 'first', icon: '<i data-ic="sparkle"></i>', label: '第一次' }, { id: 'date', icon: '<i data-ic="dining"></i>', label: '約會' },
+  { id: 'trip', icon: '<i data-ic="plane"></i>', label: '旅行' }, { id: 'life', icon: '<i data-ic="home"></i>', label: '生活' }, { id: 'gift', icon: '<i data-ic="gift"></i>', label: '驚喜' },
+  { id: 'music', icon: '<i data-ic="violin"></i>', label: '音樂' }, { id: 'other', icon: '<i data-ic="photo"></i>', label: '其他' },
 ];
 const MEM_SUGGEST = [
   ['第一次見面', 'first'], ['第一次約會', 'first'], ['告白', 'anniv'], ['第一次牽手', 'first'], ['第一次出國', 'trip'],
@@ -2703,7 +2911,7 @@ ACT.editMemory = (el) => {
 // ---------- 時光膠囊 ----------
 function memCapsule() {
   const cs = list('capsules').sort((a, b) => a.openAt - b.openAt);
-  return `<div class="card center"><div style="font-size:44px">⏳</div><h3 style="justify-content:center">時光膠囊</h3>
+  return `<div class="card center"><div style="font-size:44px"><i data-ic="hourglass"></i></div><h3 style="justify-content:center">時光膠囊</h3>
       <p class="small muted" style="margin:0 0 10px">現在寫一封信，指定日期才打得開。寫的人自己也要等到那天才看得到喔。</p>
       <button class="btn" data-act="capsuleNew">寫一封時光膠囊</button></div>
     ${cs.map((c) => {
@@ -2711,7 +2919,7 @@ function memCapsule() {
       const days = Math.ceil((c.openAt - now()) / 86400000);
       const opened = (c.opened || {})[me()];
       return `<div class="capsule ${open ? '' : 'locked'}" ${open ? `data-act="capsuleOpen" data-id="${c.id}"` : ''}>
-        <span class="ci">${open ? (opened ? '📖' : '💌') : '🔒'}</span>
+        <span class="ci">${ic(open ? (opened ? 'book' : 'letter') : 'lock')}</span>
         <div class="grow"><b style="font-family:var(--serif)">${esc(c.title)}</b>
           <div class="small muted">${esc(nick(c.by))} 寫給${c.to === 'both' ? '我們' : esc(nick(c.to))} · ${fmtFull(c.at)} 封存</div>
           <div class="small" style="color:var(--accent);font-weight:700">${open ? (opened ? '已打開' : '可以打開了！') : `${fmtFull(c.openAt)} 開啟 · 還有 ${days} 天`}</div></div></div>`;
@@ -2719,13 +2927,13 @@ function memCapsule() {
 }
 ACT.capsuleNew = () => {
   const d = new Date(); d.setFullYear(d.getFullYear() + 1);
-  const m = openModal(`${mhead('⏳ 寫一封時光膠囊')}
+  const m = openModal(`${mhead('<i data-ic="hourglass"></i> 寫一封時光膠囊')}
     <label>標題</label><input id="cp-t" maxlength="24" placeholder="例如：給一年後的我們">
     <label>寫給</label><select id="cp-to"><option value="both">我們兩個</option><option value="partner">${esc(nick(partner()))}</option></select>
     <label>什麼時候才能打開</label><input id="cp-d" type="date" value="${dkey(d)}" min="${dkey(new Date(now() + 86400000))}">
     <div class="row wrap mt">${[['1 個月', 1], ['半年', 6], ['1 年', 12], ['下個週年', 0]].map(([n, v]) => `<button class="chip" data-m="${v}">${n}</button>`).join('')}</div>
     <label>內容</label><textarea id="cp-b" style="min-height:160px" placeholder="想對未來說的話…"></textarea>
-    <button class="btn block mt" id="cp-ok">封存 🔒</button>`);
+    <button class="btn block mt" id="cp-ok"><i data-ic="lock"></i> 封存</button>`);
   $$('[data-m]', m).forEach((b) => b.onclick = () => {
     const v = +b.dataset.m; let x = new Date();
     if (v) x.setMonth(x.getMonth() + v); else x = nextOf((S.couple.dates?.anniversary || D.DEFAULT_DATES.anniversary).slice(5)).date;
@@ -2746,7 +2954,7 @@ ACT.capsuleNew = () => {
 ACT.capsuleOpen = async (el) => {
   const c = list('capsules').find((x) => x.id === el.dataset.id); if (!c || c.openAt > now()) return;
   if (c.to !== 'both' && c.to !== me() && c.by !== me()) return;
-  const m = openModal(`<div class="center" id="cpo"><div class="envelope">💌</div><p class="muted">點一下打開</p></div>`, { center: true });
+  const m = openModal(`<div class="center" id="cpo"><div class="envelope">${ic('letter')}</div><p class="muted">點一下打開</p></div>`, { center: true });
   $('#cpo', m).onclick = async () => {
     confetti(60);
     m.querySelector('.modal').innerHTML = `${mhead(esc(c.title))}<div class="letter" style="animation:pop .5s">${esc(c.body)}</div>
@@ -2859,14 +3067,14 @@ ACT.review = () => {
   const annT = parseD(S.couple.dates?.anniversary || D.DEFAULT_DATES.anniversary).getTime();
   const daysAtEnd = Math.floor((yEnd - annT) / 86400000) + 1;
   const slides = [
-    { bg: 'linear-gradient(160deg,#ff6f91,#845ec2)', i: '🎡', n: Y, t: '這一年的我們', s: `${nick(me())} & ${nick(p)}<br>往右點，一起回顧 →` },
-    { bg: 'linear-gradient(160deg,#ff9671,#ff6f91)', i: '🎟️', n: redeems.length, t: '張票券被兌換', s: top ? `最常用的是「${esc(top[0])}」<br>一共用了 ${top[1]} 次` : '明年多用一點吧 😉' },
-    { bg: 'linear-gradient(160deg,#845ec2,#2c73d2)', i: '🎰', n: gacha.length, t: '次扭蛋和合成', s: `扭出 ${gacha.filter((g) => g.rarity === 'SSR').length} 張 SSR、${gacha.filter((g) => g.rarity === 'SR').length} 張 SR` },
-    { bg: 'linear-gradient(160deg,#00c9a7,#2c73d2)', i: '🗺️', n: trips.length, t: '個一起去過的地方', s: trips.length ? trips.slice(0, 8).map((t) => esc(t.name)).join('・') : '明年一起去更多地方吧 ✈️' },
-    { bg: 'linear-gradient(160deg,#ffc75f,#ff9671)', i: '🎯', n: `${goals.filter((g) => g.done).length}/${goals.length}`, t: '個年度目標完成', s: goals.filter((g) => g.done).slice(0, 6).map((g) => '✓ ' + esc(g.title)).join('<br>') || '寫下明年的目標吧' },
-    { bg: 'linear-gradient(160deg,#ff6f91,#ffc2d1)', i: '💗', n: money(misses.length), t: '次「想你」', s: ms.map((u) => `${esc(nick(u))} 想了 ${misses.filter((x) => x.by === u).length} 次`).join('<br>') },
-    { bg: 'linear-gradient(160deg,#4b4453,#845ec2)', i: '🧠', n: qrate + '%', t: '默契度', s: `一起答了 ${quiz.length} 題默契問答<br>${daily.length} 題每日一問<br>互相蓋了 ${stamps.length} 個章` },
-    { bg: 'linear-gradient(160deg,#c42e52,#3a0f1d)', i: '🏠', n: `第 ${money(daysAtEnd)} 天`, t: D.BIRTHDAY_SLOGAN, s: `${Y + 1} 年也請多多指教 💞` },
+    { bg: 'linear-gradient(160deg,#ff6f91,#845ec2)', i: ic('ferris'), n: Y, t: '這一年的我們', s: `${nick(me())} & ${nick(p)}<br>往右點，一起回顧 →` },
+    { bg: 'linear-gradient(160deg,#ff9671,#ff6f91)', i: ic('ticket'), n: redeems.length, t: '張票券被兌換', s: top ? `最常用的是「${esc(top[0])}」<br>一共用了 ${top[1]} 次` : '明年多用一點吧 😉' },
+    { bg: 'linear-gradient(160deg,#845ec2,#2c73d2)', i: ic('gacha'), n: gacha.length, t: '次扭蛋和合成', s: `扭出 ${gacha.filter((g) => g.rarity === 'SSR').length} 張 SSR、${gacha.filter((g) => g.rarity === 'SR').length} 張 SR` },
+    { bg: 'linear-gradient(160deg,#00c9a7,#2c73d2)', i: ic('map'), n: trips.length, t: '個一起去過的地方', s: trips.length ? trips.slice(0, 8).map((t) => esc(t.name)).join('・') : '明年一起去更多地方吧 ✈️' },
+    { bg: 'linear-gradient(160deg,#ffc75f,#ff9671)', i: ic('target'), n: `${goals.filter((g) => g.done).length}/${goals.length}`, t: '個年度目標完成', s: goals.filter((g) => g.done).slice(0, 6).map((g) => '✓ ' + esc(g.title)).join('<br>') || '寫下明年的目標吧' },
+    { bg: 'linear-gradient(160deg,#ff6f91,#ffc2d1)', i: ic('heart'), n: money(misses.length), t: '次「想你」', s: ms.map((u) => `${esc(nick(u))} 想了 ${misses.filter((x) => x.by === u).length} 次`).join('<br>') },
+    { bg: 'linear-gradient(160deg,#4b4453,#845ec2)', i: ic('minds'), n: qrate + '%', t: '默契度', s: `一起答了 ${quiz.length} 題默契問答<br>${daily.length} 題每日一問<br>互相蓋了 ${stamps.length} 個章` },
+    { bg: 'linear-gradient(160deg,#c42e52,#3a0f1d)', i: ic('house'), n: `第 ${money(daysAtEnd)} 天`, t: D.BIRTHDAY_SLOGAN, s: `${Y + 1} 年也請多多指教 💞` },
   ];
   let k = 0;
   const el = document.createElement('div');
@@ -2997,7 +3205,7 @@ ACT.backup = async () => {
       <div class="card">
         <h3>雲端自動備份</h3>
         <p class="small muted" style="margin:0 0 8px">每 7 天打開 app 時自動備份一次，保留最近 ${BACKUP_KEEP} 份。資料被誤刪時可以一鍵還原。</p>
-        ${bs.length ? bs.map((b) => `<div class="list-row"><span class="lr-i">☁️</span><div class="grow">${fmtFull(b.at)} ${new Date(b.at).toTimeString().slice(0, 5)}
+        ${bs.length ? bs.map((b) => `<div class="list-row"><span class="lr-i"><i data-ic="cloud"></i></span><div class="grow">${fmtFull(b.at)} ${new Date(b.at).toTimeString().slice(0, 5)}
           <div class="small muted">${b.by === 'auto' ? '自動' : nick(b.by) + ' 手動'} · ${b.counts?.cards || 0} 張票券 · ${b.counts?.trips || 0} 個足跡 · ${Math.ceil((b.size || 0) / 1024)} KB</div></div>
           <button class="btn sm ghost" data-restore="${b.id}">還原</button></div>`).join('') : '<div class="empty">還沒有雲端備份</div>'}
         <button class="btn block mt" id="bk-now">現在備份一次</button>

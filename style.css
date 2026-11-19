@@ -634,3 +634,75 @@ html[data-theme="night"] .emb-W { --e-bg: #17162b; --e-ink: #d7d5f7; --e-acc: #4
 .book-cover2 { display: block; width: 100%; padding: 0; border-radius: 16px; overflow: hidden; box-shadow: var(--shadow); }
 .book-cover2 .book-svg { display: block; width: 100%; height: auto; }
 .book-note { font-size: 12px; color: var(--muted); text-align: center; margin: 6px 0 10px; }
+
+/* ============================================================
+   介面線條圖示
+   ============================================================ */
+.ic { width: 1.15em; height: 1.15em; display: inline-block; vertical-align: -0.2em; flex: none; }
+.ic-fill path { fill: currentColor; }
+.ic-faint { opacity: .35; }
+.btn .ic, .link .ic { width: 18px; height: 18px; }
+.seg button .ic { width: 16px; height: 16px; vertical-align: -0.24em; margin-right: 2px; }
+.chip .ic { width: 13px; height: 13px; }
+.topbar .brand .ic { width: 26px; height: 26px; color: var(--accent); }
+.topbar .pill .ic { width: 17px; height: 17px; color: #d9a53b; }
+.icon-btn .ic { width: 20px; height: 20px; }
+html[data-theme="night"] .icon-btn .ic { color: var(--accent2); }
+.nav .ni .ic { width: 25px; height: 25px; }
+.nav button.on .ni .ic { stroke-width: 2; }
+.page-title h2 .ic { width: 26px; height: 26px; color: var(--accent); vertical-align: -0.16em; margin-right: 2px; }
+.m-head h2 .ic { width: 22px; height: 22px; color: var(--accent); vertical-align: -0.16em; }
+.card h3 .ic { width: 20px; height: 20px; color: var(--accent); }
+.lr-i .ic { width: 20px; height: 20px; color: var(--accent); }
+.ti .ic { width: 22px; height: 22px; color: var(--accent); }
+.empty .big .ic { width: 46px; height: 46px; color: var(--muted); opacity: .75; }
+.cd .ic { width: 14px; height: 14px; color: var(--accent); vertical-align: -0.15em; }
+.cd.today .ic { color: inherit; }
+.mood-box .mi .ic { width: 44px; height: 44px; color: var(--accent2); }
+html[data-theme="day"] .mood-box .mi .ic { color: #e89a3c; }
+.mood-pick button span .ic { width: 28px; height: 28px; color: var(--accent); }
+.miss-btn .ic { width: 46px; height: 46px; color: #fff; }
+.sa-seal .ic { width: 20px; height: 20px; color: #fff; }
+.dice .ic { width: 50px; height: 50px; color: var(--accent); }
+.stamp-slot.on .ic { width: 24px; height: 24px; }
+.piggy .ic { width: 56px; height: 56px; color: var(--accent); }
+.trip-item .cover .ic { width: 28px; height: 28px; color: var(--muted); }
+.map-pin { color: #c42e52; transform: translate(-7px, -28px); }
+.map-pin .ic { width: 32px; height: 32px; filter: drop-shadow(0 2px 2px rgba(0, 0, 0, .3)); }
+.map-pin .ic path:first-child { fill: #fff; }
+.capsule .ci .ic { width: 34px; height: 34px; color: var(--accent); }
+.envelope .ic { width: 96px; height: 96px; color: var(--accent); }
+.story .slide .si .ic { width: 76px; height: 76px; color: #fff; }
+.review-ic .ic { width: 40px; height: 40px; color: #fff; }
+.hidden-note .ic { width: 20px; height: 20px; color: var(--accent); }
+.wheel-hub .ic { width: 28px; height: 28px; color: var(--accent); }
+.auth-logo .lg .ic { width: 80px; height: 80px; color: var(--accent); }
+.tl-item .ic { width: 16px; height: 16px; color: var(--accent); vertical-align: -0.15em; }
+.prompt-card .ic { width: 14px; height: 14px; }
+.quiz-opt .ic { width: 18px; height: 18px; color: var(--accent); }
+.list-row .when .ic { width: 12px; height: 12px; }
+.small .ic { width: 14px; height: 14px; }
+/* 徽章框圖示（遊戲卡片） */
+.ic-medal { position: relative; display: inline-grid; place-items: center; width: 54px; height: 54px; color: var(--accent); flex: none; }
+.ic-medal .ic-ring { position: absolute; inset: 0; width: 100%; height: 100%; }
+.ic-medal .ic { width: 26px; height: 26px; }
+.game-tile.wide .ic-medal { width: 62px; height: 62px; }
+.game-tile.wide .ic-medal .ic { width: 30px; height: 30px; }
+.game-tile .gi { font-size: inherit !important; line-height: 0; margin-bottom: 4px; }
+html[data-theme="night"] .ic-medal { color: var(--accent2); }
+
+/* ============ 頭像 ============ */
+.av { display: inline-grid; place-items: center; width: 1.45em; height: 1.45em; border-radius: 50%; vertical-align: -0.38em; line-height: 1; font-size: 1em; flex: none; }
+.av .av-svg { width: 100%; height: 100%; display: block; }
+.av .ic { width: 80%; height: 80%; color: var(--accent); }
+.av-md { width: 40px; height: 40px; font-size: 26px; }
+.av-lg { width: 54px; height: 54px; font-size: 34px; }
+.lr-i .av { width: 26px; height: 26px; font-size: 18px; }
+.role-pick button span.av { display: grid; margin: 0 auto 6px; }
+.av-grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 8px; margin: 4px 0 2px; }
+.av-grid button { aspect-ratio: 1; border: 2px solid transparent; border-radius: 50%; background: none; padding: 2px; cursor: pointer; transition: transform .15s, border-color .15s; }
+.av-grid button .av { width: 100%; height: 100%; }
+.av-grid button.on { border-color: var(--accent); transform: scale(1.06); box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 22%, transparent); }
+.av-emoji .av { background: var(--card2, rgba(127,127,127,.15)); }
+.av-emoji input { width: 100%; height: 100%; border: 0; background: none; text-align: center; font-size: 22px; padding: 0; margin: 0; border-radius: 50%; }
+.couple .heart .ic { width: 16px; height: 16px; color: var(--accent); vertical-align: -0.2em; }

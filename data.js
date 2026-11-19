@@ -17,9 +17,9 @@ export const RARITY_ORDER = ['N', 'R', 'SR', 'SSR'];
 export const PITY = { R: 5, SR: 8, SSR: 15 };
 
 export const SPICE = {
-  1: { label: '甜蜜', icon: '🍬' },
-  2: { label: '曖昧', icon: '🌙' },
-  3: { label: '火辣', icon: '🔥' },
+  1: { label: '甜蜜', icon: '🍬', ic: 'candy' },
+  2: { label: '曖昧', icon: '🌙', ic: 'moon' },
+  3: { label: '火辣', icon: '🔥', ic: 'w_fire' },
 };
 
 // 在一起的日子＆兩人生日（建立空間時會預先填好，之後可以在設定裡改）
@@ -351,14 +351,14 @@ export const DEFAULT_FOOD = ['火鍋', '拉麵', '壽司', '牛排', '早午餐'
 
 // ---------- 心情天氣 ----------
 export const MOODS = [
-  { icon: '☀️', label: '晴天', hint: '心情超好' },
-  { icon: '🌤️', label: '晴時多雲', hint: '還不錯' },
-  { icon: '☁️', label: '陰天', hint: '有點悶' },
-  { icon: '🌧️', label: '下雨', hint: '需要哄哄' },
-  { icon: '⛈️', label: '雷雨', hint: '小心靠近' },
-  { icon: '🌈', label: '彩虹', hint: '雨過天晴' },
-  { icon: '🌙', label: '想睡', hint: '想抱著睡' },
-  { icon: '🔥', label: '熱情', hint: '今晚…' },
+  { icon: '☀️', ic: 'w_sun', label: '晴天', hint: '心情超好' },
+  { icon: '🌤️', ic: 'w_partly', label: '晴時多雲', hint: '還不錯' },
+  { icon: '☁️', ic: 'w_cloud', label: '陰天', hint: '有點悶' },
+  { icon: '🌧️', ic: 'w_rain', label: '下雨', hint: '需要哄哄' },
+  { icon: '⛈️', ic: 'w_storm', label: '雷雨', hint: '小心靠近' },
+  { icon: '🌈', ic: 'w_rainbow', label: '彩虹', hint: '雨過天晴' },
+  { icon: '🌙', ic: 'w_sleep', label: '想睡', hint: '想抱著睡' },
+  { icon: '🔥', ic: 'w_fire', label: '熱情', hint: '今晚…' },
 ];
 
 // ---------- 點數規則 ----------
