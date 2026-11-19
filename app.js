@@ -1064,7 +1064,7 @@ function doRender() {
   const A = annivInfo(); document.documentElement.dataset.anniv = A.is ? '1' : '';
   renderTop(); renderNav(); renderMain();
   if (A.is) { annivIntro(); annivRibbon(); }
-  else setTimeout(catStroll, 2500 + Math.random() * 4000);
+  else { setTimeout(catStroll, 2500 + Math.random() * 4000); if (tourNeeded()) setTimeout(() => startTour(), 1200); }
 }
 document.addEventListener('focusout', () => setTimeout(() => {
   const a = document.activeElement;
@@ -1170,6 +1170,7 @@ ACT.settings = () => {
     <button class="btn block" id="s-save">儲存</button>
     <div class="card mt">
       <h3>更多</h3>
+      <div class="list-row" data-act="tourReplay"><span class="lr-i"><i data-ic="sparkle"></i></span><span class="grow">重看新手導覽</span>›</div>
       <div class="list-row" data-act="poolManager"><span class="lr-i"><i data-ic="gacha"></i></span><span class="grow">管理扭蛋卡池</span>›</div>
       <div class="list-row" data-act="backup"><span class="lr-i"><i data-ic="cloud"></i></span><span class="grow">備份與還原<div class="small muted">每週自動備份，也可以存一份到手機</div></span>›</div>
       <div class="list-row" data-act="invite"><span class="lr-i"><i data-ic="key"></i></span><span class="grow">邀請碼 ${esc(S.cid)}</span>›</div>
@@ -1374,9 +1375,11 @@ PAGES.home = {
     return `${annivHomeCard()}
     ${homeNextDate()}
     <div class="card hero">
+      <button class="hero-miss" data-act="miss" id="missbtn" aria-label="想你"><i data-ic="heart" class="ic-fill"></i></button>
       <div class="small muted">我們在一起</div>
       <div class="days">第 ${money(daysTogether())} <small>天</small></div>
       <div class="couple"><span>${avatar(me())} ${esc(nick(me()))}</span><span class="heart"><i data-ic="heart" class="ic-fill"></i></span><span>${p ? `${avatar(p)} ${esc(nick(p))}` : '<span class="muted">等待對方加入…</span>'}</span></div>
+      ${p ? `<div class="miss-line">今天我想了你 <b>${myToday}</b> 次・你想了我 <b>${theirToday}</b> 次${missStreak(me()) > 1 ? `・連續 ${missStreak(me())} 天` : ''}</div>` : ''}
       <div class="countdowns">${cds.map((x) => `<div class="cd ${x.days === 0 ? 'today' : ''}">${x.icon} ${esc(x.name)}<b>${x.days === 0 ? '就是今天！' : x.days + ' 天'}</b></div>`).join('')}</div>
     </div>
 
@@ -1393,26 +1396,10 @@ PAGES.home = {
     </div>
 
     ${petHomeCard()}
-    <div class="card">
-      <h3><i data-ic="heart"></i> 想你按鈕</h3>
-      <div class="miss-wrap">
-        <button class="miss-btn" data-act="miss" id="missbtn"><i data-ic="heart" class="ic-fill"></i></button>
-        <div class="grow small">
-          <div>今天我想了 ${esc(nick(p))} <b style="font-size:18px;color:var(--accent)">${myToday}</b> 次</div>
-          <div>今天 ${esc(nick(p))} 想了我 <b style="font-size:18px;color:var(--accent)">${theirToday}</b> 次</div>
-          <div class="muted">累計 ${money(total)} 次 · 連續 ${missStreak(me())} 天</div>
-        </div>
-      </div>
-    </div>
 
     ${dailyCardHTML()}
 
-    <div class="card">
-      <h3><i data-ic="letter"></i> 情話小紙條</h3>
-      <p class="small muted" style="margin:0 0 10px">寫一張小紙條，它會偷偷藏在 app 的某個角落，等 ${esc(nick(p))} 自己發現。</p>
-      <div class="row"><button class="btn" data-act="writeNote">藏一張小紙條</button>
-        <span class="small muted">${list('notes').filter((n) => n.by === me() && !n.found).length} 張還沒被找到</span></div>
-    </div>`;
+    <button class="card note-row" data-act="writeNote"><span class="lr-i"><i data-ic="letter"></i></span><span class="grow"><b>藏一張小紙條</b><div class="small muted">藏在 App 某個角落，等 ${esc(nick(p) || '對方')} 自己發現${list('notes').filter((n) => n.by === me() && !n.found).length ? `・${list('notes').filter((n) => n.by === me() && !n.found).length} 張還沒被找到` : ''}</div></span><span style="color:var(--muted);font-size:20px">›</span></button>`;
   },
 };
 
@@ -2944,7 +2931,7 @@ PAGES.travel = {
     const tabs = [['plan', '<i data-ic="clock"></i> 行程'], ['jar', '<i data-ic="gift"></i> 點子罐'], ['list', '<i data-ic="film"></i> 清單'], ['map', '<i data-ic="pin"></i> 足跡'], ['fund', '<i data-ic="coins"></i> 基金']];
     const cur = tabs.some(([k]) => k === sub) ? sub : 'plan';
     return `<div class="page-title"><h2><i data-ic="map"></i> 約會</h2><span>去過 ${list('trips').length} 個地方</span></div>
-      <div class="seg">${tabs.map(([k, n]) => `<button class="${cur === k ? 'on' : ''}" data-act="sub" data-page="travel" data-sub="${k}">${n}</button>`).join('')}</div>
+      <div class="seg seg-fit">${tabs.map(([k, n]) => `<button class="${cur === k ? 'on' : ''}" data-act="sub" data-page="travel" data-sub="${k}">${n}</button>`).join('')}</div>
       ${({ plan: datesPlan, jar: datesJar, list: datesList, map: travelMap, fund: travelFund }[cur])()}`;
   },
   after(main) { if (S.sub.travel === 'map') mountMap(main); },
@@ -3345,11 +3332,16 @@ ACT.watchToggle = async (el) => {
 PAGES.memory = {
   html() {
     const sub = S.sub.memory;
-    const tabs = [['goals', '<i data-ic="target"></i> 年度清單'], ['timeline', '<i data-ic="clock"></i> 時間軸'], ['album', '<i data-ic="camera"></i> 相簿'], ['deep', '<i data-ic="chat"></i> 季問答'], ['capsule', '<i data-ic="hourglass"></i> 時光膠囊'], ['ach', '<i data-ic="trophy"></i> 成就']];
-    return `<div class="page-title"><h2><i data-ic="book"></i> 回憶</h2><span>第 ${money(daysTogether())} 天</span></div>
+    const tabs = [['goals', '<i data-ic="target"></i> 年度清單'], ['timeline', '<i data-ic="clock"></i> 時間軸'], ['album', '<i data-ic="camera"></i> 相簿'], ['deep', '<i data-ic="chat"></i> 季問答']];
+    const tabOf = { capsule: 'timeline', ach: '' };
+    const onTab = tabOf[sub] !== undefined ? tabOf[sub] : sub;
+    const achN = computeAch().size;
+    const back = (to, label) => `<button class="link back-link" data-act="sub" data-page="memory" data-sub="${to}">‹ ${label}</button>`;
+    return `<div class="page-title"><h2><i data-ic="book"></i> 回憶</h2><button class="ach-chip ${sub === 'ach' ? 'on' : ''}" data-act="sub" data-page="memory" data-sub="ach"><i data-ic="trophy"></i> 成就 ${achN}/${D.ACHIEVEMENTS.length}</button></div>
       <button class="card review-banner" data-act="review">
         <span class="review-ic"><i data-ic="film"></i></span><span class="grow"><b style="font-family:var(--serif);font-size:17px">${new Date().getFullYear()} 年度回顧</b><br><span class="small" style="opacity:.9">看看我們這一年一起做了什麼</span></span><span style="font-size:22px">›</span></button>
-      <div class="seg">${tabs.map(([k, n]) => `<button class="${sub === k ? 'on' : ''}" data-act="sub" data-page="memory" data-sub="${k}">${n}</button>`).join('')}</div>
+      <div class="seg seg-fit">${tabs.map(([k, n]) => `<button class="${onTab === k ? 'on' : ''}" data-act="sub" data-page="memory" data-sub="${k}">${n}</button>`).join('')}</div>
+      ${sub === 'capsule' ? back('timeline', '回到時間軸') : sub === 'ach' ? back('goals', '回到回憶') : ''}
       ${({ goals: memGoals, timeline: memTimeline, album: memAlbum, deep: memDeep, capsule: memCapsule, ach: memAch }[sub] || memGoals)()}`;
   },
 };
@@ -3429,7 +3421,9 @@ function memTimeline() {
       ${x.cover ? `<div class="tl-cover" style="background-image:url(${x.cover})"></div>` : ''}
       <div class="d">${d.getMonth() + 1}/${d.getDate()}${x.mid ? ' · 點一下可以編輯' : ''}</div>${x.icon} ${esc(x.text)}${x.sub ? `<div class="small muted" style="white-space:pre-wrap">${esc(x.sub)}</div>` : ''}</div>`;
   }
+  const caps = list('capsules'), canOpen = caps.filter((c) => c.openAt && c.openAt <= now() && !c.firstOpenAt).length;
   return `<button class="btn block" data-act="editMemory" style="margin-bottom:10px">＋ 新增一段回憶</button>
+    <button class="card note-row" data-act="sub" data-page="memory" data-sub="capsule" style="margin-bottom:10px"><span class="lr-i"><i data-ic="hourglass"></i></span><span class="grow"><b>時光膠囊</b><div class="small muted">${caps.length ? `${caps.length} 封${canOpen ? `・<b style="color:var(--accent)">${canOpen} 封可以打開了</b>` : '・寫給未來的信'}` : '寫一封信，指定未來某天才能打開'}</div></span><span style="color:var(--muted);font-size:20px">›</span></button>
     <p class="small muted center" style="margin:0 0 6px">旅行、兌換、目標這些會自動記錄；以前的重要時刻可以自己補上</p>
     <div class="timeline">${out}</div>`;
 }
@@ -3692,10 +3686,10 @@ function playStory(slides, { finale = 100, colors } = {}) {
       <button class="story-close" aria-label="關閉">✕</button>
       <div class="slide"><div class="si">${s.i}</div><div class="sn">${s.n}</div><div class="st">${esc(s.t)}</div><div class="ss">${s.s}</div></div>
       <div class="tapzones"><div data-d="-1"></div><div data-d="1"></div></div>`;
-    $('.story-close', el).onclick = () => el.remove();
+    $('.story-close', el).onclick = () => { el.remove(); if (typeof tourNeeded === 'function' && tourNeeded()) setTimeout(() => startTour(), 500); };
     $$('[data-d]', el).forEach((z) => z.onclick = () => {
       k += +z.dataset.d;
-      if (k >= slides.length) { el.remove(); return; }
+      if (k >= slides.length) { el.remove(); if (typeof tourNeeded === 'function' && tourNeeded()) setTimeout(() => startTour(), 500); return; }
       k = Math.max(0, k); draw();
       if (k === slides.length - 1) confetti(finale, colors);
     });
@@ -3911,7 +3905,7 @@ function annivIntro(force) {
     </div>`;
   document.body.appendChild(el);
   setTimeout(() => confetti(120, ['#e9c77b', '#fff1c9', '#c42e52', '#ff9db4', '#b8862f']), 900);
-  const close = () => { el.classList.add('out'); setTimeout(() => el.remove(), 450); };
+  const close = () => { el.classList.add('out'); setTimeout(() => { el.remove(); if (tourNeeded() && !document.querySelector('.story')) startTour(); }, 450); };
   $('#ai-skip', el).onclick = close;
   $('#ai-story', el).onclick = () => { close(); setTimeout(() => ACT.annivStory(), 300); };
 }
@@ -4351,6 +4345,50 @@ ACT.deepAnswer = async (el) => {
     }
   }, 600);
 };
+// ============================================================
+//  第一次打開的導覽：小小黑帶路，介紹五個分頁
+// ============================================================
+const TOUR = [
+  { tab: 'home', pose: 'wave', t: '嗨，我是小小黑！', s: '這裡是你們兩個人的遊樂園。首頁看得到在一起的天數、彼此的心情，右上角的愛心按一下就是「想你」。我也住在首頁，記得常來摸摸我。' },
+  { tab: 'wallet', pose: 'box', t: '票夾', s: '收到的票券都在這裡。新的要先刮開，想用的時候長按就能兌換。你也可以按「發一張卡」送給對方。' },
+  { tab: 'play', pose: 'yarn', t: '遊樂區', s: '扭蛋機 20 點扭一次，還有命運轉盤、真心話大冒險、默契問答、對戰挑戰。完成每週任務、回答問題都會拿到點數。' },
+  { tab: 'travel', pose: 'suitcase', t: '約會', s: '排約會可以加到手機行事曆提醒。沒想法就去點子罐搖一個，想看的電影、想吃的店放進清單。' },
+  { tab: 'memory', pose: 'loaf', t: '回憶', s: '時間軸、相簿、季問答都在這裡，右上角是你們的成就。一起慢慢把這裡填滿吧！' },
+];
+function tourNeeded() {
+  return S.couple && (S.couple.members || []).length >= 2 && !localStorage.getItem(`park-tour-${me()}`) && !document.querySelector('.anniv-intro, .tour');
+}
+function startTour(force) {
+  if (!force && !tourNeeded()) return;
+  localStorage.setItem(`park-tour-${me()}`, '1');
+  let k = 0;
+  const el = document.createElement('div');
+  el.className = 'tour';
+  document.body.appendChild(el);
+  const draw = () => {
+    const st = TOUR[k];
+    S.tab = st.tab; render();
+    setTimeout(() => {
+      const nb = document.querySelector(`.nav [data-tab="${st.tab}"]`);
+      const r = nb ? nb.getBoundingClientRect() : null;
+      el.innerHTML = `<div class="tour-dim"></div>
+        ${r ? `<div class="tour-spot" style="left:${r.left + r.width / 2 - 34}px;top:${r.top + r.height / 2 - 34}px"></div>` : ''}
+        <div class="tour-box">
+          <div class="tour-cat">${catPose(st.pose, typeof petState === 'function' ? petState().wear : '')}</div>
+          <div class="tour-bubble"><b>${st.t}</b><p>${st.s}</p>
+            <div class="tour-foot"><span class="tour-dots">${TOUR.map((_, i) => `<i class="${i === k ? 'on' : ''}"></i>`).join('')}</span>
+              <span>${k ? '<button class="link" data-tour="-1">上一步</button>' : '<button class="link" data-tour="skip">略過</button>'}<button class="btn sm" data-tour="1">${k === TOUR.length - 1 ? '開始玩！' : '下一步'}</button></span></div></div>
+        </div>`;
+      $$('[data-tour]', el).forEach((b) => b.onclick = () => {
+        const v = b.dataset.tour;
+        if (v === 'skip' || (v === '1' && k === TOUR.length - 1)) { el.remove(); S.tab = 'home'; render(); if (v === '1') { confetti(60); sfx('chime'); } return; }
+        k += +v; draw();
+      });
+    }, 120);
+  };
+  draw();
+}
+ACT.tourReplay = () => { closeAll(); startTour(true); };
 // ============================================================
 //  啟動
 // ============================================================

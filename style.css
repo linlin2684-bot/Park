@@ -1005,3 +1005,36 @@ html[data-theme="night"] .jar-svg .jar-glass { fill: rgba(255, 255, 255, .06); }
 .bonus-acc { display: flex; align-items: center; gap: 10px; background: color-mix(in srgb, var(--accent2) 18%, var(--card)); border: 1px dashed var(--accent2); border-radius: 14px; padding: 8px 12px; margin: 4px 0 10px; animation: pop .5s; }
 .bonus-acc .ba-cat { width: 52px; height: 52px; border-radius: 50%; background: #f3e9f0; display: grid; place-items: center; overflow: hidden; flex: none; }
 .bonus-acc .ba-cat .pet-svg { width: 48px; margin-top: 4px; filter: none !important; }
+/* 首頁精簡：想你按鈕收進天數卡 */
+.hero { position: relative; }
+.hero-miss { position: absolute; top: 12px; right: 12px; width: 46px; height: 46px; border-radius: 50%; border: 0; display: grid; place-items: center; background: radial-gradient(circle at 35% 30%, #ff9db4, var(--accent)); box-shadow: 0 6px 16px color-mix(in srgb, var(--accent) 40%, transparent); color: #fff; z-index: 2; }
+.hero-miss .ic { width: 24px; height: 24px; color: #fff; }
+.hero-miss.pulse { animation: pop .4s; }
+.hero .miss-line { font-size: 12px; color: var(--muted); margin-top: 6px; }
+.hero .miss-line b { color: var(--accent); font-size: 14px; }
+.note-row { width: 100%; display: flex; align-items: center; gap: 12px; text-align: left; padding-top: 14px; padding-bottom: 14px; }
+.ach-chip { display: inline-flex; align-items: center; gap: 4px; font-size: 12px; font-weight: 700; padding: 6px 10px; border-radius: 99px; background: color-mix(in srgb, var(--accent2) 16%, var(--card)); color: var(--ink); border: 1px solid color-mix(in srgb, var(--accent2) 40%, transparent); }
+.ach-chip .ic { width: 15px; height: 15px; color: var(--accent2); }
+.ach-chip.on { background: var(--accent2); color: #2b1420; }
+.ach-chip.on .ic { color: #2b1420; }
+.back-link { display: block; margin: -2px 0 10px; color: var(--muted); font-weight: 700; }
+/* 子分頁一列放得下：平均分配寬度 */
+.seg.seg-fit { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); overflow: visible; }
+.seg.seg-fit button { padding-left: 4px; padding-right: 4px; font-size: 12.5px; white-space: nowrap; display: flex; align-items: center; justify-content: center; gap: 3px; min-width: 0; }
+.seg.seg-fit button .ic { width: 14px; height: 14px; margin: 0; }
+/* ============ 新手導覽 ============ */
+.tour { position: fixed; inset: 0; z-index: 350; }
+.tour-dim { position: absolute; inset: 0; background: rgba(20, 8, 14, .55); animation: aiIn .3s; }
+.tour-spot { position: absolute; width: 68px; height: 68px; border-radius: 50%; box-shadow: 0 0 0 3px var(--accent2), 0 0 0 9999px rgba(20, 8, 14, .0); background: rgba(255, 255, 255, .08); animation: tourPulse 1.4s ease-in-out infinite; }
+@keyframes tourPulse { 50% { transform: scale(1.08); } }
+.tour-box { position: absolute; left: 14px; right: 14px; bottom: calc(var(--nav-h) + env(safe-area-inset-bottom) + 26px); display: flex; align-items: flex-end; gap: 6px; animation: pop .35s; }
+.tour-cat { width: 92px; flex: none; color: #fff; filter: drop-shadow(0 0 1px rgba(255, 240, 220, .7)) drop-shadow(0 0 10px rgba(255, 200, 150, .2)); }
+.tour-cat .cat-svg { width: 100%; height: auto; display: block; }
+.tour-bubble { flex: 1; background: var(--card); color: var(--ink); border-radius: 18px 18px 18px 6px; padding: 14px 14px 10px; box-shadow: 0 12px 30px rgba(0, 0, 0, .3); margin-bottom: 30px; }
+.tour-bubble b { font-family: var(--serif); font-size: 17px; color: var(--accent); }
+.tour-bubble p { margin: 6px 0 10px; font-size: 14px; line-height: 1.7; }
+.tour-foot { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.tour-foot > span:last-child { display: flex; align-items: center; gap: 10px; }
+.tour-dots { display: flex; gap: 5px; }
+.tour-dots i { width: 6px; height: 6px; border-radius: 50%; background: var(--line); }
+.tour-dots i.on { background: var(--accent); width: 16px; border-radius: 3px; }
