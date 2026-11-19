@@ -727,9 +727,13 @@ function catStroll() {
   const el = document.createElement('button');
   el.className = 'cat-stroll';
   el.setAttribute('aria-label', '黑貓');
-  el.innerHTML = catPose('walk');
+  // 大多是小小黑，偶爾是別的貓路過
+  const coat = Math.random() < .5 ? 'black' : pick1(['white', 'orange', 'calico', 'tuxedo']);
+  el.innerHTML = coatWalk(coat);
   el.onclick = async () => {
-    el.innerHTML = catPose('jump'); el.classList.add('caught'); sfx('heart');
+    el.classList.add('caught'); sfx('heart');
+    if (coat !== 'black') { toast(`是${COATS[coat].name}！牠喵了一聲就跑走了`); setTimeout(() => el.remove(), 900); return; }
+    el.innerHTML = catPose('jump');
     const dk = `park-stroll-pat-${dkey()}-${me()}`;
     if (!localStorage.getItem(dk) && typeof petXP === 'function') { localStorage.setItem(dk, '1'); await petXP(1); toast(`抓到${petState().name}了！經驗 +1`); }
     else toast(`${typeof petState === 'function' ? petState().name : '小小黑'}：喵～`);
@@ -737,6 +741,58 @@ function catStroll() {
   };
   document.body.appendChild(el);
   setTimeout(() => el.remove(), 9000);
+}
+
+// ============================================================
+//  路過的小貓：不同毛色（純白、橘白胖貓、三花、賓士）
+// ============================================================
+const COATS = {
+  black: { name: '小小黑', base: CAT_INK, line: CAT_INK, eye: '#ffd970', ear: CE, whisker: CW },
+  white: { name: '小白', base: '#f7f4ef', line: '#cfc6bd', eye: '#8fd0f0', ear: '#f4b6c4', whisker: '#c9bfb6' },
+  orange: { name: '橘胖', base: '#f2a65a', line: '#c97a35', eye: '#9ccc65', ear: '#f4b6a4', whisker: '#fff', fat: true,
+    patches: (id) => `<g clip-path="url(#${id})"><ellipse cx="52" cy="80" rx="16" ry="8" fill="#fffaf2"/></g>`,
+    face: `<ellipse cx="0" cy="6" rx="8.5" ry="6" fill="#fffaf2"/><path d="M-6 -13 Q-3 -9 0 -13 Q3 -9 6 -13 M-8 -9 Q-4 -5 0 -9 Q4 -5 8 -9" fill="none" stroke="#d98a3e" stroke-width="1.4" stroke-linecap="round"/>` },
+  calico: { name: '三花', base: '#fbf7f1', line: '#d6c9bc', eye: '#e8b23a', ear: '#f4b6c4', whisker: '#c9bfb6',
+    patches: (id) => `<g clip-path="url(#${id})"><ellipse cx="40" cy="60" rx="10" ry="8" fill="#e9984d"/><ellipse cx="66" cy="62" rx="9" ry="7" fill="#3a3238"/><ellipse cx="60" cy="58" rx="5" ry="4" fill="#e9984d"/></g>`,
+    face: `<path d="M-18 -4 Q-16 -18 -4 -14 Q-6 -4 -14 2 Z" fill="#e9984d"/><path d="M18 -4 Q16 -18 5 -14 Q6 -5 14 1 Z" fill="#3a3238"/>`, earL: '#e9984d', earR: '#3a3238' },
+  tuxedo: { name: '賓士', base: CAT_INK, line: CAT_INK, eye: '#a5d86b', ear: CE, whisker: CW,
+    patches: (id) => `<g clip-path="url(#${id})"><path d="M28 64 Q34 72 46 74 L48 80 L28 80 Z" fill="#fbf7f1"/></g>`,
+    face: `<path d="M0 -2 Q-6 2 -9 10 Q0 15 9 10 Q6 2 0 -2 Z" fill="#fbf7f1"/>`, socks: '#fbf7f1' },
+};
+function coatHead(c) {
+  const eL = c.earL || c.base, eR = c.earR || c.base;
+  return `<path d="M-17 -5 L-15 -22 L-5 -12 Z" fill="${eL}" stroke="${c.line}" stroke-width="1.6" stroke-linejoin="round"/>
+    <path d="M17 -5 L15 -22 L5 -12 Z" fill="${eR}" stroke="${c.line}" stroke-width="1.6" stroke-linejoin="round"/>
+    <path d="M-13.5 -11 L-13 -18.5 L-8 -13.5 Z M13.5 -11 L13 -18.5 L8 -13.5 Z" fill="${c.ear}"/>
+    <ellipse cx="0" cy="0" rx="${c.fat ? 19.5 : 18}" ry="15" fill="${c.base}" stroke="${c.line}" stroke-width="${c.line === c.base ? 0 : 1.2}"/>
+    ${c.face || ''}
+    <ellipse cx="-7" cy="-1.5" rx="3.6" ry="4.2" fill="${c.eye}"/><ellipse cx="7" cy="-1.5" rx="3.6" ry="4.2" fill="${c.eye}"/>
+    <ellipse cx="-7" cy="-1" rx="1.2" ry="3" fill="#2b2633"/><ellipse cx="7" cy="-1" rx="1.2" ry="3" fill="#2b2633"/>
+    <circle cx="-6" cy="-3" r=".9" fill="#fff"/><circle cx="8" cy="-3" r=".9" fill="#fff"/>
+    <path d="M-1.5 4.5 L1.5 4.5 L0 6 Z" fill="${CP}"/>
+    <path d="M0 6 Q-2 8.5 -3.5 7.5 M0 6 Q2 8.5 3.5 7.5" fill="none" stroke="${c.base === CAT_INK ? CW : '#8a6e66'}" stroke-width="1" stroke-linecap="round"/>
+    <path d="M-19 2 L-11 3 M-19 6 L-11 5 M19 2 L11 3 M19 6 L11 5" stroke="${c.whisker}" stroke-width=".8" stroke-linecap="round"/>
+    <ellipse cx="-10.5" cy="6" rx="2.4" ry="1.3" fill="${CP}" opacity=".55"/><ellipse cx="10.5" cy="6" rx="2.4" ry="1.3" fill="${CP}" opacity=".55"/>`;
+}
+let coatSeq = 0;
+function coatWalk(key) {
+  const c = COATS[key] || COATS.black, id = 'cw' + (++coatSeq);
+  const body = c.fat ? 'M24 62 Q24 50 40 50 Q44 52 48 54 L70 54 Q84 56 82 70 Q80 79 70 79 L34 79 Q24 79 24 70 Z' : 'M26 62 Q24 52 34 50 Q42 52 46 56 L70 56 Q80 58 78 70 Q76 76 70 76 L36 76 Q28 76 28 70 Z';
+  const ly = c.fat ? 82 : 79, sw = c.line === c.base ? 0 : 1.2;
+  const leg = (x1, x2) => `<path d="M${x1} ${ly} L${x2} 85" stroke="${c.line}" stroke-width="${8.5 + sw * 2}" stroke-linecap="round"/><path d="M${x1} ${ly} L${x2} 85" stroke="${c.base}" stroke-width="8.5" stroke-linecap="round"/>${c.socks ? `<circle cx="${x2}" cy="85" r="4.2" fill="${c.socks}"/>` : ''}`;
+  return `<svg viewBox="0 0 100 92" class="cat-svg cat-walk coat-${key}" xmlns="http://www.w3.org/2000/svg">
+    <defs><clipPath id="${id}"><path d="${body}" transform="translate(0 5)"/></clipPath></defs>
+    ${shadow(52, c.fat ? 32 : 28)}
+    <g class="cat-legs-a">${leg(38, 37.5)}${leg(68, 68.5)}</g>
+    <g class="cat-legs-b">${leg(46, 47)}${leg(60, 59)}</g>
+    <g transform="translate(0 5)">
+      <path class="cat-tail" d="M76 62 Q88 50 86 36" fill="none" stroke="${c.line}" stroke-width="${5 + sw * 2}" stroke-linecap="round"/>
+      <path class="cat-tail" d="M76 62 Q88 50 86 36" fill="none" stroke="${key === 'calico' ? '#e9984d' : c.base}" stroke-width="5" stroke-linecap="round"/>
+      <path d="${body}" fill="${c.base}" stroke="${c.line}" stroke-width="${sw}"/>
+    </g>
+    ${c.patches ? c.patches(id) : ''}
+    <g transform="translate(30 ${c.fat ? 50 : 52}) scale(.9)">${coatHead(c)}</g>
+  </svg>`;
 }
 // ============================================================
 //  啟動、登入、配對、外框
