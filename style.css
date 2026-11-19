@@ -859,3 +859,57 @@ html[data-theme="night"] .mood-box.mood-w_fire { background: linear-gradient(160
 .empty .cat-bubble .ic { width: 20px !important; height: 20px !important; color: var(--accent) !important; opacity: 1 !important; }
 html[data-theme="night"] .empty .cat-svg { filter: drop-shadow(0 0 1px rgba(255, 240, 220, .55)) drop-shadow(0 0 10px rgba(255, 200, 150, .12)); }
 .story .slide .si .story-photo { width: 220px; height: 220px; object-fit: cover; border-radius: 18px; border: 4px solid rgba(255, 255, 255, .9); box-shadow: 0 12px 30px rgba(0, 0, 0, .3); transform: rotate(-3deg); }
+/* ============ 黑貓 ============ */
+.pet-card { display: flex; align-items: center; gap: 12px; cursor: pointer; }
+.pet-card .pet-stage { width: 84px; flex: none; color: var(--ink); }
+.pet-svg { width: 100%; height: auto; display: block; overflow: visible; }
+.pet-name { font-family: var(--serif); font-weight: 800; font-size: 17px; display: flex; align-items: center; gap: 6px; }
+.pet-name .chip { font-family: var(--sans); font-size: 11px; padding: 2px 8px; border-radius: 99px; background: color-mix(in srgb, var(--accent) 14%, transparent); color: var(--accent); font-weight: 700; }
+.pet-bar { height: 6px; border-radius: 3px; background: var(--card2); margin: 6px 0 4px; overflow: hidden; }
+.pet-bar div { height: 100%; border-radius: 3px; background: linear-gradient(90deg, var(--accent), var(--accent2)); }
+.pet-card .pet-pet { flex: none; align-self: center; }
+.pet-tail { transform-origin: 66px 80px; animation: catTail 2.2s ease-in-out infinite; }
+.pet-happy .pet-tail { animation-duration: 1s; }
+.pet-miss .pet-tail { animation: none; transform: rotate(18deg); }
+.pet-body { transform-origin: 50px 88px; animation: petBreath 3.2s ease-in-out infinite; }
+@keyframes petBreath { 0%, 100% { transform: scale(1, 1); } 50% { transform: scale(1.015, .985); } }
+.pet-eyes { transform-origin: 50px 33px; animation: petBlink 5s infinite; }
+@keyframes petBlink { 0%, 94%, 100% { transform: scaleY(1); } 96% { transform: scaleY(.1); } }
+.pet-bounce .pet-body { animation: petHop .5s ease; }
+@keyframes petHop { 40% { transform: translateY(-8px) scale(1.04, .96); } 70% { transform: translateY(0) scale(.97, 1.03); } }
+html[data-theme="night"] .pet-svg { filter: drop-shadow(0 0 1px rgba(255, 240, 220, .55)) drop-shadow(0 0 12px rgba(255, 200, 150, .12)); }
+.pet-big { width: 190px; margin: 0 auto 6px; color: var(--ink); }
+.pet-acc { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
+.pet-acc button { background: var(--card2); border-radius: 12px; padding: 6px 4px; border: 2px solid transparent; display: flex; flex-direction: column; align-items: center; gap: 2px; font-size: 11px; color: var(--ink); min-height: 60px; justify-content: center; }
+.pet-acc button .pet-svg { width: 46px; }
+.pet-acc button.on { border-color: var(--accent); }
+.pet-acc button.locked { opacity: .45; }
+.pet-acc button.locked .pet-svg { filter: grayscale(1); }
+.pet-acc small { color: var(--muted); font-size: 10px; }
+/* ============ 相簿牆 ============ */
+.polaroids { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px 12px; padding: 4px 2px 8px; }
+.polaroid { display: flex; flex-direction: column; background: #fffdf8; padding: 8px 8px 10px; border-radius: 4px; box-shadow: 0 6px 16px rgba(40, 20, 30, .16), 0 1px 2px rgba(40, 20, 30, .12); transform: rotate(var(--t)); transition: transform .25s; text-align: left; color: #3a2a2a; }
+.polaroid:active { transform: rotate(0) scale(.98); }
+.polaroid .pp { display: block; aspect-ratio: 1; background: #eee center/cover no-repeat; border-radius: 2px; }
+.polaroid .pc { font-family: var(--serif); font-size: 13px; font-weight: 700; margin-top: 8px; line-height: 1.35; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.polaroid .pd { font-size: 10px; color: #a08a86; letter-spacing: .05em; margin-top: 2px; }
+.polaroid.big { width: 100%; padding: 12px 12px 16px; }
+.polaroid.big .pc { font-size: 16px; white-space: normal; }
+html[data-theme="night"] .polaroid { background: #f6efe6; }
+.photo-pick.has span { background: rgba(0, 0, 0, .45); color: #fff; padding: 4px 10px; border-radius: 99px; }
+/* ============ 季問答 ============ */
+.deep-head .dh-season { font-family: var(--serif); font-size: 20px; font-weight: 900; color: var(--accent); margin-bottom: 4px; }
+.deep-q { position: relative; padding-top: 14px; }
+.deep-q .dq-n { font-family: var(--serif); font-weight: 900; color: var(--accent); font-size: 13px; letter-spacing: .1em; }
+.deep-q .dq-t { font-family: var(--serif); font-weight: 800; font-size: 16px; line-height: 1.5; margin: 2px 0 10px; }
+.deep-q .dq-status { margin-bottom: 8px; }
+.deep-q .dq-a { background: var(--card2); border-radius: 12px; padding: 10px 12px; margin-top: 8px; }
+.deep-q .dq-a b { font-size: 13px; }
+.deep-q .dq-a p { margin: 4px 0 0; white-space: pre-wrap; line-height: 1.7; }
+.deep-q.open { border: 1px solid color-mix(in srgb, var(--accent) 30%, transparent); }
+.dq-past { margin-top: 10px; font-size: 13px; }
+.dq-past summary { color: var(--accent); cursor: pointer; font-weight: 700; }
+.dq-py { font-family: var(--serif); font-weight: 900; color: var(--muted); margin-top: 8px; }
+.pet-acc button .pet-thumb { width: 52px; height: 52px; border-radius: 50%; background: #f3e9f0; display: grid; place-items: center; overflow: hidden; }
+.pet-acc button .pet-thumb .pet-svg { width: 48px; filter: none !important; margin-top: 4px; }
+.pet-acc button span:not(.pet-thumb) { font-weight: 700; }

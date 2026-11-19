@@ -431,4 +431,20 @@ export const ACHIEVEMENTS = [
   { id: 'holiday_first', name: '節日快樂', desc: '收到第一張節日限定券', m: 'holidays', goal: 1, tier: 'b', mark: '節' },
   { id: 'holiday_all', name: '四季都有你', desc: '收集齊 6 種節日限定券', m: 'holidays', goal: 6, tier: 'g', mark: '慶' },
   { id: 'birthday_book', name: '家', desc: '解鎖收藏冊封面「有你在，家才像家」', m: 'birthdayBook', goal: 1, tier: 'g', mark: '家' },
+  // 黑貓
+  { id: 'pet_first', name: '初次見面', desc: '第一次摸摸黑貓', m: 'petXP', goal: 1, tier: 'b', mark: '貓', cat: 'pet' },
+  { id: 'pet_teen', name: '慢慢長大', desc: '黑貓長成少年貓', m: 'petStage', goal: 1, tier: 'b', mark: '育', cat: 'pet' },
+  { id: 'pet_big', name: '一家三口', desc: '黑貓長成大貓咪', m: 'petStage', goal: 2, tier: 's', mark: '養', cat: 'pet' },
+  { id: 'pet_boss', name: '貓老大', desc: '黑貓長成貓老大', m: 'petStage', goal: 3, tier: 'g', mark: '王', cat: 'pet' },
+  // 相簿
+  { id: 'album_1', name: '第一張合照', desc: '相簿裡有第一張照片', m: 'photos', goal: 1, tier: 'b', mark: '照', cat: 'album' },
+  { id: 'album_30', name: '滿滿一面牆', desc: '相簿累積 30 張照片', m: 'photos', goal: 30, tier: 's', mark: '牆', cat: 'album' },
+  { id: 'album_100', name: '百張回憶', desc: '相簿累積 100 張照片', m: 'photos', goal: 100, tier: 'g', mark: '影', cat: 'album' },
+  // 季問答
+  { id: 'deep_1', name: '第一次交心', desc: '一起揭曉第一題季問答', m: 'deepBoth', goal: 1, tier: 'b', mark: '心', cat: 'deep' },
+  { id: 'deep_season', name: '一季的真心話', desc: '完成一整季的季問答', m: 'deepSeasons', goal: 1, tier: 's', mark: '季', cat: 'deep' },
+  { id: 'deep_year', name: '四季都聊過', desc: '完成四季的季問答', m: 'deepSeasons', goal: 4, tier: 'g', mark: '年', cat: 'deep' },
+  { id: 'deep_change', name: '看見改變', desc: '同一題在不同年份都一起回答過', m: 'deepRepeat', goal: 1, tier: 'g', mark: '變', cat: 'deep' },
+  // 週年
+  { id: 'anniv_letter', name: '週年情書', desc: '週年紀念日兩個人都寫了信', m: 'annivLetters', goal: 1, tier: 's', mark: '信', cat: 'anniv' },
 ];

@@ -13,7 +13,7 @@ const S = {
   unsubs: [], started: Date.now(), seenEvents: new Set(), deferRender: false,
 };
 const COLS = ['cards', 'events', 'points', 'pool', 'wishes', 'taskDone', 'battles', 'quiz', 'daily',
-  'deposits', 'trips', 'goals', 'capsules', 'notes', 'misses', 'gacha', 'memories'];
+  'deposits', 'trips', 'goals', 'capsules', 'notes', 'misses', 'gacha', 'memories', 'photos', 'deep'];
 
 // ---------- 小工具 ----------
 const $ = (s, r = document) => r.querySelector(s);
@@ -244,18 +244,7 @@ ACT.theme = () => {
 applyTheme();
 setInterval(applyTheme, 60000);
 
-// 主畫面圖示（加到主畫面時用）
-(function touchIcon() {
-  try {
-    const c = document.createElement('canvas'); c.width = c.height = 180;
-    const g = c.getContext('2d');
-    const gr = g.createLinearGradient(0, 0, 180, 180); gr.addColorStop(0, '#ff9ab3'); gr.addColorStop(1, '#c42e52');
-    g.fillStyle = gr; g.fillRect(0, 0, 180, 180);
-    g.font = '110px serif'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText('🎡', 90, 98);
-    const l = document.createElement('link'); l.rel = 'apple-touch-icon'; l.href = c.toDataURL('image/png');
-    document.head.appendChild(l);
-  } catch (e) {}
-})();
+// 主畫面圖示：index.html 的 icon-180.png（黑貓徽章）
 // ============================================================
 //  介面圖示：一套線條圖示（跟卡片圖騰同樣的筆觸），取代介面上的 emoji
 //  ic('home') → 內嵌 SVG，顏色跟著文字走（currentColor）
@@ -1213,10 +1202,16 @@ function homeTodos() {
   if (tr && tr.by !== me() && tr.wk === weekKey()) t.push({ icon: '<i data-ic="swap"></i>', text: `${nick(tr.by)} 想換掉每週任務「${weekTasks()[tr.i] || ''}」`, act: 'tab', tab: 'play', btn: '去看' });
   if (needDownloadReminder()) t.push({ icon: '<i data-ic="cloud"></i>', text: '這個月還沒把備份存到手機', act: 'downloadBackup', btn: '下載' });
   const caps = list('capsules').filter((c) => c.openAt <= now() && !(c.opened || {})[me()]).length;
+  if (p && typeof deepProgress === 'function') {
+    const y = new Date().getFullYear(), q = deepQ(), DP = deepProgress(y, q);
+    const wait = DP.docs.filter((d) => d && d.answers && d.answers[p] && !d.answers[me()]).length;
+    if (wait) t.push({ icon: '<i data-ic="chat"></i>', text: `${nick(p)} 在季問答等你寫 ${wait} 題`, act: 'goDeep', btn: '去寫' });
+  }
   if (caps) t.push({ icon: '<i data-ic="hourglass"></i>', text: `有 ${caps} 封時光膠囊可以打開了`, act: 'goCapsule', btn: '打開' });
   return t;
 }
 ACT.goScratch = () => { S.tab = 'wallet'; S.sub.wallet = 'mine'; render(); window.scrollTo(0, 0); };
+ACT.goDeep = () => { S.tab = 'memory'; S.sub.memory = 'deep'; render(); window.scrollTo(0, 0); };
 ACT.goCapsule = () => { S.tab = 'memory'; S.sub.memory = 'capsule'; render(); window.scrollTo(0, 0); };
 
 PAGES.home = {
@@ -1252,6 +1247,7 @@ PAGES.home = {
       </div>
     </div>
 
+    ${petHomeCard()}
     <div class="card">
       <h3><i data-ic="heart"></i> 想你按鈕</h3>
       <div class="miss-wrap">
@@ -1302,6 +1298,7 @@ ACT.miss = async (el, e) => {
   el.classList.remove('pulse'); void el.offsetWidth; el.classList.add('pulse');
   vibrate([30, 40, 30]);
   await col('misses').add({ by: me(), at: now() });
+  petXP(1);
   const p = partner();
   const recent = list('events').some((x) => x.type === 'miss' && x.by === me() && x.to === p && !x.read && now() - x.at < 30 * 60000);
   if (p && !recent) await notify(p, 'miss', '有人在想你 💗');
@@ -1333,7 +1330,7 @@ ACT.dailyAnswer = async () => {
   const id = dkey(), doc = todayDaily();
   if (doc) await col('daily').update(id, { [`answers.${me()}`]: v });
   else await col('daily').set(id, { qi: dayIndex() % D.DAILY_QUESTIONS.length, answers: { [me()]: v }, at: now() });
-  await addPoints(me(), D.POINTS.daily, '每日一問');
+  await addPoints(me(), D.POINTS.daily, '每日一問'); petXP(2);
   await notify(partner(), 'daily', `${nick(me())} 回答了今天的每日一問 💬`);
   toast('送出了 💬');
 };
@@ -2076,7 +2073,7 @@ ACT.openCard = (el) => {
     await sleep(350);
     vibrate(80);
     if (c.rarity === 'SSR' || c.rarity === 'SR') confetti(110); else confetti(50);
-    sfx('chime'); vibrate([30, 40, 80]);
+    sfx('chime'); vibrate([30, 40, 80]); petXP(3);
     if (c.mystery) $('#secret', m).innerHTML = `<div class="secret-reveal">盲盒揭曉：${esc(c.secret)}</div>`;
     hold.outerHTML = '<p class="center" style="font-weight:700">兌換成功！好好享受</p><button class="btn block" data-act="close">完成</button>';
     await col('cards').update(c.id, { used: (c.used || 0) + 1, log: [...(c.log || []), { at: now(), how: 'redeem' }] });
@@ -2683,7 +2680,7 @@ ACT.giveStamp = () => {
     if (!r) { closeModal(m); r = await promptBox('蓋章的原因', { placeholder: '例如：幫我按摩' }); if (!r) return; }
     else closeModal(m);
     const before = stampCount(p);
-    await addPoints(p, D.POINTS.stamp, '蓋章：' + r, 'stamp');
+    await addPoints(p, D.POINTS.stamp, '蓋章：' + r, 'stamp'); petXP(3); sfx('stamp');
     await notify(p, 'stamp', `${nick(me())} 幫你蓋了一個章 📮`, r);
     if ((before + 1) % D.POINTS.stampsPerSheet === 0) {
       await addTicket(p, 1);
@@ -2749,7 +2746,7 @@ ACT.taskDo = async (el) => {
   const t = weekTasks()[i];
   if (!(await confirmBox(`完成「${t}」了嗎？`, '完成！'))) return;
   await col('taskDone').set(`${wk}_${i}_${me()}`, { uid: me(), week: wk, i, task: t, at: now() });
-  await addPoints(me(), D.POINTS.weeklyTask, '每週任務：' + t);
+  await addPoints(me(), D.POINTS.weeklyTask, '每週任務：' + t); petXP(3);
   confetti(30); toast(`+${D.POINTS.weeklyTask} 點`);
 };
 // ============================================================
@@ -2995,12 +2992,12 @@ ACT.openTrip = (el) => {
 PAGES.memory = {
   html() {
     const sub = S.sub.memory;
-    const tabs = [['goals', '<i data-ic="target"></i> 年度清單'], ['timeline', '<i data-ic="clock"></i> 時間軸'], ['capsule', '<i data-ic="hourglass"></i> 時光膠囊'], ['ach', '<i data-ic="trophy"></i> 成就']];
+    const tabs = [['goals', '<i data-ic="target"></i> 年度清單'], ['timeline', '<i data-ic="clock"></i> 時間軸'], ['album', '<i data-ic="camera"></i> 相簿'], ['deep', '<i data-ic="chat"></i> 季問答'], ['capsule', '<i data-ic="hourglass"></i> 時光膠囊'], ['ach', '<i data-ic="trophy"></i> 成就']];
     return `<div class="page-title"><h2><i data-ic="book"></i> 回憶</h2><span>第 ${money(daysTogether())} 天</span></div>
       <button class="card review-banner" data-act="review">
         <span class="review-ic"><i data-ic="film"></i></span><span class="grow"><b style="font-family:var(--serif);font-size:17px">${new Date().getFullYear()} 年度回顧</b><br><span class="small" style="opacity:.9">看看我們這一年一起做了什麼</span></span><span style="font-size:22px">›</span></button>
       <div class="seg">${tabs.map(([k, n]) => `<button class="${sub === k ? 'on' : ''}" data-act="sub" data-page="memory" data-sub="${k}">${n}</button>`).join('')}</div>
-      ${({ goals: memGoals, timeline: memTimeline, capsule: memCapsule, ach: memAch }[sub] || memGoals)()}`;
+      ${({ goals: memGoals, timeline: memTimeline, album: memAlbum, deep: memDeep, capsule: memCapsule, ach: memAch }[sub] || memGoals)()}`;
   },
 };
 
@@ -3207,6 +3204,13 @@ function achMetrics() {
     days: daysTogether(),
     holidays: new Set(cards.filter((c) => c.series === '節日系列').map((c) => festKey(c)).filter((k) => k && k !== 'travel')).size,
     birthdayBook: bday.length && bday.every(seriesCollected) ? 1 : 0,
+    petXP: (S.couple.pet || {}).xp || 0,
+    petStage: typeof petState === 'function' ? petState().st : 0,
+    photos: typeof albumItems === 'function' ? albumItems().length : 0,
+    deepBoth: ms.length === 2 ? list('deep').filter((d) => d.answers && ms.every((u) => d.answers[u])).length : 0,
+    deepSeasons: Object.keys(S.couple.drops || {}).filter((k) => k.startsWith('deep-')).length,
+    deepRepeat: (() => { if (ms.length < 2) return 0; const both = list('deep').filter((d) => d.answers && ms.every((u) => d.answers[u])); const keys = new Set(both.map((d) => `${d.q}-${d.i}`)); let n = 0; keys.forEach((k) => { if (new Set(both.filter((d) => `${d.q}-${d.i}` === k).map((d) => d.y)).size > 1) n++; }); return n; })(),
+    annivLetters: Object.values(S.couple.annivLetters || {}).filter((L) => ms.length === 2 && ms.every((u) => L[u])).length,
   };
 }
 function computeAch() {
@@ -3230,6 +3234,13 @@ function scheduleAchievements() {
   }, 1500);
 }
 // 成就徽章：銅／銀／金，用和卡片一樣的徽章外框
+// 新功能成就的小標誌（徽章下緣）
+const ACH_CAT_MOTIF = {
+  pet: '<g class="e-ink-f"><ellipse cx="0" cy="2.5" rx="3.6" ry="3"/><circle cx="-4.2" cy="-2.2" r="1.6"/><circle cx="-1.4" cy="-4.4" r="1.6"/><circle cx="1.4" cy="-4.4" r="1.6"/><circle cx="4.2" cy="-2.2" r="1.6"/></g>',
+  album: '<g class="e-ink-s" stroke-width="1.3" fill="none"><rect x="-6" y="-4" width="12" height="9" rx="1.5"/><circle cx="0" cy=".5" r="2.6"/><path d="M-2.5 -4 L-1.5 -6 L1.5 -6 L2.5 -4"/></g>',
+  deep: '<g class="e-ink-s" stroke-width="1.3" fill="none"><path d="M-6 -5 H6 V3 H-1 L-4 6 V3 H-6 Z" stroke-linejoin="round"/></g><circle cx="-2.5" cy="-1" r=".9" class="e-ink-f"/><circle cx="0" cy="-1" r=".9" class="e-ink-f"/><circle cx="2.5" cy="-1" r=".9" class="e-ink-f"/>',
+  anniv: '<g class="e-ink-s" stroke-width="1.3" fill="none"><rect x="-6.5" y="-4.5" width="13" height="9" rx="1"/><path d="M-6.5 -4 L0 1 L6.5 -4"/></g>',
+};
 function achBadge(a, unlocked) {
   const shape = { b: 0, s: 1, g: 2 }[a.tier];
   const id = 'ab' + (++embSeq);
@@ -3238,6 +3249,7 @@ function achBadge(a, unlocked) {
     <circle cx="65" cy="65" r="64" class="e-bg"/>
     <rect width="130" height="130" fill="url(#${id})" opacity=".45" clip-path="url(#${id}c)"/>
     ${embMedallion(65, 65, { shape, ch: a.mark }, 44)}
+    ${a.cat ? `<g transform="translate(65 113)"><circle r="11" class="e-bg e-ink-s" stroke-width="1.4"/>${ACH_CAT_MOTIF[a.cat] || ''}</g>` : ''}
     ${a.tier === 'g' && unlocked ? '<path d="M65 2 L67.5 8 L74 9 L69 13 L70.5 19.5 L65 16 L59.5 19.5 L61 13 L56 9 L62.5 8 Z" class="e-ink-f"/>' : ''}
   </svg>`;
 }
@@ -3600,6 +3612,324 @@ function annivHomeCard() {
   </div>`;
 }
 ACT.annivReplay = () => annivIntro(true);
+// ============================================================
+//  一起養黑貓：兩人的互動會餵牠，牠會長大、換表情、解鎖小配件
+// ============================================================
+
+const PET_STAGES = [
+  { xp: 0, name: '小奶貓', scale: .72 },
+  { xp: 60, name: '少年貓', scale: .86 },
+  { xp: 200, name: '大貓咪', scale: 1 },
+  { xp: 500, name: '貓老大', scale: 1.06 },
+];
+const PET_ACC = [
+  { id: 'bow', name: '粉紅蝴蝶結', xp: 30 },
+  { id: 'bell', name: '鈴鐺項圈', xp: 100 },
+  { id: 'scarf', name: '小圍巾', xp: 250 },
+  { id: 'flower', name: '小花', xp: 380 },
+  { id: 'crown', name: '小皇冠', xp: 500 },
+  { id: 'santa', name: '聖誕帽', xp: 0, month: 12 },
+];
+const PET_DEFAULT_NAME = '小黑';
+
+function petState() {
+  const pet = S.couple?.pet || {};
+  const xp = pet.xp || 0;
+  let st = 0; PET_STAGES.forEach((s, i) => { if (xp >= s.xp) st = i; });
+  const next = PET_STAGES[st + 1];
+  const last = Math.max(0, ...Object.values(pet.last || {}));
+  const hrs = last ? (now() - last) / 3600000 : 999;
+  const mood = hrs < 12 ? 'happy' : hrs < 36 ? 'ok' : 'miss';
+  const month = new Date().getMonth() + 1;
+  const unlocked = PET_ACC.filter((a) => a.month ? a.month === month : xp >= a.xp);
+  return { pet, xp, st, stage: PET_STAGES[st], next, mood, hrs, unlocked, name: pet.name || PET_DEFAULT_NAME, wear: pet.wear || '' };
+}
+
+// 互動加經驗（小事都會加一點；每人每天有上限，避免狂刷）
+async function petXP(n, why = '') {
+  if (!S.couple) return;
+  const k = `park-petxp-${dkey()}-${me()}`;
+  const used = +(localStorage.getItem(k) || 0);
+  const add = Math.max(0, Math.min(n, 30 - used));
+  localStorage.setItem(k, used + add);
+  const before = petState().st;
+  await S.store.coupleTx(S.cid, (c) => ({ 'pet.xp': ((c.pet || {}).xp || 0) + add, [`pet.last.${me()}`]: now() }));
+  const after = petState().st;
+  if (after > before) setTimeout(() => { toast(`${petState().name} 長大了！變成${PET_STAGES[after].name}`); confetti(80, ['#2b2633', '#ffd970', '#c98aa0', '#fff']); }, 400);
+}
+
+function petSVG(st, mood, wear, { blink = true } = {}) {
+  const I = CAT_INK;
+  const eyes = mood === 'happy'
+    ? `<path d="M39.5 33 Q43 29 46.5 33 M53.5 33 Q57 29 60.5 33" fill="none" stroke="#ffd970" stroke-width="2.2" stroke-linecap="round"/>`
+    : `<g class="${blink ? 'pet-eyes' : ''}"><ellipse cx="43" cy="32.5" rx="3.6" ry="4.2" fill="#ffd970"/><ellipse cx="57" cy="32.5" rx="3.6" ry="4.2" fill="#ffd970"/>
+       <ellipse cx="43" cy="33" rx="1.2" ry="${mood === 'miss' ? 2 : 3}" fill="${I}"/><ellipse cx="57" cy="33" rx="1.2" ry="${mood === 'miss' ? 2 : 3}" fill="${I}"/>
+       <circle cx="44" cy="31" r=".9" fill="#fff"/><circle cx="58" cy="31" r=".9" fill="#fff"/></g>
+       ${mood === 'miss' ? `<path d="M38 27 L46 29 M62 27 L54 29" stroke="#efe6f2" stroke-width="1.1" stroke-linecap="round"/><path d="M61 38 Q62 41 61 43" stroke="#9fd0ff" stroke-width="1.6" stroke-linecap="round"/>` : ''}`;
+  const mouth = mood === 'miss'
+    ? `<path d="M47 42.5 Q50 40.5 53 42.5" fill="none" stroke="#efe6f2" stroke-width="1" stroke-linecap="round"/>`
+    : `<path d="M50 40 Q48 42.5 46.5 41.5 M50 40 Q52 42.5 53.5 41.5" fill="none" stroke="#efe6f2" stroke-width="1" stroke-linecap="round"/>${mood === 'happy' ? '<path d="M48.6 41.6 Q50 44.5 51.4 41.6 Z" fill="#ff9fb4"/>' : ''}`;
+  const acc = {
+    bow: `<g transform="translate(62 15) rotate(18)"><path d="M0 0 L-7 -5 L-7 5 Z M0 0 L7 -5 L7 5 Z" fill="#ff8fab" stroke="#c94f72" stroke-width=".8" stroke-linejoin="round"/><circle r="2" fill="#ff8fab" stroke="#c94f72" stroke-width=".8"/></g>`,
+    bell: `<path d="M39 52 Q50 57 61 52" fill="none" stroke="#e2445f" stroke-width="3" stroke-linecap="round"/><circle cx="50" cy="57" r="3.2" fill="#ffd45c" stroke="#b8862f" stroke-width=".8"/><path d="M48.5 57.5 H51.5" stroke="#b8862f" stroke-width=".7"/>`,
+    scarf: `<path d="M37 51 Q50 58 63 51 L63 55 Q50 62 37 55 Z" fill="#7cc7a8" stroke="#3b8a6c" stroke-width=".8"/><path d="M56 56 L59 68 L64 66 L60 55" fill="#7cc7a8" stroke="#3b8a6c" stroke-width=".8" stroke-linejoin="round"/><path d="M40 53 L60 53" stroke="#fff" stroke-width=".8" stroke-dasharray="2 2" opacity=".7"/>`,
+    flower: `<g transform="translate(36 17)">${[0, 72, 144, 216, 288].map((a) => `<ellipse rx="2.6" ry="4" transform="rotate(${a}) translate(0 -3.4)" fill="#fff" stroke="#e7b3c4" stroke-width=".6"/>`).join('')}<circle r="2.2" fill="#ffd45c"/></g>`,
+    crown: `<path d="M40 16 L42 7 L46 12 L50 5 L54 12 L58 7 L60 16 Z" fill="#ffd45c" stroke="#b8862f" stroke-width="1" stroke-linejoin="round"/><circle cx="50" cy="12.5" r="1.4" fill="#e2445f"/>`,
+    santa: `<path d="M35 20 Q44 4 60 9 Q66 12 70 24 L36 22 Z" fill="#e2445f" stroke="#9e2a3c" stroke-width=".8" stroke-linejoin="round"/><path d="M34 21 Q50 17 66 22 L66 26 Q50 21 34 25 Z" fill="#fff"/><circle cx="71" cy="25" r="3" fill="#fff"/>`,
+  }[wear] || '';
+  const s = PET_STAGES[st].scale;
+  return `<svg viewBox="0 0 100 92" class="pet-svg pet-${mood}" xmlns="http://www.w3.org/2000/svg">
+    <ellipse cx="50" cy="88" rx="${26 * s}" ry="3.5" fill="currentColor" opacity=".1"/>
+    <g transform="translate(50 88) scale(${s}) translate(-50 -88)">
+      <g class="pet-body">
+        <path class="pet-tail" d="M66 80 Q86 80 84 64 Q83 56 76 58" fill="none" stroke="${I}" stroke-width="5" stroke-linecap="round"/>
+        <path d="M34 86 Q30 62 40 50 L60 50 Q70 62 66 86 Z" fill="${I}"/>
+        <ellipse cx="42" cy="86" rx="6" ry="3" fill="${I}"/><ellipse cx="58" cy="86" rx="6" ry="3" fill="${I}"/>
+        <g transform="translate(0 4)">
+          <path d="M33 29 L35 12 L45 22 Z M67 29 L65 12 L55 22 Z" fill="${I}" stroke="${I}" stroke-width="2" stroke-linejoin="round"/>
+          <path d="M36.5 23 L37 15.5 L42 20.5 Z M63.5 23 L63 15.5 L58 20.5 Z" fill="#c98aa0"/>
+          <ellipse cx="50" cy="34" rx="18" ry="15" fill="${I}"/>
+          ${eyes}
+          <path d="M48.5 38.5 L51.5 38.5 L50 40 Z" fill="#ff9fb4"/>${mouth}
+          <path d="M31 36 L39 37 M31 40 L39 39 M69 36 L61 37 M69 40 L61 39" stroke="#efe6f2" stroke-width=".8" stroke-linecap="round"/>
+          <ellipse cx="39.5" cy="40" rx="2.4" ry="1.3" fill="#ff9fb4" opacity="${mood === 'happy' ? .8 : .45}"/><ellipse cx="60.5" cy="40" rx="2.4" ry="1.3" fill="#ff9fb4" opacity="${mood === 'happy' ? .8 : .45}"/>
+          ${acc}
+        </g>
+      </g>
+    </g>
+  </svg>`;
+}
+
+const PET_MOOD_TEXT = { happy: '心情超好，尾巴翹得高高的', ok: '在窩裡等你們來玩', miss: '好久沒人理牠了，有點想你們' };
+
+function petHomeCard() {
+  const P = petState();
+  const pct = P.next ? Math.round((P.xp - P.stage.xp) / (P.next.xp - P.stage.xp) * 100) : 100;
+  return `<div class="card pet-card" data-act="petOpen">
+    <div class="pet-stage">${petSVG(P.st, P.mood, P.wear)}</div>
+    <div class="grow">
+      <div class="pet-name">${esc(P.name)} <span class="chip">${P.stage.name}</span></div>
+      <div class="small muted">${PET_MOOD_TEXT[P.mood]}</div>
+      <div class="pet-bar"><div style="width:${pct}%"></div></div>
+      <div class="small muted">${P.next ? `再 ${P.next.xp - P.xp} 點經驗長成${P.next.name}` : '已經是最大隻的貓老大了'}</div>
+    </div>
+    <button class="btn sm pet-pet" data-act="petPat">摸摸</button>
+  </div>`;
+}
+
+ACT.petPat = async (el, e) => {
+  e && e.stopPropagation();
+  const k = `park-petpat-${dkey()}-${me()}`;
+  const card = el.closest('.pet-card, .modal');
+  const svg = card && card.querySelector('.pet-svg');
+  if (svg) { svg.classList.remove('pet-bounce'); void svg.getBoundingClientRect(); svg.classList.add('pet-bounce'); }
+  const r = el.getBoundingClientRect(); floaty(r.left + r.width / 2, r.top, ['#2b2633', '#ff9db4', '#ffd970']);
+  sfx('heart');
+  if (localStorage.getItem(k)) return toast(`${petState().name} 呼嚕呼嚕～（今天摸過了，明天再來）`);
+  localStorage.setItem(k, '1');
+  await petXP(3, 'pat');
+  toast(`${petState().name} 很開心！經驗 +3`);
+};
+
+ACT.petOpen = () => {
+  const P = petState();
+  const m = openModal(`${mhead(`<i data-ic="heart"></i> ${esc(P.name)}`)}
+    <div class="pet-big">${petSVG(P.st, P.mood, P.wear)}</div>
+    <p class="center muted" style="margin:0 0 4px">${P.stage.name}・經驗 ${P.xp}・${PET_MOOD_TEXT[P.mood]}</p>
+    <div class="btn-row" style="justify-content:center;margin-bottom:12px">
+      <button class="btn sm" data-act="petPat">摸摸</button>
+      <button class="btn sm ghost" id="pt-feed">餵罐罐 <small>10點</small></button>
+      <button class="btn sm ghost" id="pt-name">改名字</button>
+    </div>
+    <h3 style="font-size:15px">配件</h3>
+    <div class="pet-acc">
+      <button data-w="" class="${!P.wear ? 'on' : ''}"><span>不戴</span></button>
+      ${PET_ACC.map((a) => { const ok = P.unlocked.some((x) => x.id === a.id); return `<button data-w="${a.id}" class="${P.wear === a.id ? 'on' : ''} ${ok ? '' : 'locked'}" ${ok ? '' : 'disabled'}><span class="pet-thumb">${petSVG(2, 'ok', a.id, { blink: false })}</span><span>${a.name}</span><small>${ok ? '' : a.month ? `${a.month} 月限定` : `經驗 ${a.xp}`}</small></button>`; }).join('')}
+    </div>
+    <h3 style="font-size:15px;margin-top:14px">怎麼養大牠</h3>
+    <p class="small muted" style="margin:0;line-height:1.8">每天摸摸 +3・按想你 +1・回答每日一問 +2・幫對方蓋章 +3・完成每週任務 +3・兌換票券 +3・季問答 +5<br>一個人一天最多 +30，兩個人一起養長得最快。超過一天半沒人理牠，牠會開始想你們。</p>`);
+  $$('.pet-acc button', m).forEach((b) => b.onclick = async () => {
+    await S.store.updateCouple(S.cid, { 'pet.wear': b.dataset.w });
+    closeModal(m); ACT.petOpen();
+  });
+  $('#pt-feed', m).onclick = async () => {
+    const mine = sum(list('points').filter((x) => x.uid === me()), (x) => x.amt);
+    if (mine < 10) return toast('點數不夠 10 點');
+    await addPoints(me(), -10, `餵${P.name}罐罐`);
+    await petXP(8, 'feed');
+    toast(`${P.name} 吃得好開心！經驗 +8`); closeModal(m); ACT.petOpen();
+  };
+  $('#pt-name', m).onclick = async () => {
+    const v = await promptBox('幫黑貓取名字', { value: P.name, placeholder: '例如：小黑' });
+    if (v && v.trim()) { await S.store.updateCouple(S.cid, { 'pet.name': v.trim().slice(0, 10) }); toast('改好了'); }
+  };
+};
+// ============================================================
+//  合照相簿牆：時間軸、足跡的照片自動收進來，也可以另外上傳
+// ============================================================
+
+function albumItems() {
+  const out = [];
+  for (const p of list('photos')) out.push({ src: p.img, cap: p.caption || '', date: p.date || dkey(new Date(p.at)), by: p.by, kind: 'photo', id: p.id });
+  for (const m of list('memories')) if (m.cover) out.push({ src: m.cover, cap: m.title, date: m.date || dkey(new Date(m.at)), kind: 'memory', id: m.id });
+  for (const t of list('trips')) if (t.cover) out.push({ src: t.cover, cap: t.name, date: t.date || dkey(new Date(t.at)), kind: 'trip', id: t.id });
+  return out.sort((a, b) => b.date.localeCompare(a.date));
+}
+
+function memAlbum() {
+  const all = albumItems();
+  const years = [...new Set(all.map((x) => x.date.slice(0, 4)))].sort().reverse();
+  const y = S.albumYear && years.includes(S.albumYear) ? S.albumYear : 'all';
+  const items = y === 'all' ? all : all.filter((x) => x.date.startsWith(y));
+  const tilt = (s) => { let h = 0; for (const ch of s) h = (h * 31 + ch.charCodeAt(0)) | 0; return ((Math.abs(h) % 7) - 3) * .9; };
+  return `<button class="btn block" data-act="albumAdd" style="margin-bottom:10px"><i data-ic="camera"></i> 放一張合照</button>
+    ${years.length > 1 ? `<div class="seg" style="margin-bottom:10px">${['all', ...years].map((k) => `<button class="${y === k ? 'on' : ''}" data-act="albumYear" data-y="${k}">${k === 'all' ? '全部' : k}</button>`).join('')}</div>` : ''}
+    ${items.length ? `<div class="polaroids">${items.map((x, i) => `<button class="polaroid" style="--t:${tilt(x.id + i)}deg" data-act="albumView" data-i="${all.indexOf(x)}">
+        <span class="pp" style="background-image:url('${x.src}')"></span>
+        <span class="pc">${esc(x.cap) || '&nbsp;'}</span><span class="pd">${x.date.replace(/-/g, '.')}</span></button>`).join('')}</div>`
+    : '<div class="empty"><span class="big"><i data-ic="camera"></i></span>還沒有照片<br><span class="small">時間軸和足跡放的照片也會自動出現在這裡</span></div>'}`;
+}
+
+ACT.albumYear = (el) => { S.albumYear = el.dataset.y; render(); };
+
+ACT.albumAdd = () => {
+  const t = { img: '', caption: '', date: dkey() };
+  const m = openModal(`${mhead('<i data-ic="camera"></i> 放一張合照')}
+    <label class="photo-pick" id="al-pp"><span>點這裡選照片</span><input type="file" accept="image/*" id="al-f" hidden></label>
+    <label>寫一句話（可以不寫）</label><input id="al-c" maxlength="30" placeholder="例如：第一次一起看海">
+    <label>日期</label><input id="al-d" type="date" value="${t.date}">
+    <button class="btn block mt" id="al-ok">放進相簿</button>`);
+  $('#al-f', m).onchange = async (e) => {
+    const f = e.target.files[0]; if (!f) return;
+    t.img = await compressImage(f, 900);
+    const pp = $('#al-pp', m); pp.style.backgroundImage = `url('${t.img}')`; pp.classList.add('has'); pp.firstChild.textContent = '換一張';
+  };
+  $('#al-ok', m).onclick = async () => {
+    if (!t.img) return toast('先選一張照片');
+    await col('photos').add({ img: t.img, caption: $('#al-c', m).value.trim(), date: $('#al-d', m).value || dkey(), by: me(), at: now() });
+    closeModal(m); toast('放進相簿了'); sfx('pop');
+  };
+};
+
+ACT.albumView = (el) => {
+  const all = albumItems();
+  let i = +el.dataset.i;
+  const m = openModal(`<div class="album-view" id="av"></div>`, { center: true });
+  const draw = () => {
+    const x = all[i];
+    $('#av', m).innerHTML = `<div class="polaroid big" style="--t:0deg"><span class="pp" style="background-image:url('${x.src}')"></span><span class="pc">${esc(x.cap) || '&nbsp;'}</span><span class="pd">${x.date.replace(/-/g, '.')}${x.kind === 'memory' ? '・時間軸' : x.kind === 'trip' ? '・足跡' : ''}</span></div>
+      <div class="btn-row" style="justify-content:space-between;margin-top:12px">
+        <button class="btn sm ghost" id="av-p" ${i <= 0 ? 'disabled' : ''}>‹ 上一張</button>
+        ${x.kind === 'photo' && x.by === me() ? '<button class="btn sm ghost" id="av-del" style="color:#d4405f">刪除</button>' : ''}
+        <button class="btn sm ghost" id="av-n" ${i >= all.length - 1 ? 'disabled' : ''}>下一張 ›</button>
+      </div>`;
+    $('#av-p', m).onclick = () => { i--; draw(); };
+    $('#av-n', m).onclick = () => { i++; draw(); };
+    const d = $('#av-del', m);
+    if (d) d.onclick = async () => { if (!(await confirmBox('確定刪除這張照片？', '刪除'))) return; await col('photos').remove(x.id); closeModal(m); toast('刪除了'); };
+  };
+  draw();
+};
+// ============================================================
+//  季任務：深度問答。每季同一組題目，每年重複，看見價值觀的變化
+// ============================================================
+
+const DEEP_SEASONS = [
+  { name: '春・關係', desc: '我們怎麼相處', qs: [
+    '你覺得我們現在最好的地方是什麼？',
+    '最近一次覺得被我好好照顧，是什麼時候？',
+    '吵架的時候，你最希望我怎麼做？',
+    '你覺得「在一起很久」最難的是什麼？',
+    '有沒有一件事你一直想跟我說，但還沒說？',
+    '如果用三個詞形容現在的我們，會是哪三個？',
+  ] },
+  { name: '夏・未來', desc: '我們想去哪裡', qs: [
+    '五年後的某個週末早上，你希望我們在做什麼？',
+    '你理想中的家是什麼樣子？在哪裡、有什麼？',
+    '對你來說，結婚代表什麼？',
+    '有沒有一個我們一定要一起完成的夢想？',
+    '你希望十年後的自己，跟現在最不一樣的地方是？',
+    '如果明天可以搬到世界上任何地方住一年，你會選哪裡？',
+  ] },
+  { name: '秋・價值觀', desc: '什麼對我們重要', qs: [
+    '錢對你來說代表什麼？安全感、自由，還是別的？',
+    '工作和生活，現在的你比較偏向哪一邊？為什麼？',
+    '你覺得家人和伴侶之間，界線應該在哪裡？',
+    '什麼事情是你絕對不會妥協的？',
+    '你最想從你的家庭帶走的一件事？最想留下不要的一件事？',
+    '如果要一起存一筆大錢，你最想花在什麼上？',
+  ] },
+  { name: '冬・自己', desc: '更認識彼此一點', qs: [
+    '這一年你最驕傲的一件事是什麼？',
+    '這一年最辛苦的時刻，你是怎麼撐過來的？',
+    '最近你最害怕或最擔心的是什麼？',
+    '有什麼事情是你希望我更懂你一點的？',
+    '你覺得這一年自己最大的改變是什麼？',
+    '明年你最想對自己好的方式是什麼？',
+  ] },
+];
+
+const deepQ = (d = new Date()) => Math.floor(d.getMonth() / 3);
+const deepId = (y, q, i) => `${y}-Q${q + 1}-${i}`;
+
+function deepProgress(y = new Date().getFullYear(), q = deepQ()) {
+  const ms = S.couple.members;
+  const docs = DEEP_SEASONS[q].qs.map((_, i) => list('deep').find((x) => x.id === deepId(y, q, i)));
+  const mine = docs.filter((d) => d && d.answers && d.answers[me()]).length;
+  const both = docs.filter((d) => d && d.answers && ms.length > 1 && ms.every((u) => d.answers[u])).length;
+  return { mine, both, total: docs.length, docs };
+}
+
+function memDeep() {
+  const y = new Date().getFullYear(), q = deepQ(), Sx = DEEP_SEASONS[q], p = partner();
+  const P = deepProgress(y, q);
+  const done = P.both === P.total;
+  return `<div class="card deep-head">
+      <div class="dh-season">${y}・${Sx.name}</div>
+      <div class="small muted">${Sx.desc}。兩個人都寫完，答案才會同時打開。同一季的題目每年都會再出現，可以看看自己和對方的想法有沒有變。</div>
+      <div class="pet-bar"><div style="width:${Math.round(P.both / P.total * 100)}%"></div></div>
+      <div class="small muted">我寫了 ${P.mine}/${P.total}・一起揭曉 ${P.both}/${P.total}${done ? '・本季完成！' : '・全部完成兩人各 +20 點'}</div>
+    </div>
+    ${Sx.qs.map((qt, i) => {
+      const d = P.docs[i], A = (d && d.answers) || {};
+      const mineA = A[me()], theirA = p ? A[p] : null;
+      const open = mineA && theirA;
+      const past = [];
+      for (let yy = y - 1; yy >= y - 5; yy--) { const pd = list('deep').find((x) => x.id === deepId(yy, q, i)); if (pd && pd.answers && pd.answers[me()] && (!p || pd.answers[p])) past.push([yy, pd.answers]); }
+      return `<div class="card deep-q ${open ? 'open' : ''}">
+        <div class="dq-n">Q${i + 1}</div><div class="dq-t">${esc(qt)}</div>
+        ${open ? `<div class="dq-a"><b>${avatar(me())} ${esc(nick(me()))}</b><p>${esc(mineA.text)}</p></div><div class="dq-a"><b>${avatar(p)} ${esc(nick(p))}</b><p>${esc(theirA.text)}</p></div>`
+          : `<div class="dq-status small muted">${mineA ? `<i data-ic="lock"></i> 我寫好了，等 ${esc(nick(p) || '對方')}` : theirA ? `${esc(nick(p))} 寫好了，換你` : '兩個人都還沒寫'}</div>
+             <button class="btn sm ${mineA ? 'ghost' : ''}" data-act="deepAnswer" data-i="${i}">${mineA ? '修改我的答案' : '寫答案'}</button>`}
+        ${past.length ? `<details class="dq-past"><summary>以前的答案（${past.map(([yy]) => yy).join('、')}）</summary>${past.map(([yy, a]) => `<div class="dq-py">${yy}</div>${(S.couple.members).map((u) => a[u] ? `<div class="dq-a"><b>${esc(nick(u))}</b><p>${esc(a[u].text)}</p></div>` : '').join('')}`).join('')}</details>` : ''}
+      </div>`;
+    }).join('')}`;
+}
+
+ACT.deepAnswer = async (el) => {
+  const y = new Date().getFullYear(), q = deepQ(), i = +el.dataset.i, id = deepId(y, q, i);
+  const doc = list('deep').find((x) => x.id === id);
+  const cur = doc && doc.answers && doc.answers[me()];
+  const v = await promptBox(DEEP_SEASONS[q].qs[i], { multiline: true, value: cur ? cur.text : '', placeholder: '慢慢寫，對方寫完才會看到', ok: '封好' });
+  if (!v || !v.trim()) return;
+  const ans = { text: v.trim(), at: now() };
+  if (doc) await col('deep').update(id, { [`answers.${me()}`]: ans });
+  else await col('deep').set(id, { y, q, i, answers: { [me()]: ans }, at: now() });
+  const p = partner();
+  const theirs = doc && doc.answers && p && doc.answers[p];
+  if (!cur) petXP(5);
+  if (theirs && !cur) { toast('兩個人都寫好了，答案打開了'); sfx('chime'); if (p) await notify(p, 'deep', `季問答第 ${i + 1} 題，兩個人的答案打開了`); }
+  else { toast('封好了，等對方寫完一起打開'); if (p && !cur) await notify(p, 'deep', `${nick(me())} 寫好季問答第 ${i + 1} 題了`); }
+  // 本季全部一起揭曉：各 +20 點（只發一次）
+  setTimeout(async () => {
+    const P = deepProgress(y, q);
+    if (P.both === P.total) {
+      const k = `deep-${y}-Q${q + 1}`;
+      const ok = await S.store.coupleTx(S.cid, (x) => (x.drops && x.drops[k] ? null : { [`drops.${k}`]: true }));
+      if (ok) { for (const u of S.couple.members) await addPoints(u, 20, `季問答完成：${DEEP_SEASONS[q].name}`); confetti(90); toast('本季問答全部完成！兩人各 +20 點'); }
+    }
+  }, 600);
+};
 // ============================================================
 //  啟動
 // ============================================================
