@@ -750,8 +750,17 @@ function catStroll(force) {
   // 小小黑和晽晽貓貓各 35%，其他三隻各 10%
   // 小小黑、晽晽貓貓各 30%，還好 13%，陷阱貓、小魚乾、吵吵貓各 9%
   const r = Math.random();
-  const coat = force || (r < .3 ? 'black' : r < .6 ? 'orange' : r < .73 ? 'dog' : r < .82 ? 'white' : r < .91 ? 'calico' : 'tuxedo');
-  el.innerHTML = coat === 'dog' ? dogWalk() : coatWalk(coat);
+  // 小小黑、晽晽貓貓各 27%，還好 12%，狗狗、阿扁各 8%，陷阱貓、小魚乾、吵吵貓各 6%
+  const coat = force || (r < .27 ? 'black' : r < .54 ? 'orange' : r < .66 ? 'dog' : r < .74 ? 'doggy' : r < .82 ? 'abian' : r < .88 ? 'white' : r < .94 ? 'calico' : 'tuxedo');
+  el.innerHTML = coat === 'dog' ? dogWalk() : PUPS[coat] ? pupWalk(coat) : coatWalk(coat);
+  // 結伴路過：狗狗跟在小小黑後面（又要捉弄牠了）、阿扁跟狗狗一起
+  const buddy = coat === 'doggy' && Math.random() < .5 ? 'black' : coat === 'abian' && Math.random() < .4 ? 'doggy' : '';
+  if (buddy) {
+    const b = document.createElement('div');
+    b.className = 'cat-stroll lead';
+    b.innerHTML = buddy === 'black' ? coatWalk('black') : pupWalk('doggy');
+    document.body.appendChild(b); setTimeout(() => b.remove(), 9000);
+  }
   if (coat === 'dog') {
     el.setAttribute('aria-label', '還好');
     // 有時候還好會追著一隻貓跑
@@ -768,6 +777,12 @@ function catStroll(force) {
   if (coat === 'white') el.classList.add('princess');
   el.onclick = async () => {
     el.classList.add('caught'); sfx('heart');
+    if (PUPS[coat]) {
+      const r2 = el.getBoundingClientRect();
+      floaty(r2.left + r2.width / 2, r2.top, coat === 'abian' ? ['#ffd45c', '#9fd3ff', '#ff9fb4'] : ['#ff9fb4', '#ecd3a2']);
+      el.classList.add(coat === 'abian' ? 'pup-clap' : 'pup-nod'); toast(pick1(PUP_LINES[coat]));
+      setTimeout(() => el.remove(), 1600); return;
+    }
     if (coat === 'dog') {
       const r2 = el.getBoundingClientRect();
       floaty(r2.left + r2.width / 2, r2.top, ['#ff9fb4', '#ffd45c', '#e2b56a']);
@@ -892,6 +907,51 @@ function dogWalk() {
 const DOG_LINES = ['還好：我是女生～', '還好：嗷把拔貓咪好可愛喔～', '還好：我是女生～（男朋友：你明明就是男生）', '還好追著自己的尾巴轉了三圈，然後忘記自己在幹嘛', '還好：今天也是很好的一天耶～', '還好躺下來翻肚子：我是女生～摸我～', '還好把球叼過來，結果是一顆橘子', '還好：嗷！（不知道在嗷什麼）', '還好跟陷阱貓打招呼，被無視了，但還是很開心', '還好：把拔～小小黑呢？小小黑呢？'];
 
 window.__stroll = (c) => catStroll(c || 'dog');
+
+// ============================================================
+//  狗狗（家裡最年長、愛捉弄小小黑）和阿扁（愛思考、怕被捏鼻子、聽到諧音梗會拍手）
+// ============================================================
+const PUPS = {
+  doggy: { name: '狗狗', base: '#ecd3a2', line: '#c4a46a', ear: '#d9b97f', muzzle: '#f7e8c8', dark: '#2b2226', fluff: true, brow: true },
+  abian: { name: '阿扁', base: '#dfc59c', line: '#b89a6a', ear: '#f1e2c6', muzzle: '#efdfc0', dark: '#2b2226', bigEar: true, bigNose: true },
+};
+function pupHead(p) {
+  const fluffTop = p.fluff ? `<path d="M-15 -8 Q-17 -14 -12 -16 Q-12 -22 -6 -21 Q-4 -26 1 -24 Q5 -27 8 -22 Q14 -23 14 -17 Q19 -15 16 -8 Z" fill="${p.base}" stroke="${p.line}" stroke-width="1"/>` : '';
+  const ears = p.bigEar
+    ? `<path d="M-12 -12 Q-30 -22 -30 -6 Q-28 2 -16 -2 Z" fill="${p.base}" stroke="${p.line}" stroke-width="1"/><path d="M-14 -9 Q-26 -16 -26 -6 Q-25 -2 -17 -4 Z" fill="${p.ear}"/>
+       <path d="M12 -12 Q30 -22 30 -6 Q28 2 16 -2 Z" fill="${p.base}" stroke="${p.line}" stroke-width="1"/><path d="M14 -9 Q26 -16 26 -6 Q25 -2 17 -4 Z" fill="${p.ear}"/>`
+    : `<path d="M-13 -10 Q-23 -8 -21 6 Q-20 12 -14 9 Q-12 0 -10 -6 Z" fill="${p.ear}" stroke="${p.line}" stroke-width="1" stroke-linejoin="round"/>
+       <path d="M13 -10 Q23 -8 21 6 Q20 12 14 9 Q12 0 10 -6 Z" fill="${p.ear}" stroke="${p.line}" stroke-width="1" stroke-linejoin="round"/>`;
+  return `${ears}
+    ${fluffTop}
+    <path d="M-15 -4 Q-16 -18 0 -19 Q16 -18 15 -4 Q15 11 0 12 Q-15 11 -15 -4 Z" fill="${p.base}" stroke="${p.line}" stroke-width="1"/>
+    ${p.fluff ? `<path d="M-14.2 -8 Q-15 -17 0 -18.2 Q15 -17 14.2 -8" fill="${p.base}"/>` : ''}
+    <ellipse cx="0" cy="4" rx="8.5" ry="6.5" fill="${p.muzzle}"/>
+    ${p.brow ? `<path d="M-9 -9 Q-6 -11 -3 -9 M3 -9 Q6 -11 9 -9" fill="none" stroke="#fff6e4" stroke-width="2" stroke-linecap="round"/>` : ''}
+    ${p.fluff
+      ? `<path d="M-8.5 -5 Q-6 -3 -3.5 -5 M3.5 -5 Q6 -3 8.5 -5" fill="none" stroke="${p.dark}" stroke-width="1.4" stroke-linecap="round"/>`
+      : `<ellipse cx="-6" cy="-5" rx="2" ry="2.3" fill="${p.dark}"/><ellipse cx="6" cy="-5" rx="2" ry="2.3" fill="${p.dark}"/><circle cx="-5.4" cy="-5.8" r=".7" fill="#fff"/><circle cx="6.6" cy="-5.8" r=".7" fill="#fff"/>`}
+    <ellipse cx="0" cy="${p.bigNose ? 1.5 : 1}" rx="${p.bigNose ? 5 : 3.4}" ry="${p.bigNose ? 4 : 2.6}" fill="${p.dark}"/>
+    <path d="M0 ${p.bigNose ? 5.5 : 3.6} L0 6 M-3.5 6.5 Q0 9 3.5 6.5" fill="none" stroke="${p.dark}" stroke-width="1" stroke-linecap="round"/>
+    <ellipse cx="-10" cy="4" rx="2.2" ry="1.2" fill="#ff9fb4" opacity=".5"/><ellipse cx="10" cy="4" rx="2.2" ry="1.2" fill="#ff9fb4" opacity=".5"/>`;
+}
+function pupWalk(key) {
+  const p = PUPS[key];
+  const leg = (x1, x2) => `<path d="M${x1} 78 L${x2} 85" stroke="${p.line}" stroke-width="10.4" stroke-linecap="round"/><path d="M${x1} 78 L${x2} 85" stroke="${p.base}" stroke-width="8.4" stroke-linecap="round"/>${key === 'abian' ? `<ellipse cx="${x2}" cy="86.5" rx="4" ry="2" fill="${p.dark}"/>` : ''}`;
+  return `<svg viewBox="0 0 100 92" class="cat-svg pup-walk pup-${key}" xmlns="http://www.w3.org/2000/svg">
+    ${shadow(54, 26)}
+    <g class="dog-tail"><path d="M76 64 Q88 58 88 46 Q88 42 85 44 Q83 54 74 58 Z" fill="${p.base}" stroke="${p.line}" stroke-width="1" stroke-linejoin="round"/></g>
+    <g class="cat-legs-a">${leg(42, 41.5)}${leg(70, 70.5)}</g>
+    <g class="cat-legs-b">${leg(50, 51)}${leg(62, 61)}</g>
+    <path d="M30 66 Q30 56 44 55 L70 56 Q80 57 79 68 Q78 80 68 80 L40 80 Q30 80 30 72 Z" fill="${p.base}" stroke="${p.line}" stroke-width="1"/>
+    ${p.fluff ? `<path d="M36 58 q3 -3 6 0 q3 -3 6 0 q3 -3 6 0 q3 -3 6 0 q3 -3 6 0" fill="none" stroke="${p.line}" stroke-width=".9" stroke-linecap="round" opacity=".7"/>` : ''}
+    <g class="dog-head" transform="translate(30 50)">${pupHead(p)}</g>
+  </svg>`;
+}
+const PUP_LINES = {
+  doggy: ['狗狗偷偷拍了一下小小黑的尾巴，然後裝作什麼都沒發生', '狗狗把阿扁的玩具藏起來了', '狗狗是家裡最資深的小動物，大家都要讓牠一下', '狗狗打了一個好大的哈欠', '大家都最喜歡狗狗了', '狗狗趁小小黑睡覺，偷偷趴在牠旁邊', '狗狗慢慢走過去，好像在巡視牠的地盤'],
+  abian: ['阿扁趕快摀住鼻子：不要捏我的鼻子！', '阿扁在思考……為什麼貓咪叫貓咪？', '阿扁在思考……今天的晚餐是什麼', '阿扁聽到一個諧音梗：「狗狗去餐廳點了『汪』子麵」，笑到拍拍手', '阿扁：「你知道小小黑最喜歡什麼運動嗎？『喵』準！」，說完自己拍拍手', '阿扁和狗狗是最好的朋友', '阿扁：讓我想一下……嗯……想完了，忘記剛剛在想什麼'],
+};
 // ============================================================
 //  啟動、登入、配對、外框
 // ============================================================

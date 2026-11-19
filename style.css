@@ -1065,3 +1065,11 @@ html[data-theme="night"] .jar-svg .jar-glass { fill: rgba(255, 255, 255, .06); }
 .cat-stroll.coat-dog.dog-happy { animation-play-state: paused; }
 .cat-stroll.coat-dog.dog-happy .cat-svg { animation: dogSpin .9s ease-in-out forwards !important; }
 @keyframes dogSpin { 0% { transform: scaleX(-1); } 50% { transform: scaleX(1) translateY(-8px); } 100% { transform: scaleX(-1); } }
+.cat-stroll.coat-doggy { width: 74px; animation-duration: 11s; }
+.cat-stroll.coat-abian { width: 74px; animation-duration: 9s; }
+.cat-stroll.coat-abian .cat-svg { animation: catPrance .5s ease-in-out infinite; }
+.cat-stroll.pup-clap { animation-play-state: paused; }
+.cat-stroll.pup-clap .cat-svg { animation: catJump .25s ease-in-out 5 !important; }
+.cat-stroll.pup-nod { animation-play-state: paused; }
+.cat-stroll.pup-nod .dog-head { transform-origin: 30px 58px; animation: pupNod .5s ease-in-out 3; }
+@keyframes pupNod { 50% { transform: translate(30px, 52px) rotate(8deg); } }
