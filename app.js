@@ -1056,7 +1056,7 @@ function doRender() {
   setSection(S.tab);
   const A = annivInfo(); document.documentElement.dataset.anniv = A.is ? '1' : '';
   renderTop(); renderNav(); renderMain();
-  if (A.is) annivIntro();
+  if (A.is) { annivIntro(); annivRibbon(); }
   else setTimeout(catStroll, 2500 + Math.random() * 4000);
 }
 document.addEventListener('focusout', () => setTimeout(() => {
@@ -3974,6 +3974,14 @@ function annivHomeCard() {
   </div>`;
 }
 ACT.annivReplay = () => annivIntro(true);
+async function annivRibbon() {
+  const A = annivInfo();
+  if (!A.is || localStorage.getItem('park-anniv-preview') === '1') return;
+  const pet = S.couple.pet || {};
+  if ((pet.owned || []).includes('ribbon')) return;
+  await S.store.coupleTx(S.cid, (c) => { const p = c.pet || {}; if ((p.owned || []).includes('ribbon')) return null; return { 'pet.owned': [...(p.owned || []), 'ribbon'], 'pet.wear': 'ribbon' }; });
+  setTimeout(() => toast(`${petState().name} 戴上了週年紅緞帶`), 2500);
+}
 // ============================================================
 //  一起養黑貓：兩人的互動會餵牠，牠會長大、換表情、解鎖小配件
 // ============================================================
@@ -3991,6 +3999,8 @@ const PET_ACC = [
   { id: 'flower', name: '小花', xp: 380 },
   { id: 'crown', name: '小皇冠', xp: 500 },
   { id: 'santa', name: '聖誕帽', xp: 0, month: 12 },
+  // 週年紀念日（兩人都加入後）自動送的見面禮，會直接幫牠戴上
+  { id: 'ribbon', name: '週年紅緞帶', anniv: true },
   // 只會在扭蛋時額外掉落
   { id: 'cape', name: '小披風', gacha: true },
   { id: 'glasses', name: '圓眼鏡', gacha: true },
@@ -4022,7 +4032,7 @@ function petState() {
   const mood = !last ? 'ok' : hrs < 12 ? 'happy' : hrs < 36 ? 'ok' : 'miss';
   const month = new Date().getMonth() + 1;
   const owned = pet.owned || [];
-  const unlocked = PET_ACC.filter((a) => a.gacha ? owned.includes(a.id) : a.month ? a.month === month : xp >= a.xp);
+  const unlocked = PET_ACC.filter((a) => (a.gacha || a.anniv) ? owned.includes(a.id) : a.month ? a.month === month : xp >= a.xp);
   return { pet, xp, st, stage: PET_STAGES[st], next, mood, hrs, unlocked, name: pet.name || PET_DEFAULT_NAME, wear: pet.wear || '' };
 }
 
@@ -4056,6 +4066,11 @@ function petSVG(st, mood, wear, { blink = true } = {}) {
     scarf: `<path d="M37 51 Q50 58 63 51 L63 55 Q50 62 37 55 Z" fill="#7cc7a8" stroke="#3b8a6c" stroke-width=".8"/><path d="M56 56 L59 68 L64 66 L60 55" fill="#7cc7a8" stroke="#3b8a6c" stroke-width=".8" stroke-linejoin="round"/><path d="M40 53 L60 53" stroke="#fff" stroke-width=".8" stroke-dasharray="2 2" opacity=".7"/>`,
     flower: `<g transform="translate(36 17)">${[0, 72, 144, 216, 288].map((a) => `<ellipse rx="2.6" ry="4" transform="rotate(${a}) translate(0 -3.4)" fill="#fff" stroke="#e7b3c4" stroke-width=".6"/>`).join('')}<circle r="2.2" fill="#ffd45c"/></g>`,
     crown: `<path d="M40 16 L42 7 L46 12 L50 5 L54 12 L58 7 L60 16 Z" fill="#ffd45c" stroke="#b8862f" stroke-width="1" stroke-linejoin="round"/><circle cx="50" cy="12.5" r="1.4" fill="#e2445f"/>`,
+    ribbon: `<path d="M50 53 Q42 56 36 52" fill="none" stroke="#c8102e" stroke-width="2.6" stroke-linecap="round"/><path d="M50 53 Q58 56 64 52" fill="none" stroke="#c8102e" stroke-width="2.6" stroke-linecap="round"/>
+      <path d="M50 54 C45 49 38 49 38 54 C38 59 45 59 50 54 Z" fill="#d7192f"/><path d="M50 54 C55 49 62 49 62 54 C62 59 55 59 50 54 Z" fill="#d7192f"/>
+      <path d="M41 52.5 Q44 51.5 46.5 53" fill="none" stroke="#ff8a8a" stroke-width=".9" stroke-linecap="round" opacity=".8"/><path d="M53.5 53 Q56 51.5 59 52.5" fill="none" stroke="#ff8a8a" stroke-width=".9" stroke-linecap="round" opacity=".8"/>
+      <path d="M48.5 56 L45 67 L47.5 65.5 L48.5 68 Z M51.5 56 L55 67 L52.5 65.5 L51.5 68 Z" fill="#b30c25"/>
+      <ellipse cx="50" cy="54.2" rx="2.4" ry="2.8" fill="#b30c25"/><path d="M49.2 53 Q50 52.4 50.8 53" stroke="#ff8a8a" stroke-width=".6" fill="none"/>`,
     cape: `<path d="M38 50 Q50 54 62 50 L70 80 Q50 86 30 80 Z" fill="#c42e52" opacity=".95"/><path d="M38 50 Q50 54 62 50" fill="none" stroke="#e9c77b" stroke-width="1.6"/><circle cx="50" cy="52.5" r="1.8" fill="#e9c77b"/>`,
     glasses: `<circle cx="43" cy="32.5" r="5.6" fill="none" stroke="#e9c77b" stroke-width="1.3"/><circle cx="57" cy="32.5" r="5.6" fill="none" stroke="#e9c77b" stroke-width="1.3"/><path d="M48.6 32 Q50 30.8 51.4 32" fill="none" stroke="#e9c77b" stroke-width="1.2"/>`,
     bowtie: `<path d="M50 52 L42 48 L42 56 Z M50 52 L58 48 L58 56 Z" fill="#3b5ba5" stroke="#26407e" stroke-width=".8" stroke-linejoin="round"/><circle cx="50" cy="52" r="2" fill="#26407e"/>`,
@@ -4139,7 +4154,7 @@ ACT.petOpen = () => {
     <h3 style="font-size:15px">配件</h3>
     <div class="pet-acc">
       <button data-w="" class="${!P.wear ? 'on' : ''}"><span>不戴</span></button>
-      ${PET_ACC.map((a) => { const ok = P.unlocked.some((x) => x.id === a.id); return `<button data-w="${a.id}" class="${P.wear === a.id ? 'on' : ''} ${ok ? '' : 'locked'}" ${ok ? '' : 'disabled'}><span class="pet-thumb">${petSVG(2, 'ok', a.id, { blink: false })}</span><span>${a.name}</span><small>${ok ? '' : a.gacha ? '扭蛋掉落' : a.month ? `${a.month} 月限定` : `經驗 ${a.xp}`}</small></button>`; }).join('')}
+      ${PET_ACC.map((a) => { const ok = P.unlocked.some((x) => x.id === a.id); return `<button data-w="${a.id}" class="${P.wear === a.id ? 'on' : ''} ${ok ? '' : 'locked'}" ${ok ? '' : 'disabled'}><span class="pet-thumb">${petSVG(2, 'ok', a.id, { blink: false })}</span><span>${a.name}</span><small>${ok ? '' : a.anniv ? '週年紀念日' : a.gacha ? '扭蛋掉落' : a.month ? `${a.month} 月限定` : `經驗 ${a.xp}`}</small></button>`; }).join('')}
     </div>
     <h3 style="font-size:15px;margin-top:14px">怎麼養大牠</h3>
     <p class="small muted" style="margin:0;line-height:1.8">每天摸摸 +3・按想你 +1・回答每日一問 +2・幫對方蓋章 +3・完成每週任務 +3・兌換票券 +3・季問答 +5<br>一個人一天最多 +30，兩個人一起養長得最快。扭蛋時偶爾會額外掉出限定配件。超過一天半沒人理牠，牠會開始想你們。</p>`);
