@@ -826,3 +826,36 @@ html[data-anniv="1"] .hero { border: 1px solid rgba(233, 199, 123, .4); }
 .anniv-letter { background: var(--card2); border-radius: 14px; padding: 14px; margin-bottom: 12px; border: 1px solid color-mix(in srgb, #e9c77b 40%, transparent); }
 .anniv-letter .al-from { font-size: 13px; color: var(--muted); margin-bottom: 8px; }
 .anniv-letter .al-body { white-space: pre-wrap; line-height: 1.8; font-family: var(--serif); }
+/* 心情天氣：依天氣上色 */
+.mood-box { transition: background .4s; }
+.mood-box.mood-w_sun { background: linear-gradient(160deg, #fff1c4, #ffd98a); color: #6b4a0a; }
+.mood-box.mood-w_partly { background: linear-gradient(160deg, #fff4d6, #d9ecff); color: #4a4a3a; }
+.mood-box.mood-w_cloud { background: linear-gradient(160deg, #eef0f4, #d6dbe4); color: #4a5060; }
+.mood-box.mood-w_rain { background: linear-gradient(160deg, #dbe6f2, #a9bfd9); color: #2e4563; }
+.mood-box.mood-w_storm { background: linear-gradient(160deg, #c9c4dc, #8d86ad); color: #2a2440; }
+.mood-box.mood-w_rainbow { background: linear-gradient(135deg, #ffd1dc, #ffe9b8 30%, #d4f5d9 55%, #cfe6ff 78%, #e6d6ff); color: #5a3a5a; }
+.mood-box.mood-w_sleep { background: linear-gradient(160deg, #2e2a52, #4b3f7a); color: #ece6ff; }
+.mood-box.mood-w_fire { background: linear-gradient(160deg, #ffd0b0, #ff8a7a); color: #6a1f1a; }
+.mood-box[class*="mood-w_"] .mi .ic { color: currentColor !important; opacity: .85; }
+.mood-box[class*="mood-w_"] .who { color: currentColor; opacity: .7; }
+html[data-theme="night"] .mood-box.mood-w_sun { background: linear-gradient(160deg, #4a3a14, #6b5218); color: #ffe3a0; }
+html[data-theme="night"] .mood-box.mood-w_partly { background: linear-gradient(160deg, #3d3824, #2c3a4e); color: #f0e6cc; }
+html[data-theme="night"] .mood-box.mood-w_cloud { background: linear-gradient(160deg, #33363e, #252830); color: #d6dbe4; }
+html[data-theme="night"] .mood-box.mood-w_rain { background: linear-gradient(160deg, #1f2d40, #2a3f5a); color: #c4d6ec; }
+html[data-theme="night"] .mood-box.mood-w_storm { background: linear-gradient(160deg, #262036, #3a3054); color: #d8d0f0; }
+html[data-theme="night"] .mood-box.mood-w_rainbow { background: linear-gradient(135deg, #5a2c3c, #5a4a26 30%, #2a4a34 55%, #26405a 78%, #3e2c5a); color: #fff0f4; }
+html[data-theme="night"] .mood-box.mood-w_sleep { background: linear-gradient(160deg, #1c1936, #2e2752); color: #d8d0ff; }
+html[data-theme="night"] .mood-box.mood-w_fire { background: linear-gradient(160deg, #4a1f18, #6e2a22); color: #ffc8b8; }
+/* 空白頁的黑貓 */
+.empty .cat-wrap { position: relative; width: 96px; margin: 0 auto 8px; color: var(--ink); }
+.empty .cat-svg { width: 96px; height: auto; display: block; }
+.empty .cat-tail { transform-origin: 66px 80px; animation: catTail 2.6s ease-in-out infinite; }
+@keyframes catTail { 0%, 100% { transform: rotate(0); } 50% { transform: rotate(-8deg); } }
+.empty .cat-z { animation: catZ 2.4s ease-in-out infinite; }
+.empty .cat-z.z2 { animation-delay: .8s; }
+@keyframes catZ { 0%, 100% { opacity: .1; transform: translateY(2px); } 50% { opacity: .55; transform: translateY(-2px); } }
+.empty .cat-bubble { position: absolute; top: -6px; right: -26px; width: 38px; height: 38px; border-radius: 50%; background: var(--card2); border: 1.5px solid color-mix(in srgb, var(--accent) 35%, transparent); display: grid; place-items: center; color: var(--accent); }
+.empty .cat-bubble::after { content: ''; position: absolute; left: -2px; bottom: -3px; width: 8px; height: 8px; border-radius: 50%; background: var(--card2); border: 1.5px solid color-mix(in srgb, var(--accent) 35%, transparent); }
+.empty .cat-bubble .ic { width: 20px !important; height: 20px !important; color: var(--accent) !important; opacity: 1 !important; }
+html[data-theme="night"] .empty .cat-svg { filter: drop-shadow(0 0 1px rgba(255, 240, 220, .55)) drop-shadow(0 0 10px rgba(255, 200, 150, .12)); }
+.story .slide .si .story-photo { width: 220px; height: 220px; object-fit: cover; border-radius: 18px; border: 4px solid rgba(255, 255, 255, .9); box-shadow: 0 12px 30px rgba(0, 0, 0, .3); transform: rotate(-3deg); }

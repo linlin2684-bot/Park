@@ -137,6 +137,34 @@ function floaty(x, y, chars = ['#ff6f91', '#ff9db4', '#e2445f', '#ffc2d1', '#d9a
   }
 }
 const vibrate = (p) => { try { navigator.vibrate && navigator.vibrate(p); } catch (e) {} };
+// 小音效（用程式合成，不需要音檔）；設定裡可以關掉
+let AC = null;
+const sfxOn = () => localStorage.getItem('park-sfx') !== 'off';
+function sfx(name) {
+  if (!sfxOn()) return;
+  try {
+    AC ||= new (window.AudioContext || window.webkitAudioContext)();
+    if (AC.state === 'suspended') AC.resume();
+    const t0 = AC.currentTime;
+    const tone = (f, at, dur, type = 'sine', vol = .12) => {
+      const o = AC.createOscillator(), g = AC.createGain();
+      o.type = type; o.frequency.setValueAtTime(f, t0 + at);
+      g.gain.setValueAtTime(0, t0 + at); g.gain.linearRampToValueAtTime(vol, t0 + at + .015);
+      g.gain.exponentialRampToValueAtTime(.0008, t0 + at + dur);
+      o.connect(g); g.connect(AC.destination); o.start(t0 + at); o.stop(t0 + at + dur + .05);
+    };
+    const S = {
+      flip: () => { tone(660, 0, .09, 'triangle', .08); tone(990, .05, .12, 'triangle', .06); },
+      pop: () => { tone(520, 0, .12, 'sine', .1); tone(780, .06, .16, 'sine', .08); },
+      chime: () => [784, 988, 1175, 1568].forEach((f, i) => tone(f, i * .09, .5, 'sine', .09)),
+      sparkle: () => [1047, 1319, 1568, 2093, 1568, 2093, 2637].forEach((f, i) => tone(f, i * .07, .45, 'triangle', .06)),
+      scratch: () => { tone(880, 0, .25, 'sine', .08); tone(1320, .1, .4, 'sine', .07); },
+      heart: () => { tone(440, 0, .1, 'sine', .07); tone(660, .07, .14, 'sine', .06); },
+      stamp: () => { tone(180, 0, .12, 'square', .05); tone(360, .02, .1, 'triangle', .07); },
+    };
+    (S[name] || S.pop)();
+  } catch (e) {}
+}
 
 function openModal(html, { center = false, cls = '', onClose } = {}) {
   const back = document.createElement('div');
@@ -312,6 +340,7 @@ const IC = {
 };
 const spiceIc = (l) => `<i data-ic="${D.SPICE[l || 1].ic}"></i>`;
 // 心情：用存下來的 emoji 找對應的手繪天氣圖示
+const moodCls = (emoji) => { const m = D.MOODS.find((x) => x.icon === emoji); return m ? 'mood-' + m.ic : ''; };
 const moodIc = (emoji, cls = '') => { const m = D.MOODS.find((x) => x.icon === emoji); return m ? `<i data-ic="${m.ic}" class="${cls}"></i>` : emoji; };
 function ic(name, cls = '') {
   const p = IC[name]; if (!p) return '';
@@ -335,6 +364,7 @@ new MutationObserver((ms) => {
     if (n.nodeType !== 1) continue;
     if (n.matches('i[data-ic]')) { if (n.parentNode) hydrateIcons(n.parentNode); }
     else if (n.querySelector('i[data-ic]')) hydrateIcons(n);
+    if (typeof catifyEmpty === 'function' && (n.matches('.empty') || n.querySelector('.empty'))) catifyEmpty(n.matches('.empty') ? n.parentNode || n : n);
   }
 }).observe(document.documentElement, { childList: true, subtree: true });
 // ============================================================
@@ -531,6 +561,53 @@ function piggyEmblem(pct) {
   </svg>`;
 }
 // ============================================================
+//  黑貓吉祥物（和 App 圖示同一隻）
+// ============================================================
+const CAT_INK = '#2b2633';
+function catSVG(pose = 'sit', extra = '') {
+  const face = (sleep) => `
+    <path d="M33 29 L35 12 L45 22 Z M67 29 L65 12 L55 22 Z" fill="${CAT_INK}" stroke="${CAT_INK}" stroke-width="2" stroke-linejoin="round"/>
+    <path d="M36.5 23 L37 15.5 L42 20.5 Z M63.5 23 L63 15.5 L58 20.5 Z" fill="#c98aa0"/>
+    <ellipse cx="50" cy="34" rx="18" ry="15" fill="${CAT_INK}"/>
+    ${sleep ? `<path d="M40 34 Q43 37 46 34 M54 34 Q57 37 60 34" fill="none" stroke="#efe6f2" stroke-width="1.6" stroke-linecap="round"/>`
+      : `<ellipse cx="43" cy="32.5" rx="3.6" ry="4.2" fill="#ffd970"/><ellipse cx="57" cy="32.5" rx="3.6" ry="4.2" fill="#ffd970"/>
+         <ellipse cx="43" cy="33" rx="1.2" ry="3" fill="${CAT_INK}"/><ellipse cx="57" cy="33" rx="1.2" ry="3" fill="${CAT_INK}"/>
+         <circle cx="44" cy="31" r=".9" fill="#fff"/><circle cx="58" cy="31" r=".9" fill="#fff"/>`}
+    <path d="M48.5 38.5 L51.5 38.5 L50 40 Z" fill="#ff9fb4"/>
+    <path d="M50 40 Q48 42.5 46.5 41.5 M50 40 Q52 42.5 53.5 41.5" fill="none" stroke="#efe6f2" stroke-width="1" stroke-linecap="round"/>
+    <path d="M31 36 L39 37 M31 40 L39 39 M69 36 L61 37 M69 40 L61 39" stroke="#efe6f2" stroke-width=".8" stroke-linecap="round"/>
+    <ellipse cx="39.5" cy="40" rx="2.4" ry="1.3" fill="#ff9fb4" opacity=".55"/><ellipse cx="60.5" cy="40" rx="2.4" ry="1.3" fill="#ff9fb4" opacity=".55"/>`;
+  if (pose === 'sleep') return `<svg viewBox="0 0 100 80" class="cat-svg" xmlns="http://www.w3.org/2000/svg">
+    <ellipse cx="50" cy="74" rx="34" ry="4" fill="currentColor" opacity=".08"/>
+    <path d="M20 62 Q18 44 40 42 Q66 40 78 52 Q86 60 80 70 L24 70 Q18 68 20 62 Z" fill="${CAT_INK}"/>
+    <path d="M78 66 Q92 66 90 56 Q88 50 82 54" fill="none" stroke="${CAT_INK}" stroke-width="5" stroke-linecap="round"/>
+    <g transform="translate(-14 26) scale(.9)">${face(true)}</g>
+    <text x="74" y="30" font-size="11" font-weight="800" fill="currentColor" opacity=".5" font-family="sans-serif" class="cat-z">z</text>
+    <text x="82" y="20" font-size="8" font-weight="800" fill="currentColor" opacity=".35" font-family="sans-serif" class="cat-z z2">z</text>
+  </svg>`;
+  // sit：坐著，旁邊可放一個小泡泡（extra = 圖示 HTML）
+  return `<svg viewBox="0 0 100 92" class="cat-svg" xmlns="http://www.w3.org/2000/svg">
+    <ellipse cx="50" cy="88" rx="26" ry="3.5" fill="currentColor" opacity=".08"/>
+    <path class="cat-tail" d="M66 80 Q86 80 84 64 Q83 56 76 58" fill="none" stroke="${CAT_INK}" stroke-width="5" stroke-linecap="round"/>
+    <path d="M34 86 Q30 62 40 50 L60 50 Q70 62 66 86 Z" fill="${CAT_INK}"/>
+    <ellipse cx="42" cy="86" rx="6" ry="3" fill="${CAT_INK}"/><ellipse cx="58" cy="86" rx="6" ry="3" fill="${CAT_INK}"/>
+    <path d="M44 62 Q50 66 56 62" fill="none" stroke="#c98aa0" stroke-width="1.2" stroke-linecap="round" opacity=".7"/>
+    <g transform="translate(0 4)">${face(false)}</g>
+  </svg>${extra ? `<span class="cat-bubble">${extra}</span>` : ''}`;
+}
+// 空白頁自動放上黑貓：有圖示的坐著拿泡泡，沒有圖示的睡覺
+function catifyEmpty(root) {
+  root.querySelectorAll('.empty:not([data-cat])').forEach((el) => {
+    el.dataset.cat = '1';
+    const big = el.querySelector('.big');
+    const wrap = document.createElement('div');
+    wrap.className = 'cat-wrap';
+    if (big) { wrap.innerHTML = catSVG('sit', big.innerHTML); big.remove(); }
+    else wrap.innerHTML = catSVG('sleep');
+    el.prepend(wrap);
+  });
+}
+// ============================================================
 //  啟動、登入、配對、外框
 // ============================================================
 
@@ -630,7 +707,9 @@ async function holidayDrops() {
     { key: 'newyear', md: '01-01', to: c.members },
   ];
   for (const r of rules) {
-    if (r.md !== md || !r.to.length) continue;
+    // 週年卡：兩人都加入後、紀念日起 7 天內都會補發（對方當天才加入也拿得到）
+    const okDay = r.key === 'anniversary' ? annivInfo().is && localStorage.getItem('park-anniv-preview') !== '1' : r.md === md;
+    if (!okDay || !r.to.length) continue;
     const k = `${y}-${r.key}`;
     const ok = await S.store.coupleTx(S.cid, (x) => (x.drops && x.drops[k] ? null : { [`drops.${k}`]: true }));
     if (!ok) continue;
@@ -962,6 +1041,7 @@ ACT.settings = () => {
       <div class="list-row" data-act="backup"><span class="lr-i"><i data-ic="cloud"></i></span><span class="grow">備份與還原<div class="small muted">每週自動備份，也可以存一份到手機</div></span>›</div>
       <div class="list-row" data-act="invite"><span class="lr-i"><i data-ic="key"></i></span><span class="grow">邀請碼 ${esc(S.cid)}</span>›</div>
       <div class="list-row" id="s-noti"><span class="lr-i"><i data-ic="bell"></i></span><span class="grow">開啟瀏覽器通知<div class="small muted">開著 app 的時候才收得到，內容一律低調</div></span>›</div>
+      <div class="list-row" id="s-sfx"><span class="lr-i"><i data-ic="bell"></i></span><span class="grow">音效<div class="small muted">翻卡、刮卡、兌換時的小聲音</div></span><label class="switch"><input type="checkbox" id="s-sfx-in" ${sfxOn() ? 'checked' : ''}><span></span></label></div>
       <div class="list-row" data-act="theme"><span class="lr-i"><i data-ic="candle"></i></span><span class="grow">切換日夜模式（自動／白天／夜晚）</span>›</div>
       ${S.store.mode === 'demo'
         ? `<div class="list-row" data-act="demoSwitch"><span class="lr-i"><i data-ic="swap"></i></span><span class="grow">切換成對方身份</span>›</div>
@@ -970,6 +1050,7 @@ ACT.settings = () => {
     </div>
     <p class="center small muted">兩人遊樂園 · 做給我們兩個</p>`);
   let sp = p.spice || 1;
+  $('#s-sfx-in', m).onchange = (e) => { localStorage.setItem('park-sfx', e.target.checked ? 'on' : 'off'); if (e.target.checked) sfx('chime'); };
   $$('#s-pal button', m).forEach((b) => b.onclick = () => {
     localStorage.setItem('park-palette', b.dataset.p); applyTheme();
     $$('#s-pal button', m).forEach((x) => x.classList.toggle('on', x === b));
@@ -1165,8 +1246,8 @@ PAGES.home = {
     <div class="card">
       <h3><i data-ic="weather"></i> 心情天氣 <span class="sub">點自己的換心情</span></h3>
       <div class="mood-row">
-        <button class="mood-box" data-act="mood"><div class="mi">${mm ? moodIc(mm.icon) : '<i data-ic="weather" class="ic-faint"></i>'}</div><b>${mm ? esc(mm.label) : '還沒設定'}</b><div class="who">${esc(nick(me()))}${mm ? ' · ' + ago(mm.at) : ''}</div></button>
-        <div class="mood-box"><div class="mi">${pm ? moodIc(pm.icon) : '<i data-ic="weather" class="ic-faint"></i>'}</div><b>${pm ? esc(pm.label) : '還沒設定'}</b><div class="who">${p ? esc(nick(p)) : '對方'}${pm ? ' · ' + ago(pm.at) : ''}</div>
+        <button class="mood-box ${mm ? moodCls(mm.icon) : ''}" data-act="mood"><div class="mi">${mm ? moodIc(mm.icon) : '<i data-ic="weather" class="ic-faint"></i>'}</div><b>${mm ? esc(mm.label) : '還沒設定'}</b><div class="who">${esc(nick(me()))}${mm ? ' · ' + ago(mm.at) : ''}</div></button>
+        <div class="mood-box ${pm ? moodCls(pm.icon) : ''}"><div class="mi">${pm ? moodIc(pm.icon) : '<i data-ic="weather" class="ic-faint"></i>'}</div><b>${pm ? esc(pm.label) : '還沒設定'}</b><div class="who">${p ? esc(nick(p)) : '對方'}${pm ? ' · ' + ago(pm.at) : ''}</div>
           ${pm && (pm.icon === '🌧️' || pm.icon === '⛈️') ? '<div class="small" style="color:var(--accent);font-weight:700">需要哄哄！</div>' : ''}</div>
       </div>
     </div>
@@ -1217,7 +1298,7 @@ function missStreak(uid) {
 }
 ACT.miss = async (el, e) => {
   const r = el.getBoundingClientRect();
-  floaty(r.left + r.width / 2, r.top);
+  floaty(r.left + r.width / 2, r.top); sfx('heart');
   el.classList.remove('pulse'); void el.offsetWidth; el.classList.add('pulse');
   vibrate([30, 40, 30]);
   await col('misses').add({ by: me(), at: now() });
@@ -1499,7 +1580,7 @@ function attachCardFX(m) {
   raf = requestAnimationFrame(idle);
   fc.addEventListener('click', () => {
     if (fc.dataset.lock) return;
-    fc.classList.toggle('flipped'); vibrate(10);
+    fc.classList.toggle('flipped'); vibrate(10); sfx('flip');
     if (!orientAsked && window.DeviceOrientationEvent && typeof DeviceOrientationEvent.requestPermission === 'function') {
       orientAsked = true; DeviceOrientationEvent.requestPermission().catch(() => {});
     }
@@ -1836,6 +1917,7 @@ ACT.editCard = (el) => {
 
 // ---------- 送卡動畫：裝信封 → 封蠟 → 飛走 ----------
 async function sendAnimation(t, to) {
+  setTimeout(() => sfx('pop'), 500);
   const R = D.RARITY[t.rarity] || D.RARITY.N;
   const el = document.createElement('div');
   el.className = 'send-anim';
@@ -1918,7 +2000,7 @@ ACT.scratch = (el) => {
     if (done) return; done = true;
     cv.style.transition = 'opacity .5s'; cv.style.opacity = 0;
     vibrate([20, 30, 60]);
-    if (c.rarity === 'SSR') { confetti(120, ['#f6d365', '#fda085', '#f093fb', '#8fd3f4']); } else confetti(50);
+    if (c.rarity === 'SSR') { confetti(120, ['#f6d365', '#fda085', '#f093fb', '#8fd3f4']); sfx('sparkle'); vibrate([40, 30, 120]); } else { confetti(50); sfx('scratch'); vibrate(30); }
     await col('cards').update(c.id, { scratched: true });
     setTimeout(() => { const b = document.createElement('div'); b.className = 'btn-row'; b.innerHTML = '<button class="btn block" data-act="close">收進票夾</button>'; m.querySelector('.modal').appendChild(b); }, 400);
   };
@@ -1994,6 +2076,7 @@ ACT.openCard = (el) => {
     await sleep(350);
     vibrate(80);
     if (c.rarity === 'SSR' || c.rarity === 'SR') confetti(110); else confetti(50);
+    sfx('chime'); vibrate([30, 40, 80]);
     if (c.mystery) $('#secret', m).innerHTML = `<div class="secret-reveal">盲盒揭曉：${esc(c.secret)}</div>`;
     hold.outerHTML = '<p class="center" style="font-weight:700">兌換成功！好好享受</p><button class="btn block" data-act="close">完成</button>';
     await col('cards').update(c.id, { used: (c.used || 0) + 1, log: [...(c.log || []), { at: now(), how: 'redeem' }] });
@@ -2308,6 +2391,7 @@ ACT.gacha = () => {
     let rays = null;
     if (rarity === 'SSR') { rays = document.createElement('div'); rays.className = 'ssr-rays'; document.body.appendChild(rays); confetti(150, ['#f6d365', '#fda085', '#f093fb', '#8fd3f4', '#fff']); vibrate([60, 40, 60, 40, 200]); }
     else if (rarity === 'SR') confetti(80, ['#a66bf0', '#d6b4ff', '#fff']);
+    sfx(rarity === 'SSR' ? 'sparkle' : rarity === 'SR' ? 'chime' : 'pop');
     const card = { id, ...cardDoc(tpl, me(), from), scratched: true };
     $('#gres', m).innerHTML = `<div class="center" style="font-family:var(--serif);font-weight:900;font-size:${rarity === 'SSR' ? 30 : 22}px;color:${R.color}">${rarity === 'SSR' ? '✦ SSR 傳說降臨 ✦' : rarity === 'SR' ? '稀有！SR' : rarity + ' · ' + R.label}</div>
       <div class="reveal-card rarity-burst" style="--bc:${R.color};margin:10px 0">${ticketHTML(card, { act: '' })}</div>
@@ -3202,7 +3286,9 @@ ACT.review = () => {
     { i: ic('minds'), n: qrate + '%', t: '默契度', s: `一起答了 ${quiz.length} 題默契問答<br>${daily.length} 題每日一問<br>互相蓋了 ${stamps.length} 個章` },
     { bg: finaleBg(), i: ic('house'), n: `第 ${money(daysAtEnd)} 天`, t: D.BIRTHDAY_SLOGAN, s: `${Y + 1} 年也請多多指教` },
   ];
-  playStory(slides);
+  // 數字是 0 的頁面就跳過（第一頁和最後一頁一定保留）
+  const keep = slides.filter((x, i) => i === 0 || i === slides.length - 1 || !/^0(\/0|%)?$/.test(String(x.n)));
+  playStory(keep);
 };
 
 // 故事頁共用：slides = [{ bg, i, n, t, s }]，bg 沒給就用目前主題的顏色
@@ -3390,12 +3476,15 @@ function cnNum(n) {
 // 今天是不是紀念日？回傳第幾週年（試玩可用 localStorage park-anniv-preview=1 預覽）
 function annivInfo() {
   const a = parseD(S.couple?.dates?.anniversary || D.DEFAULT_DATES.anniversary);
-  const t = new Date();
+  const t = new Date(); t.setHours(0, 0, 0, 0);
   const preview = localStorage.getItem('park-anniv-preview') === '1';
-  const is = preview || (t.getMonth() === a.getMonth() && t.getDate() === a.getDate() && t.getFullYear() > a.getFullYear());
-  let n = t.getFullYear() - a.getFullYear();
-  if (preview && n < 1) n = 1;
-  return { is, n, y: t.getFullYear(), cn: cnNum(n) };
+  const both = (S.couple?.members || []).length >= 2;
+  const thisYear = new Date(t.getFullYear(), a.getMonth(), a.getDate());
+  const diff = Math.round((t - thisYear) / 86400000);
+  // 紀念日當天起 7 天內、而且兩個人都加入了才會出現（對方晚幾天加入也看得到）
+  const is = preview || (both && t.getFullYear() > a.getFullYear() && diff >= 0 && diff <= 6);
+  const n = Math.max(1, thisYear.getFullYear() - a.getFullYear());
+  return { is, n, y: t.getFullYear(), cn: cnNum(n), today: preview || diff === 0 };
 }
 
 // 金色週年徽章（中間是大大的數字）
@@ -3435,7 +3524,7 @@ function annivIntro(force) {
       ${annivMedal(A.n)}
       <div class="ai-eyebrow">${esc(nick(me()))}${p ? ' & ' + esc(nick(p)) : ''}</div>
       <h1>${A.cn}週年快樂</h1>
-      <p>今天是我們在一起的第 ${money(daysTogether())} 天</p>
+      <p>${A.today ? '今天' : '現在'}是我們在一起的第 ${money(daysTogether())} 天</p>
       <button class="btn ai-go" id="ai-story">打開我們的${A.cn}年</button>
       <button class="link ai-skip" id="ai-skip">先看看首頁</button>
     </div>`;
@@ -3446,31 +3535,49 @@ function annivIntro(force) {
   $('#ai-story', el).onclick = () => { close(); setTimeout(() => ACT.annivStory(), 300); };
 }
 
-// 這幾年的我們（全部時間的統計）
+// 這幾年的我們：以「時間」和你們寫進時間軸的回憶為主，App 裡的數字有才顯示
+function countMD(from, md) {
+  const [m, d] = md.split('-').map(Number), t = new Date(); t.setHours(0, 0, 0, 0);
+  let n = 0;
+  for (let y = from.getFullYear(); y <= t.getFullYear(); y++) { const x = new Date(y, m - 1, d); if (x >= from && x <= t) n++; }
+  return n;
+}
 ACT.annivStory = () => {
   const A = annivInfo();
   const ms = S.couple.members, p = partner();
-  const ann = S.couple.dates?.anniversary || D.DEFAULT_DATES.anniversary;
-  const redeems = list('cards').flatMap((c) => (c.log || []).filter((l) => l.how === 'redeem').map(() => c));
-  const cnt = {}; redeems.forEach((c) => cnt[c.title] = (cnt[c.title] || 0) + 1);
-  const top = Object.entries(cnt).sort((a, b) => b[1] - a[1])[0];
-  const trips = list('trips');
-  const misses = list('misses');
-  const daily = list('daily').filter((d) => d.answers && ms.every((u) => d.answers[u]));
-  const mems = list('memories').slice().sort((a, b) => (a.date || '').localeCompare(b.date || ''));
-  const wishes = list('wishes').filter((w) => w.status === 'ok');
+  const annS = S.couple.dates?.anniversary || D.DEFAULT_DATES.anniversary, ann = parseD(annS);
+  const days = daysTogether();
+  const her = ms.find((u) => prof(u).role === 'her'), him = ms.find((u) => prof(u).role === 'him');
   const G = ['#e9c77b', '#fff1c9', '#c42e52', '#ff9db4'];
   const gold = 'linear-gradient(160deg, #3a1622, #1a0b11)';
   const slides = [
-    { bg: gold, i: annivMedal(A.n), n: `${A.cn}週年`, t: '這幾年的我們', s: `從 ${ann.replace(/-/g, '/')} 開始<br>往右點，一起回顧 →` },
-    { i: ic('heart'), n: money(daysTogether()), t: '天', s: `大約 ${money(Math.round(daysTogether() / 7))} 個週末<br>${money(daysTogether() * 24)} 個小時都有彼此` },
-    { i: ic('ticket'), n: redeems.length, t: '張票券被兌現', s: top ? `兌現最多次的是「${esc(top[0])}」` : '接下來的每一張都好好用掉吧' },
-    { i: ic('map'), n: trips.length, t: '個一起去過的地方', s: trips.length ? trips.slice(0, 10).map((t) => esc(t.name)).join('・') : '下一年一起去更多地方' },
-    { i: ic('heart'), n: money(misses.length), t: '次「想你」', s: ms.map((u) => `${esc(nick(u))} 按了 ${misses.filter((x) => x.by === u).length} 次`).join('<br>') },
-    { i: ic('chat'), n: daily.length, t: '題一起回答的每日一問', s: wishes.length ? `還實現了 ${wishes.length} 個願望` : '每一題都是更認識彼此一點' },
+    { bg: gold, i: annivMedal(A.n), n: `${A.cn}週年`, t: '這幾年的我們', s: `從 ${annS.replace(/-/g, '/')} 開始<br>往右點，一起回顧 →` },
+    { i: ic('heart'), n: money(days), t: '天', s: `大約 ${money(Math.round(days / 7))} 個週末<br>${money(days * 24)} 個小時都有彼此` },
   ];
-  if (mems.length) slides.push({ i: ic('photo'), n: mems.length, t: '段寫下來的回憶', s: `最早的一段是「${esc(mems[0].title)}」` });
-  slides.push({ bg: gold, i: ic('house'), n: `第 ${A.n + 1} 年`, t: D.BIRTHDAY_SLOGAN, s: `${esc(nick(me()))}${p ? ' ♡ ' + esc(nick(p)) : ''}<br>也請多多指教` });
+  // 一起過的節日
+  const hol = [['聖誕節', countMD(ann, '12-25')], ['情人節', countMD(ann, '02-14')], ['跨年', countMD(ann, '01-01')]].filter((x) => x[1] > 0);
+  const bd = [[her, prof(her || '').bday || D.DEFAULT_DATES.herBirthday], [him, prof(him || '').bday || D.DEFAULT_DATES.hisBirthday]]
+    .filter(([u]) => u).map(([u, md]) => `${esc(nick(u))}的生日 ${countMD(ann, md)} 次`);
+  slides.push({ i: ic('tree'), n: hol.reduce((a, x) => a + x[1], 0), t: '個一起過的節日', s: hol.map(([k, n]) => `${n} 次${k}`).join('・') + (bd.length ? `<br>還有 ${bd.join('、')}` : '') });
+  // 每一年：時間軸裡寫下的回憶（可以在週年前先補進去）
+  const mems = list('memories').filter((x) => x.date).slice().sort((a, b) => a.date.localeCompare(b.date));
+  for (let k = 0; k < A.n; k++) {
+    const from = new Date(ann.getFullYear() + k, ann.getMonth(), ann.getDate()), to = new Date(ann.getFullYear() + k + 1, ann.getMonth(), ann.getDate());
+    const ys = mems.filter((x) => { const d = parseD(x.date); return d >= from && d < to; });
+    if (!ys.length) continue;
+    const cover = ys.find((x) => x.cover);
+    slides.push({ i: cover ? `<img class="story-photo" src="${cover.cover}" alt="">` : ic('photo'), n: `第 ${cnNum(k + 1)} 年`, t: `${from.getFullYear()}/${from.getMonth() + 1} – ${to.getFullYear()}/${to.getMonth() + 1}`,
+      s: ys.slice(0, 5).map((x) => `${x.date.slice(5).replace('-', '/')}　${esc(x.title)}`).join('<br>') + (ys.length > 5 ? `<br>…還有 ${ys.length - 5} 段` : '') });
+  }
+  // App 裡累積的紀錄：有才放
+  const redeems = list('cards').flatMap((c) => (c.log || []).filter((l) => l.how === 'redeem').map(() => c));
+  const trips = list('trips'), misses = list('misses');
+  const daily = list('daily').filter((d) => d.answers && ms.every((u) => d.answers[u]));
+  if (redeems.length) { const cnt = {}; redeems.forEach((c) => cnt[c.title] = (cnt[c.title] || 0) + 1); const top = Object.entries(cnt).sort((a, b) => b[1] - a[1])[0]; slides.push({ i: ic('ticket'), n: redeems.length, t: '張票券被兌現', s: `兌現最多次的是「${esc(top[0])}」` }); }
+  if (trips.length) slides.push({ i: ic('map'), n: trips.length, t: '個一起去過的地方', s: trips.slice(0, 10).map((t) => esc(t.name)).join('・') });
+  if (misses.length) slides.push({ i: ic('heart'), n: money(misses.length), t: '次「想你」', s: ms.map((u) => `${esc(nick(u))} 按了 ${misses.filter((x) => x.by === u).length} 次`).join('<br>') });
+  if (daily.length) slides.push({ i: ic('chat'), n: daily.length, t: '題一起回答的每日一問', s: '每一題都是更認識彼此一點' });
+  slides.push({ bg: gold, i: ic('house'), n: `第 ${cnNum(A.n + 1)} 年`, t: D.BIRTHDAY_SLOGAN, s: `${esc(nick(me()))}${p ? ' ♡ ' + esc(nick(p)) : ''}<br>也請多多指教` });
   playStory(slides, { finale: 140, colors: G });
 };
 
@@ -3501,7 +3608,7 @@ function annivHomeCard() {
   return `<div class="card anniv-card">
     <div class="ac-medal">${annivMedal(A.n)}</div>
     <div class="grow">
-      <div class="ac-eyebrow">今天是我們的</div>
+      <div class="ac-eyebrow">${A.today ? '今天是我們的' : '剛剛過完的'}</div>
       <div class="ac-title">${A.cn}週年紀念日</div>
       <div class="ac-btns">
         <button class="btn sm" data-act="annivStory">我們的${A.cn}年</button>
