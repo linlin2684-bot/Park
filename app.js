@@ -417,6 +417,26 @@ function avatarSVG(id) {
   const a = AVATARS[id]; if (!a) return '';
   return `<svg viewBox="0 0 64 64" class="av-svg" xmlns="http://www.w3.org/2000/svg"><circle cx="32" cy="32" r="31" fill="${a.bg}"/><g>${a.art}</g><circle cx="32" cy="32" r="30.5" fill="none" stroke="rgba(74,46,42,.18)" stroke-width="1"/></svg>`;
 }
+
+// 旅行基金存錢筒（插畫風，和頭像同一套筆觸）
+const PIGGY_SVG = `<svg viewBox="0 0 120 96" class="piggy-svg" xmlns="http://www.w3.org/2000/svg">
+  <ellipse cx="60" cy="88" rx="34" ry="4" fill="rgba(74,46,42,.12)"/>
+  <g class="pig-coin"><ellipse cx="60" cy="14" rx="8" ry="8" fill="#ffd45c" stroke="${AV_INK}" stroke-width="2"/><path d="M60 9.5 V18.5" stroke="${AV_INK}" stroke-width="1.6" stroke-linecap="round"/></g>
+  <path d="M30 76 L30 85 Q30 87 32.5 87 L38 87 Q40 87 40 85 L40 78 Z M80 78 L80 85 Q80 87 82 87 L87.5 87 Q90 87 90 85 L90 76 Z" fill="#f7a8bb" stroke="${AV_INK}" stroke-width="2" stroke-linejoin="round"/>
+  <path d="M40 34 L36 21 Q35.5 18.5 38 19.5 L50 27 Z" fill="#f7a8bb" stroke="${AV_INK}" stroke-width="2" stroke-linejoin="round"/>
+  <path d="M19 52 Q12 52 12 46 Q12 42 15.5 42.5" fill="none" stroke="${AV_INK}" stroke-width="2" stroke-linecap="round"/>
+  <ellipse cx="58" cy="55" rx="40" ry="28" fill="#ffc2d1" stroke="${AV_INK}" stroke-width="2"/>
+  <path d="M30 41 Q40 31 58 30" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" opacity=".7"/>
+  <rect x="51" y="27.5" width="18" height="4" rx="2" fill="${AV_INK}"/>
+  <path d="M68 34 L74 22 Q75.5 19.5 77 22 L80 36 Z" fill="#ffc2d1" stroke="${AV_INK}" stroke-width="2" stroke-linejoin="round"/>
+  <path d="M73 31 L75 25.5 L76.5 32 Z" fill="#f48aa5"/>
+  <ellipse cx="97" cy="56" rx="9" ry="10.5" fill="#f7a8bb" stroke="${AV_INK}" stroke-width="2"/>
+  <ellipse cx="94.5" cy="56" rx="1.6" ry="2.6" fill="${AV_INK}"/><ellipse cx="99.5" cy="56" rx="1.6" ry="2.6" fill="${AV_INK}"/>
+  <path d="M78 47 Q81 44.5 84 47" fill="none" stroke="${AV_INK}" stroke-width="2" stroke-linecap="round"/>
+  <ellipse cx="80" cy="56" rx="4.5" ry="2.8" fill="#ff8fa8" opacity=".7"/>
+  <path d="M84 63 Q86.5 66 89.5 64" fill="none" stroke="${AV_INK}" stroke-width="1.8" stroke-linecap="round"/>
+  <path d="M28 63 Q32 61 36 63 M44 69 Q48 67 52 69" fill="none" stroke="#f48aa5" stroke-width="1.6" stroke-linecap="round" opacity=".8"/>
+</svg>`;
 // ============================================================
 //  啟動、登入、配對、外框
 // ============================================================
@@ -2569,11 +2589,11 @@ function travelFund() {
   const past = {};
   list('deposits').filter((d) => (d.round || 1) < (f.round || 1)).forEach((d) => (past[d.round || 1] ||= { total: 0, name: d.fundName || `第 ${d.round || 1} 期` }, past[d.round || 1].total += d.amt));
   return `<div class="card center">
-      <span class="piggy" id="pig"><i data-ic="piggy"></i></span>
+      <span class="piggy" id="pig">${PIGGY_SVG}</span>
       <h3 style="justify-content:center">${esc(f.name)} <button class="small muted" data-act="fundEdit"><i data-ic="edit"></i></button></h3>
       <div class="fund-num">$${money(total)} <span class="small muted">/ $${money(f.goal)}</span></div>
       <div class="fund-bar"><div style="width:${pct}%"></div></div>
-      <div class="small muted">${pct >= 100 ? '🎉 存滿了！旅行限定券已經發到兩人的票夾' : `還差 $${money(Math.max(0, f.goal - total))} · 存滿會掉一張旅行限定卡 ✈️`}</div>
+      <div class="small muted">${pct >= 100 ? '🎉 存滿了！旅行限定券已經發到兩人的票夾' : `還差 $${money(Math.max(0, f.goal - total))} · 存滿會掉一張旅行限定卡 <i data-ic="plane"></i>`}</div>
       <div class="row mt" style="justify-content:center;gap:20px">${ms.map((u) => `<div><div>${avatar(u, "av-md")}</div><b>$${money(sum(deps.filter((d) => d.uid === u), (d) => d.amt))}</b><div class="small muted">${esc(nick(u))}</div></div>`).join('')}</div>
       <div class="btn-row">${f.rewarded ? '<button class="btn ghost" data-act="fundNew">開始新的基金</button>' : ''}<button class="btn" data-act="deposit"><i data-ic="coins"></i> 存一筆</button></div>
     </div>
