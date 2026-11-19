@@ -970,3 +970,38 @@ html[data-theme="night"] .gm-cat .cat-svg, html[data-theme="night"] .ctx-cat .ca
 .cat-stroll.caught .cat-svg { transform: none; animation: catJump .5s ease-in-out 2; }
 @keyframes stroll { to { left: calc(100% + 90px); } }
 html[data-theme="night"] .cat-stroll .cat-svg { filter: drop-shadow(0 0 1px rgba(255, 240, 220, .6)) drop-shadow(0 0 10px rgba(255, 200, 150, .15)); }
+/* ============ 約會 ============ */
+.next-date { display: flex; align-items: center; gap: 12px; cursor: pointer; }
+.nd-cal { width: 52px; height: 56px; border-radius: 12px; background: var(--card2); display: flex; flex-direction: column; align-items: center; justify-content: center; border-top: 6px solid var(--accent); flex: none; }
+.nd-cal b { font-family: var(--serif); font-size: 22px; line-height: 1; color: var(--accent); }
+.nd-cal span { font-size: 10px; color: var(--muted); margin-top: 2px; }
+.nd-cal.sm { width: 44px; height: 48px; border-top-width: 5px; }
+.nd-cal.sm b { font-size: 18px; }
+.nd-t { font-family: var(--serif); font-weight: 800; font-size: 16px; margin: 1px 0; }
+.date-item { display: flex; align-items: center; gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--line); cursor: pointer; }
+.date-item:last-child { border-bottom: 0; }
+.date-item .di-t { font-weight: 700; }
+.date-item.done { opacity: .6; }
+.di-rel { font-size: 12px; font-weight: 700; color: var(--muted); white-space: nowrap; }
+.di-rel.soon { color: var(--accent); }
+.past-dates summary, details.card summary { cursor: pointer; font-weight: 700; color: var(--muted); }
+.check-row { display: flex; align-items: center; gap: 10px; padding: 10px 0; font-size: 15px; color: var(--ink); }
+.check-row input { width: 20px; height: 20px; accent-color: var(--accent); }
+/* 點子罐 */
+.jar-svg { width: 180px; display: block; margin: 0 auto; overflow: visible; }
+.jar-svg .jar-lid { fill: color-mix(in srgb, var(--accent) 75%, #1a0b11); }
+.jar-svg .jar-glass { fill: color-mix(in srgb, var(--accent) 6%, rgba(255, 255, 255, .5)); }
+html[data-theme="night"] .jar-svg .jar-glass { fill: rgba(255, 255, 255, .06); }
+.jar-svg .jar-outline { fill: none; stroke: color-mix(in srgb, var(--ink) 35%, transparent); stroke-width: 2; }
+.jar-svg .jar-shine { fill: none; stroke: #fff; stroke-width: 3; stroke-linecap: round; opacity: .5; }
+.jar-svg .jar-label { fill: var(--card); stroke: var(--accent2); stroke-width: 1.2; }
+.jar-svg .jar-text { font-family: var(--serif); font-weight: 800; font-size: 12px; fill: var(--accent); }
+.jar-svg.shake { animation: jarShake .3s ease-in-out 3; transform-origin: 100px 170px; }
+@keyframes jarShake { 25% { transform: rotate(-8deg); } 75% { transform: rotate(8deg); } }
+.idea-slip { display: inline-block; background: #fff6d8; color: #4a3a1a; font-family: var(--serif); font-weight: 800; font-size: 20px; padding: 18px 22px; border-radius: 6px; box-shadow: 0 8px 20px rgba(0, 0, 0, .18); transform: rotate(-2deg); margin: 8px 0 12px; animation: pop .5s; max-width: 90%; line-height: 1.5; }
+.pop-photos { display: grid; grid-template-columns: repeat(3, 1fr); gap: 3px; margin-top: 6px; }
+.pop-photos span { aspect-ratio: 1; background: center/cover no-repeat; border-radius: 3px; }
+/* 扭蛋額外掉落的配件 */
+.bonus-acc { display: flex; align-items: center; gap: 10px; background: color-mix(in srgb, var(--accent2) 18%, var(--card)); border: 1px dashed var(--accent2); border-radius: 14px; padding: 8px 12px; margin: 4px 0 10px; animation: pop .5s; }
+.bonus-acc .ba-cat { width: 52px; height: 52px; border-radius: 50%; background: #f3e9f0; display: grid; place-items: center; overflow: hidden; flex: none; }
+.bonus-acc .ba-cat .pet-svg { width: 48px; margin-top: 4px; filter: none !important; }

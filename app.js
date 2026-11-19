@@ -9,11 +9,11 @@ import { createStore } from './store.js';
 const S = {
   store: null, me: null, cid: null, couple: null, d: {},
   tab: localStorage.getItem('park-tab') || 'home',
-  sub: { wallet: 'mine', travel: 'fund', memory: 'goals' },
+  sub: { wallet: 'mine', travel: 'plan', memory: 'goals' },
   unsubs: [], started: Date.now(), seenEvents: new Set(), deferRender: false,
 };
 const COLS = ['cards', 'events', 'points', 'pool', 'wishes', 'taskDone', 'battles', 'quiz', 'daily',
-  'deposits', 'trips', 'goals', 'capsules', 'notes', 'misses', 'gacha', 'memories', 'photos', 'deep'];
+  'deposits', 'trips', 'goals', 'capsules', 'notes', 'misses', 'gacha', 'memories', 'photos', 'deep', 'dates', 'ideas', 'watch'];
 
 // ---------- 小工具 ----------
 const $ = (s, r = document) => r.querySelector(s);
@@ -1037,7 +1037,7 @@ const TABS = [
   { id: 'home', icon: '<i data-ic="home"></i>', name: '首頁' },
   { id: 'wallet', icon: '<i data-ic="ticket"></i>', name: '票夾' },
   { id: 'play', icon: '<i data-ic="gacha"></i>', name: '遊樂區' },
-  { id: 'travel', icon: '<i data-ic="map"></i>', name: '旅行' },
+  { id: 'travel', icon: '<i data-ic="map"></i>', name: '約會' },
   { id: 'memory', icon: '<i data-ic="clock"></i>', name: '回憶' },
 ];
 function renderShell() {
@@ -1365,6 +1365,7 @@ PAGES.home = {
     const theirToday = misses.filter((x) => x.by === p && isToday(x)).length;
     const total = misses.length;
     return `${annivHomeCard()}
+    ${homeNextDate()}
     <div class="card hero">
       <div class="small muted">我們在一起</div>
       <div class="days">第 ${money(daysTogether())} <small>天</small></div>
@@ -1476,8 +1477,16 @@ ACT.dailyHistory = () => {
   const ds = list('daily').filter((d) => d.answers && d.answers[me()] && p && d.answers[p]).sort((a, b) => b.id.localeCompare(a.id));
   openModal(`${mhead('<i data-ic="chat"></i> 以前的每日一問')}
     ${ds.map((d) => `<div class="card"><div class="small muted">${d.id}</div><b style="font-family:var(--serif)">${esc(D.DAILY_QUESTIONS[d.qi] || '')}</b>
-      <div class="small mt"><b>${esc(nick(me()))}：</b>${esc(d.answers[me()])}</div><div class="small"><b>${esc(nick(p))}：</b>${esc(d.answers[p])}</div></div>`).join('')
+      <div class="small mt"><b>${esc(nick(me()))}：</b>${esc(d.answers[me()])}</div><div class="small"><b>${esc(nick(p))}：</b>${esc(d.answers[p])}</div>
+      <button class="btn sm ghost mt" data-act="dailyToMem" data-id="${d.id}"><i data-ic="clock"></i> 收進時間軸</button></div>`).join('')
       || '<div class="empty"><span class="big"><i data-ic="chat"></i></span>兩人都回答過的題目會出現在這裡</div>'}`);
+};
+
+ACT.dailyToMem = async (el) => {
+  const d = list('daily').find((x) => x.id === el.dataset.id); if (!d) return;
+  const p = partner();
+  await col('memories').add({ title: D.DAILY_QUESTIONS[d.qi] || '每日一問', date: d.id.slice(0, 10), kind: 'other', note: `${nick(me())}：${d.answers[me()]}\n${nick(p)}：${d.answers[p]}`, by: me(), at: now() });
+  el.outerHTML = '<span class="small muted">已收進時間軸</span>'; toast('收進時間軸了');
 };
 
 // ---------- 情話小紙條 ----------
@@ -1894,6 +1903,7 @@ const BOOK_META = {
   [D.BIRTHDAY_SERIES]: { pal: 'C', motif: 'candle', pat: 'sparkle', sub: '25 歲生日限定', how: '他加入時就會收到整套生日卡' },
   '節日系列': { pal: 'F-anniv', motif: 'stars', pat: 'rings', sub: '節日與紀念日限定', how: '生日、週年、情人節、聖誕、新年當天自動掉落' },
   '旅行系列': { pal: 'F-travel', motif: 'compass', pat: 'grid', sub: '旅途中的里程碑', how: '存旅行基金、記錄足跡、第一次出國、舊地重遊都會掉卡' },
+  '成就系列': { pal: 'SSR', motif: 'stars', pat: 'rings', sub: '金色成就的紀念', how: '解鎖金色成就時，兩人各掉一張' },
   [WISH_SERIES]: { pal: 'W', motif: 'wish', pat: 'sparkle', sub: '許願池實現的願望', how: '在許願池許願，對方點頭就會收進來' },
 };
 
@@ -2291,8 +2301,22 @@ ACT.wishOk = async (el) => {
   await giveCard(w.by, { title: w.title, desc: w.desc, rarity: w.rarity, spice: w.spice, mark: w.mark || '', series: WISH_SERIES });
   await col('wishes').update(w.id, { status: 'ok', doneAt: now() });
   await notify(w.by, 'wish', '你的願望實現了 ✨');
-  sendAnimation(w, w.by);
+  await sendAnimation(w, w.by);
+  setTimeout(() => wishFollowUp(w), 600);
 };
+async function wishFollowUp(w) {
+  const m = openModal(`${mhead('<i data-ic="sparkle"></i> 願望實現了')}
+    <p class="small muted" style="margin-top:0">「${esc(w.title)}」要順便記下來嗎？（都可以不選）</p>
+    <label class="check-row"><input type="checkbox" id="wf-mem"> 記進時間軸</label>
+    <label class="check-row"><input type="checkbox" id="wf-goal"> 加進 ${new Date().getFullYear()} 年度清單（標成已完成）</label>
+    <button class="btn block mt" id="wf-ok">好</button>`, { center: true });
+  $('#wf-ok', m).onclick = async () => {
+    if ($('#wf-mem', m).checked) await col('memories').add({ title: `願望實現：${w.title}`, date: dkey(), kind: 'gift', note: '', by: me(), at: now() });
+    if ($('#wf-goal', m).checked) await col('goals').add({ title: w.title, year: new Date().getFullYear(), done: true, doneAt: now(), by: me(), at: now() });
+    closeModal(m);
+    if ($('#wf-mem', m).checked || $('#wf-goal', m).checked) toast('記下來了');
+  };
+}
 ACT.wishNo = async (el) => {
   if (!(await confirmBox('這次先不要？'))) return;
   await col('wishes').update(el.dataset.id, { status: 'no' });
@@ -2526,10 +2550,12 @@ ACT.gacha = () => {
     if (rarity === 'SSR') { rays = document.createElement('div'); rays.className = 'ssr-rays'; document.body.appendChild(rays); confetti(150, ['#f6d365', '#fda085', '#f093fb', '#8fd3f4', '#fff']); vibrate([60, 40, 60, 40, 200]); }
     else if (rarity === 'SR') confetti(80, ['#a66bf0', '#d6b4ff', '#fff']);
     sfx(rarity === 'SSR' ? 'sparkle' : rarity === 'SR' ? 'chime' : 'pop');
+    const bonus = await petGachaBonus();
     const card = { id, ...cardDoc(tpl, me(), from), scratched: true };
     $('#gres', m).innerHTML = `<div class="center" style="font-family:var(--serif);font-weight:900;font-size:${rarity === 'SSR' ? 30 : 22}px;color:${R.color}">${rarity === 'SSR' ? '✦ SSR 傳說降臨 ✦' : rarity === 'SR' ? '稀有！SR' : rarity + ' · ' + R.label}</div>
       <div class="reveal-card rarity-burst" style="--bc:${R.color};margin:10px 0">${ticketHTML(card, { act: '' })}</div>
       ${tpl.mystery ? `<p class="small muted center">${esc(nick(partner()))} 會偷偷幫你寫盲盒內容</p>` : ''}
+      ${bonus ? `<div class="bonus-acc"><span class="ba-cat">${petSVG(2, 'happy', bonus.id, { blink: false })}</span><div><b>額外掉落！</b><div class="small">${esc(petState().name)}的限定配件「${bonus.name}」</div></div></div>` : ''}
       <div class="btn-row"><button class="btn ghost" id="g-again">再扭一次</button><button class="btn" data-act="close">收下</button></div>`;
     $('#g-again', m).onclick = () => { rays && rays.remove(); closeModal(m); ACT.gacha(); };
     m._onClose = () => rays && rays.remove();
@@ -2901,9 +2927,11 @@ ACT.taskDo = async (el) => {
 PAGES.travel = {
   html() {
     const sub = S.sub.travel;
-    return `<div class="page-title"><h2><i data-ic="map"></i> 旅行</h2><span>去過 ${list('trips').length} 個地方</span></div>
-      <div class="seg">${[['fund', '<i data-ic="coins"></i> 旅行基金'], ['map', '<i data-ic="pin"></i> 足跡地圖']].map(([k, n]) => `<button class="${sub === k ? 'on' : ''}" data-act="sub" data-page="travel" data-sub="${k}">${n}</button>`).join('')}</div>
-      ${sub === 'map' ? travelMap() : travelFund()}`;
+    const tabs = [['plan', '<i data-ic="clock"></i> 行程'], ['jar', '<i data-ic="gift"></i> 點子罐'], ['list', '<i data-ic="film"></i> 清單'], ['map', '<i data-ic="pin"></i> 足跡'], ['fund', '<i data-ic="coins"></i> 基金']];
+    const cur = tabs.some(([k]) => k === sub) ? sub : 'plan';
+    return `<div class="page-title"><h2><i data-ic="map"></i> 約會</h2><span>去過 ${list('trips').length} 個地方</span></div>
+      <div class="seg">${tabs.map(([k, n]) => `<button class="${cur === k ? 'on' : ''}" data-act="sub" data-page="travel" data-sub="${k}">${n}</button>`).join('')}</div>
+      ${({ plan: datesPlan, jar: datesJar, list: datesList, map: travelMap, fund: travelFund }[cur])()}`;
   },
   after(main) { if (S.sub.travel === 'map') mountMap(main); },
 };
@@ -3047,7 +3075,7 @@ function mountMap(main) {
     if (t.lat == null) continue;
     const icon = L.divIcon({ html: `<div class="map-pin">${ic('pin')}</div>`, className: '', iconSize: [20, 20] });
     L.marker([t.lat, t.lng], { icon }).addTo(S.mapLayer)
-      .bindPopup(`${t.cover ? `<img src="${t.cover}">` : ''}<b>${esc(t.name)}</b><br><small>${esc(t.date || '')}</small>`);
+      .bindPopup(`${t.cover ? `<img src="${t.cover}">` : ''}<b>${esc(t.name)}</b><br><small>${esc(t.date || '')}</small>${(() => { const ps = list('photos').filter((p) => p.tripId === t.id); return ps.length ? `<div class="pop-photos">${ps.slice(0, 6).map((p) => `<span style="background-image:url('${p.img}')"></span>`).join('')}</div>` : ''; })()}`, { maxWidth: 240 });
     pts.push([t.lat, t.lng]);
   }
   if (fresh && pts.length) S.map.fitBounds(pts, { padding: [30, 30], maxZoom: 11 });
@@ -3129,6 +3157,172 @@ ACT.openTrip = (el) => {
     <div class="btn-row">${t.lat != null && S.map ? '<button class="btn ghost" id="tp-go">在地圖上看</button>' : ''}${t.by === me() ? '<button class="btn ghost" id="tp-del">刪除</button>' : ''}</div>`);
   $('#tp-go', m) && ($('#tp-go', m).onclick = () => { closeModal(m); S.map.setView([t.lat, t.lng], 12); window.scrollTo({ top: 0, behavior: 'smooth' }); });
   $('#tp-del', m) && ($('#tp-del', m).onclick = async () => { if (await confirmBox('刪除這個足跡？')) { await col('trips').remove(t.id); closeModal(m); } });
+};
+// ============================================================
+//  約會：行程（含加到手機行事曆）、點子罐、一起看／想吃清單
+// ============================================================
+
+// ---------- 行程 ----------
+const dateDT = (d) => { const [y, m, dd] = (d.date || '').split('-').map(Number); const [h, mi] = (d.time || '00:00').split(':').map(Number); return new Date(y, m - 1, dd, h || 0, mi || 0); };
+function upcomingDates() {
+  const t0 = new Date(); t0.setHours(0, 0, 0, 0);
+  return list('dates').filter((d) => d.date && !d.done && dateDT(d) >= t0).sort((a, b) => dateDT(a) - dateDT(b));
+}
+const WEEK = ['日', '一', '二', '三', '四', '五', '六'];
+function dateWhen(d) {
+  const x = dateDT(d), t0 = new Date(); t0.setHours(0, 0, 0, 0);
+  const days = Math.round((new Date(x.getFullYear(), x.getMonth(), x.getDate()) - t0) / 86400000);
+  const rel = days === 0 ? '今天' : days === 1 ? '明天' : days === 2 ? '後天' : `還有 ${days} 天`;
+  return { rel, label: `${x.getMonth() + 1}/${x.getDate()}（${WEEK[x.getDay()]}）${d.time ? ' ' + d.time : ''}`, days };
+}
+
+function homeNextDate() {
+  const n = upcomingDates()[0];
+  if (!n) return '';
+  const w = dateWhen(n);
+  return `<div class="card next-date" data-act="goDates">
+    <div class="nd-cal"><b>${dateDT(n).getDate()}</b><span>${dateDT(n).getMonth() + 1} 月</span></div>
+    <div class="grow"><div class="small muted">下一次約會・${w.rel}</div><div class="nd-t">${esc(n.title)}</div><div class="small muted">${w.label}${n.place ? '・' + esc(n.place) : ''}</div></div>
+    <span style="font-size:20px;color:var(--muted)">›</span></div>`;
+}
+ACT.goDates = () => { S.tab = 'travel'; S.sub.travel = 'plan'; render(); window.scrollTo(0, 0); };
+
+function datesPlan() {
+  const up = upcomingDates();
+  const past = list('dates').filter((d) => !up.includes(d)).sort((a, b) => dateDT(b) - dateDT(a));
+  const row = (d) => { const w = dateWhen(d); return `<div class="date-item ${d.done ? 'done' : ''}" data-act="dateEdit" data-id="${d.id}">
+      <div class="nd-cal sm"><b>${dateDT(d).getDate()}</b><span>${dateDT(d).getMonth() + 1} 月</span></div>
+      <div class="grow"><div class="di-t">${esc(d.title)}</div><div class="small muted">${w.label}${d.place ? '・' + esc(d.place) : ''}</div>${d.note ? `<div class="small" style="margin-top:2px">${esc(d.note)}</div>` : ''}</div>
+      ${d.done ? '<span class="chip">去過了</span>' : `<span class="di-rel ${w.days <= 2 ? 'soon' : ''}">${w.rel}</span>`}</div>`; };
+  return `<button class="btn block" data-act="dateEdit" style="margin-bottom:10px"><i data-ic="plus"></i> 排一個約會</button>
+    <div class="card">${up.length ? up.map(row).join('') : '<div class="empty"><span class="big"><i data-ic="clock"></i></span>還沒有排約會<br><span class="small">沒想法的話，去點子罐搖一個</span></div>'}</div>
+    ${past.length ? `<details class="card past-dates"><summary>以前的約會（${past.length}）</summary>${past.slice(0, 40).map(row).join('')}</details>` : ''}`;
+}
+
+ACT.dateEdit = (el, e, preset = {}) => {
+  const d = el && el.dataset && el.dataset.id ? list('dates').find((x) => x.id === el.dataset.id) : null;
+  const t = { title: '', date: dkey(), time: '19:00', place: '', note: '', ...preset, ...(d || {}) };
+  const m = openModal(`${mhead(`<i data-ic="clock"></i> ${d ? '約會內容' : '排一個約會'}`)}
+    <label>要做什麼</label><input id="dt-t" maxlength="30" value="${esc(t.title)}" placeholder="例如：去吃那家燒肉">
+    <div class="row"><div class="grow"><label>日期</label><input id="dt-d" type="date" value="${esc(t.date)}"></div><div style="width:120px"><label>時間</label><input id="dt-h" type="time" value="${esc(t.time)}"></div></div>
+    <label>地點（可以不填）</label><input id="dt-p" maxlength="40" value="${esc(t.place)}" placeholder="例如：信義區 XX 餐廳">
+    <label>備註（可以不填）</label><input id="dt-n" maxlength="60" value="${esc(t.note)}" placeholder="例如：記得訂位">
+    <button class="btn block mt" id="dt-ok">${d ? '儲存' : '排進行程'}</button>
+    ${d ? `<div class="btn-row mt"><button class="btn ghost" id="dt-ics"><i data-ic="download"></i> 加到手機行事曆</button>${d.done ? '' : '<button class="btn ghost" id="dt-done"><i data-ic="check"></i> 去過了</button>'}</div>
+      <button class="link center" id="dt-del" style="color:#d4405f;margin-top:10px">刪除這個約會</button>` : ''}`);
+  const read = () => ({ title: $('#dt-t', m).value.trim(), date: $('#dt-d', m).value, time: $('#dt-h', m).value, place: $('#dt-p', m).value.trim(), note: $('#dt-n', m).value.trim() });
+  $('#dt-ok', m).onclick = async () => {
+    const v = read(); if (!v.title) return toast('寫一下要做什麼'); if (!v.date) return toast('選一下日期');
+    if (d) await col('dates').update(d.id, v);
+    else {
+      const id = await col('dates').add({ ...v, by: me(), done: false, at: now() });
+      if (preset.ideaId) await col('ideas').update(preset.ideaId, { used: true, usedAt: now() });
+      if (partner()) await notify(partner(), 'date', `${nick(me())} 排了一個約會：${v.date.slice(5).replace('-', '/')}`, v.title);
+      closeModal(m); toast('排進行程了'); sfx('pop');
+      if (await confirmBox('要加到手機行事曆嗎？\n手機會在約會前提醒你們', '加到行事曆')) downloadICS({ ...v, id });
+      return;
+    }
+    closeModal(m); toast('改好了');
+  };
+  if (!d) return;
+  $('#dt-ics', m).onclick = () => downloadICS(d);
+  const dn = $('#dt-done', m);
+  if (dn) dn.onclick = async () => { await col('dates').update(d.id, { done: true, doneAt: now() }); closeModal(m); toast('又一起去了一個地方'); petXP(3); askAddMemory({ title: d.title, date: d.date, kind: 'date', note: d.place || '' }); };
+  $('#dt-del', m).onclick = async () => { if (!(await confirmBox('確定刪除這個約會？', '刪除'))) return; await col('dates').remove(d.id); closeModal(m); };
+};
+
+// 產生 .ics，iPhone／Android 點開就能加進行事曆（前一天和前 2 小時提醒）
+function downloadICS(d) {
+  const st = dateDT(d), en = new Date(st.getTime() + 2 * 3600000);
+  const f = (x) => `${x.getFullYear()}${pad(x.getMonth() + 1)}${pad(x.getDate())}T${pad(x.getHours())}${pad(x.getMinutes())}00`;
+  const e = (s) => String(s || '').replace(/[\\;,]/g, (c) => '\\' + c).replace(/\n/g, '\\n');
+  const ics = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//two-park//date//ZH', 'BEGIN:VEVENT',
+    `UID:${d.id || now()}@two-park`, `DTSTAMP:${f(new Date())}`, `DTSTART:${f(st)}`, `DTEND:${f(en)}`,
+    `SUMMARY:${e('約會：' + d.title)}`, d.place ? `LOCATION:${e(d.place)}` : '', d.note ? `DESCRIPTION:${e(d.note)}` : '',
+    'BEGIN:VALARM', 'TRIGGER:-P1D', 'ACTION:DISPLAY', `DESCRIPTION:${e('明天約會：' + d.title)}`, 'END:VALARM',
+    'BEGIN:VALARM', 'TRIGGER:-PT2H', 'ACTION:DISPLAY', `DESCRIPTION:${e('兩小時後：' + d.title)}`, 'END:VALARM',
+    'END:VEVENT', 'END:VCALENDAR'].filter(Boolean).join('\r\n');
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([ics], { type: 'text/calendar;charset=utf-8' }));
+  a.download = `date-${d.date}.ics`; document.body.appendChild(a); a.click(); a.remove();
+  toast('打開下載的檔案就能加進行事曆');
+}
+
+// 做完的事情：問要不要記進時間軸（不自動）
+async function askAddMemory({ title, date, kind = 'other', note = '' }) {
+  if (!(await confirmBox(`要把「${title}」記進時間軸嗎？`, '記進時間軸'))) return;
+  await col('memories').add({ title, date: date || dkey(), kind, note, by: me(), at: now() });
+  toast('記進時間軸了');
+}
+
+// ---------- 點子罐 ----------
+function datesJar() {
+  const ideas = list('ideas').filter((x) => !x.used);
+  const used = list('ideas').filter((x) => x.used).sort((a, b) => (b.usedAt || 0) - (a.usedAt || 0));
+  const slips = ideas.slice(0, 14).map((x, i) => { const r = ((i * 37) % 21) - 10; return `<rect x="${58 + (i % 4) * 20 + ((i * 13) % 6)}" y="${152 - Math.floor(i / 4) * 16 - ((i * 7) % 5)}" width="24" height="12" rx="2" fill="${['#ffc2d1', '#ffe3a3', '#c9e8d8', '#d6e4ff', '#ead6ff'][i % 5]}" transform="rotate(${r} ${54 + (i % 5) * 22} ${154 - Math.floor(i / 5) * 18})"/>`; }).join('');
+  return `<div class="card center jar-card">
+      <svg viewBox="0 0 200 190" class="jar-svg" id="jar">
+        <rect x="64" y="18" width="72" height="16" rx="5" class="jar-lid"/>
+        <path d="M60 34 H140 Q150 40 148 56 L150 160 Q150 176 134 176 H66 Q50 176 50 160 L52 56 Q50 40 60 34 Z" class="jar-glass"/>
+        <g class="jar-slips">${slips}</g>
+        <path d="M60 34 H140 Q150 40 148 56 L150 160 Q150 176 134 176 H66 Q50 176 50 160 L52 56 Q50 40 60 34 Z" class="jar-outline"/>
+        <path d="M62 58 Q60 100 64 150" class="jar-shine"/>
+        <rect x="78" y="78" width="44" height="26" rx="4" class="jar-label"/><text x="100" y="95" text-anchor="middle" class="jar-text">約會</text>
+      </svg>
+      <div class="small muted" style="margin:-4px 0 10px">罐子裡有 ${ideas.length} 個點子</div>
+      <div class="btn-row" style="justify-content:center"><button class="btn ghost" data-act="ideaAdd"><i data-ic="plus"></i> 丟一個點子</button><button class="btn" data-act="ideaShake" ${ideas.length ? '' : 'disabled'}>搖一搖</button></div>
+    </div>
+    ${ideas.length ? `<div class="card"><h3 style="font-size:15px">罐子裡的點子</h3>${ideas.map((x) => `<div class="list-row"><span class="grow">${esc(x.text)}<div class="small muted">${esc(nick(x.by))} 丟的</div></span>${x.by === me() ? `<button class="small muted" data-act="ideaDel" data-id="${x.id}">✕</button>` : ''}</div>`).join('')}</div>` : ''}
+    ${used.length ? `<details class="card"><summary>抽過的點子（${used.length}）</summary>${used.slice(0, 30).map((x) => `<div class="list-row"><span class="grow muted">${esc(x.text)}</span></div>`).join('')}</details>` : ''}`;
+}
+ACT.ideaAdd = async () => {
+  const v = await promptBox('丟一個約會點子', { placeholder: '例如：去海邊看日落、一起做菜、夜市吃到飽' });
+  if (!v || !v.trim()) return;
+  await col('ideas').add({ text: v.trim(), by: me(), used: false, at: now() });
+  toast('丟進罐子了'); sfx('pop');
+};
+ACT.ideaDel = async (el, e) => { e && e.stopPropagation(); await col('ideas').remove(el.dataset.id); };
+ACT.ideaShake = async () => {
+  const ideas = list('ideas').filter((x) => !x.used);
+  if (!ideas.length) return;
+  const jar = $('#jar'); jar && jar.classList.add('shake'); sfx('flip'); vibrate([20, 40, 20, 40, 20]);
+  await sleep(900); jar && jar.classList.remove('shake');
+  const x = ideas[Math.floor(Math.random() * ideas.length)];
+  const m = openModal(`<div class="center"><div class="idea-slip">${esc(x.text)}</div><p class="small muted">${esc(nick(x.by))} 丟進去的點子</p>
+    <div class="btn-row" style="justify-content:center"><button class="btn ghost" id="is-again">再搖一次</button><button class="btn" id="is-go">就決定是它</button></div></div>`, { center: true });
+  sfx('chime');
+  $('#is-again', m).onclick = () => { closeModal(m); ACT.ideaShake(); };
+  $('#is-go', m).onclick = () => { closeModal(m); ACT.dateEdit(null, null, { title: x.text, ideaId: x.id }); };
+};
+
+// ---------- 一起看／想吃清單 ----------
+const WATCH_KINDS = [['movie', '電影'], ['drama', '影集'], ['food', '想吃'], ['place', '想去'], ['other', '其他']];
+function datesList() {
+  const k = S.watchKind || 'movie';
+  const items = list('watch').filter((x) => x.kind === k).sort((a, b) => (a.done ? 1 : 0) - (b.done ? 1 : 0) || b.at - a.at);
+  return `<div class="seg" style="margin-bottom:10px">${WATCH_KINDS.map(([id, n]) => `<button class="${k === id ? 'on' : ''}" data-act="watchKind" data-k="${id}">${n}</button>`).join('')}</div>
+    <div class="card">
+      <div class="row" style="gap:8px"><input id="wl-in" class="grow" maxlength="40" placeholder="${{ movie: '想一起看的電影', drama: '想一起追的劇', food: '想一起吃的店或料理', place: '想一起去的地方', other: '想一起做的事' }[k]}"><button class="btn sm" data-act="watchAdd">新增</button></div>
+      <div class="mt">${items.map((x) => `<div class="goal ${x.done ? 'done' : ''}"><button class="ck" data-act="watchToggle" data-id="${x.id}">${x.done ? '✓' : ''}</button>
+        <span class="grow">${esc(x.title)}${x.review ? `<div class="small muted">「${esc(x.review)}」</div>` : `<div class="small muted">${esc(nick(x.by))} 加的</div>`}</span>
+        ${x.by === me() && !x.done ? `<button class="small muted" data-act="watchDel" data-id="${x.id}">✕</button>` : ''}</div>`).join('') || '<div class="empty">清單還是空的</div>'}</div>
+    </div>`;
+}
+ACT.watchKind = (el) => { S.watchKind = el.dataset.k; render(); };
+ACT.watchAdd = async () => {
+  const i = $('#wl-in'); const v = i && i.value.trim(); if (!v) return;
+  await col('watch').add({ title: v, kind: S.watchKind || 'movie', by: me(), done: false, at: now() });
+  i.value = ''; sfx('pop');
+};
+ACT.watchDel = async (el) => { await col('watch').remove(el.dataset.id); };
+ACT.watchToggle = async (el) => {
+  const x = list('watch').find((w) => w.id === el.dataset.id); if (!x) return;
+  if (x.done) return col('watch').update(x.id, { done: false });
+  const review = await promptBox(`「${x.title}」一句話心得（可以不寫）`, { placeholder: '好看！／普通／一定要再去', ok: '完成' });
+  if (review === null) return;
+  await col('watch').update(x.id, { done: true, doneAt: now(), review: (review || '').trim() });
+  petXP(2); toast('打勾了');
+  askAddMemory({ title: { movie: '一起看了', drama: '一起追完了', food: '一起吃了', place: '一起去了', other: '一起完成了' }[x.kind] + '「' + x.title + '」', date: dkey(), kind: x.kind === 'food' ? 'date' : 'other', note: review || '' });
 };
 // ============================================================
 //  📖 回憶：年度清單、時間軸、時光膠囊、成就徽章、年度回顧
@@ -3362,12 +3556,28 @@ function computeAch() {
   const m = achMetrics();
   return new Set(D.ACHIEVEMENTS.filter((a) => (m[a.m] || 0) >= a.goal).map((a) => a.id));
 }
+// 金色成就：兩人各掉一張成就限定卡（每個成就只發一次）
+const ACH_SERIES = '成就系列';
+async function achCardDrops(got) {
+  const ms = S.couple.members || [];
+  if (ms.length < 2) return;
+  for (const a of D.ACHIEVEMENTS) {
+    if (a.tier !== 'g' || !got.has(a.id) || (S.couple.drops || {})[`ach-${a.id}`]) continue;
+    const ok = await S.store.coupleTx(S.cid, (x) => (x.drops && x.drops[`ach-${a.id}`] ? null : { [`drops.ach-${a.id}`]: true }));
+    if (!ok) continue;
+    for (const u of ms) {
+      await col('cards').add(cardDoc({ title: `${a.name}紀念券`, desc: `解鎖金色成就「${a.name}」的獎勵：${a.desc}。內容由兩人一起決定`, rarity: 'SR', mark: a.mark, series: ACH_SERIES }, u, 'sys'));
+      await col('events').add({ to: u, by: 'sys', type: 'card', text: `金色成就「${a.name}」掉落一張限定券`, detail: `${a.name}紀念券`, at: now(), read: false });
+    }
+  }
+}
 let achTimer = null;
 function scheduleAchievements() {
   clearTimeout(achTimer);
   achTimer = setTimeout(() => {
     if (!S.couple || COLS.some((c) => !S.d[c])) return;
     const got = computeAch();
+    achCardDrops(got);
     const key = 'park-ach-' + S.cid + '-' + me();
     const raw = localStorage.getItem(key);
     if (raw == null) { localStorage.setItem(key, JSON.stringify([...got])); return; }
@@ -3774,7 +3984,25 @@ const PET_ACC = [
   { id: 'flower', name: '小花', xp: 380 },
   { id: 'crown', name: '小皇冠', xp: 500 },
   { id: 'santa', name: '聖誕帽', xp: 0, month: 12 },
+  // 只會在扭蛋時額外掉落
+  { id: 'cape', name: '小披風', gacha: true },
+  { id: 'glasses', name: '圓眼鏡', gacha: true },
+  { id: 'bowtie', name: '紳士領結', gacha: true },
+  { id: 'beret', name: '貝雷帽', gacha: true },
+  { id: 'starclip', name: '星星髮夾', gacha: true },
+  { id: 'heartbag', name: '愛心小包', gacha: true },
 ];
+const PET_GACHA_RATE = 0.1;
+// 扭卡片時小機率額外掉一個還沒有的配件
+async function petGachaBonus() {
+  if (Math.random() > PET_GACHA_RATE) return null;
+  const owned = (S.couple.pet || {}).owned || [];
+  const left = PET_ACC.filter((a) => a.gacha && !owned.includes(a.id));
+  if (!left.length) return null;
+  const a = left[Math.floor(Math.random() * left.length)];
+  await S.store.coupleTx(S.cid, (c) => ({ 'pet.owned': [...new Set([...(((c.pet || {}).owned) || []), a.id])] }));
+  return a;
+}
 const PET_DEFAULT_NAME = '小小黑';
 
 function petState() {
@@ -3786,7 +4014,8 @@ function petState() {
   const hrs = last ? (now() - last) / 3600000 : 999;
   const mood = !last ? 'ok' : hrs < 12 ? 'happy' : hrs < 36 ? 'ok' : 'miss';
   const month = new Date().getMonth() + 1;
-  const unlocked = PET_ACC.filter((a) => a.month ? a.month === month : xp >= a.xp);
+  const owned = pet.owned || [];
+  const unlocked = PET_ACC.filter((a) => a.gacha ? owned.includes(a.id) : a.month ? a.month === month : xp >= a.xp);
   return { pet, xp, st, stage: PET_STAGES[st], next, mood, hrs, unlocked, name: pet.name || PET_DEFAULT_NAME, wear: pet.wear || '' };
 }
 
@@ -3820,6 +4049,12 @@ function petSVG(st, mood, wear, { blink = true } = {}) {
     scarf: `<path d="M37 51 Q50 58 63 51 L63 55 Q50 62 37 55 Z" fill="#7cc7a8" stroke="#3b8a6c" stroke-width=".8"/><path d="M56 56 L59 68 L64 66 L60 55" fill="#7cc7a8" stroke="#3b8a6c" stroke-width=".8" stroke-linejoin="round"/><path d="M40 53 L60 53" stroke="#fff" stroke-width=".8" stroke-dasharray="2 2" opacity=".7"/>`,
     flower: `<g transform="translate(36 17)">${[0, 72, 144, 216, 288].map((a) => `<ellipse rx="2.6" ry="4" transform="rotate(${a}) translate(0 -3.4)" fill="#fff" stroke="#e7b3c4" stroke-width=".6"/>`).join('')}<circle r="2.2" fill="#ffd45c"/></g>`,
     crown: `<path d="M40 16 L42 7 L46 12 L50 5 L54 12 L58 7 L60 16 Z" fill="#ffd45c" stroke="#b8862f" stroke-width="1" stroke-linejoin="round"/><circle cx="50" cy="12.5" r="1.4" fill="#e2445f"/>`,
+    cape: `<path d="M38 50 Q50 54 62 50 L70 80 Q50 86 30 80 Z" fill="#c42e52" opacity=".95"/><path d="M38 50 Q50 54 62 50" fill="none" stroke="#e9c77b" stroke-width="1.6"/><circle cx="50" cy="52.5" r="1.8" fill="#e9c77b"/>`,
+    glasses: `<circle cx="43" cy="32.5" r="5.6" fill="none" stroke="#e9c77b" stroke-width="1.3"/><circle cx="57" cy="32.5" r="5.6" fill="none" stroke="#e9c77b" stroke-width="1.3"/><path d="M48.6 32 Q50 30.8 51.4 32" fill="none" stroke="#e9c77b" stroke-width="1.2"/>`,
+    bowtie: `<path d="M50 52 L42 48 L42 56 Z M50 52 L58 48 L58 56 Z" fill="#3b5ba5" stroke="#26407e" stroke-width=".8" stroke-linejoin="round"/><circle cx="50" cy="52" r="2" fill="#26407e"/>`,
+    beret: `<path d="M34 21 Q36 10 52 10 Q66 11 66 20 Q58 17 48 18 Q40 19 34 21 Z" fill="#c45a6a"/><path d="M52 10 l1 -3" stroke="#c45a6a" stroke-width="1.6" stroke-linecap="round"/>`,
+    starclip: `<path d="M62 18 l1.6 3.4 3.7 .5 -2.7 2.6 .7 3.7 -3.3 -1.8 -3.3 1.8 .7 -3.7 -2.7 -2.6 3.7 -.5 Z" fill="#ffd45c" stroke="#b8862f" stroke-width=".6" stroke-linejoin="round"/>`,
+    heartbag: `<path d="M62 54 Q66 62 64 70" fill="none" stroke="#7a5a3a" stroke-width="1"/><path d="M64 72 C60 68 58 66 60 63.5 C61.5 62 63 62.6 64 64 C65 62.6 66.5 62 68 63.5 C70 66 68 68 64 72 Z" fill="#ff8fab" stroke="#c94f72" stroke-width=".7"/>`,
     santa: `<path d="M35 20 Q44 4 60 9 Q66 12 70 24 L36 22 Z" fill="#e2445f" stroke="#9e2a3c" stroke-width=".8" stroke-linejoin="round"/><path d="M34 21 Q50 17 66 22 L66 26 Q50 21 34 25 Z" fill="#fff"/><circle cx="71" cy="25" r="3" fill="#fff"/>`,
   }[wear] || '';
   const s = PET_STAGES[st].scale;
@@ -3897,10 +4132,10 @@ ACT.petOpen = () => {
     <h3 style="font-size:15px">配件</h3>
     <div class="pet-acc">
       <button data-w="" class="${!P.wear ? 'on' : ''}"><span>不戴</span></button>
-      ${PET_ACC.map((a) => { const ok = P.unlocked.some((x) => x.id === a.id); return `<button data-w="${a.id}" class="${P.wear === a.id ? 'on' : ''} ${ok ? '' : 'locked'}" ${ok ? '' : 'disabled'}><span class="pet-thumb">${petSVG(2, 'ok', a.id, { blink: false })}</span><span>${a.name}</span><small>${ok ? '' : a.month ? `${a.month} 月限定` : `經驗 ${a.xp}`}</small></button>`; }).join('')}
+      ${PET_ACC.map((a) => { const ok = P.unlocked.some((x) => x.id === a.id); return `<button data-w="${a.id}" class="${P.wear === a.id ? 'on' : ''} ${ok ? '' : 'locked'}" ${ok ? '' : 'disabled'}><span class="pet-thumb">${petSVG(2, 'ok', a.id, { blink: false })}</span><span>${a.name}</span><small>${ok ? '' : a.gacha ? '扭蛋掉落' : a.month ? `${a.month} 月限定` : `經驗 ${a.xp}`}</small></button>`; }).join('')}
     </div>
     <h3 style="font-size:15px;margin-top:14px">怎麼養大牠</h3>
-    <p class="small muted" style="margin:0;line-height:1.8">每天摸摸 +3・按想你 +1・回答每日一問 +2・幫對方蓋章 +3・完成每週任務 +3・兌換票券 +3・季問答 +5<br>一個人一天最多 +30，兩個人一起養長得最快。超過一天半沒人理牠，牠會開始想你們。</p>`);
+    <p class="small muted" style="margin:0;line-height:1.8">每天摸摸 +3・按想你 +1・回答每日一問 +2・幫對方蓋章 +3・完成每週任務 +3・兌換票券 +3・季問答 +5<br>一個人一天最多 +30，兩個人一起養長得最快。扭蛋時偶爾會額外掉出限定配件。超過一天半沒人理牠，牠會開始想你們。</p>`);
   $$('.pet-acc button', m).forEach((b) => b.onclick = async () => {
     await S.store.updateCouple(S.cid, { 'pet.wear': b.dataset.w });
     closeModal(m); ACT.petOpen();
@@ -3951,6 +4186,7 @@ ACT.albumAdd = () => {
     <label class="photo-pick" id="al-pp"><span>點這裡選照片</span><input type="file" accept="image/*" id="al-f" hidden></label>
     <label>寫一句話（可以不寫）</label><input id="al-c" maxlength="30" placeholder="例如：第一次一起看海">
     <label>日期</label><input id="al-d" type="date" value="${t.date}">
+    ${list('trips').length ? `<label>在哪裡拍的（會出現在足跡地圖上，可以不選）</label><select id="al-t"><option value="">不標地點</option>${list('trips').slice().sort((a, b) => (b.date || '').localeCompare(a.date || '')).map((x) => `<option value="${x.id}">${esc(x.name)}${x.date ? '・' + x.date : ''}</option>`).join('')}</select>` : ''}
     <button class="btn block mt" id="al-ok">放進相簿</button>`);
   $('#al-f', m).onchange = async (e) => {
     const f = e.target.files[0]; if (!f) return;
@@ -3959,7 +4195,7 @@ ACT.albumAdd = () => {
   };
   $('#al-ok', m).onclick = async () => {
     if (!t.img) return toast('先選一張照片');
-    await col('photos').add({ img: t.img, caption: $('#al-c', m).value.trim(), date: $('#al-d', m).value || dkey(), by: me(), at: now() });
+    await col('photos').add({ img: t.img, caption: $('#al-c', m).value.trim(), date: $('#al-d', m).value || dkey(), tripId: ($('#al-t', m) || {}).value || '', by: me(), at: now() });
     closeModal(m); toast('放進相簿了'); sfx('pop');
   };
 };
