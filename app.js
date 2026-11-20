@@ -3844,7 +3844,7 @@ PAGES.memory = {
     const onTab = tabOf[sub] !== undefined ? tabOf[sub] : sub;
     const achN = computeAch().size;
     const back = (to, label) => `<button class="link back-link" data-act="sub" data-page="memory" data-sub="${to}">‹ ${label}</button>`;
-    return `<div class="page-title"><h2><i data-ic="book"></i> 回憶</h2><button class="ach-chip ${sub === 'ach' ? 'on' : ''}" data-act="sub" data-page="memory" data-sub="ach"><i data-ic="trophy"></i> 成就 ${achN}/${D.ACHIEVEMENTS.length}</button></div>
+    return `<div class="page-title"><h2><i data-ic="book"></i> 回憶</h2><button class="ach-chip ${sub === 'ach' ? 'on' : ''}" data-act="sub" data-page="memory" data-sub="ach"><i data-ic="trophy"></i> 成就</button></div>
       ${reviewYear() ? `      <button class="card review-banner" data-act="review">
         <span class="review-ic"><i data-ic="film"></i></span><span class="grow"><b style="font-family:var(--serif);font-size:17px">${reviewYear()} 年度回顧</b><br><span class="small" style="opacity:.9">看看我們這一年一起做了什麼</span></span><span style="font-size:22px">›</span></button>` : ''}
       <div class="seg seg-fit">${tabs.map(([k, n]) => `<button class="${onTab === k ? 'on' : ''}" data-act="sub" data-page="memory" data-sub="${k}">${n}</button>`).join('')}</div>
@@ -3860,7 +3860,7 @@ function memGoals() {
   const done = gs.filter((g) => g.done).length;
   const years = [...new Set([new Date().getFullYear(), new Date().getFullYear() + 1, ...list('goals').map((g) => g.year)])].sort();
   return `<div class="card">
-    <h3><i data-ic="target"></i> ${y} 年想一起做的事 <span class="sub">${done} / ${gs.length}</span></h3>
+    <h3><i data-ic="target"></i> ${y} 年想一起做的事</h3>
     <div class="fund-bar" style="height:10px;margin-top:0"><div style="width:${gs.length ? done / gs.length * 100 : 0}%"></div></div>
     <div class="row mt"><input id="goal-in" class="grow" maxlength="40" placeholder="例如：一起去看極光"><button class="btn sm" data-act="goalAdd">新增</button></div>
     <div class="mt">${gs.map((g) => `<div class="goal ${g.done ? 'done' : ''}"><button class="ck" data-act="goalToggle" data-id="${g.id}">${g.done ? '✓' : ''}</button>
@@ -4169,7 +4169,7 @@ function memAch() {
   const cnt = (t) => D.ACHIEVEMENTS.filter((a) => a.tier === t && got.has(a.id)).length;
   const tot = (t) => D.ACHIEVEMENTS.filter((a) => a.tier === t).length;
   const sorted = [...D.ACHIEVEMENTS].sort((a, b) => (got.has(b.id) ? 1 : 0) - (got.has(a.id) ? 1 : 0));
-  return `<div class="card center"><div class="fund-num">${got.size} / ${D.ACHIEVEMENTS.length}</div><div class="small muted">我們一起解鎖的成就</div>
+  return `<div class="card center"><div class="fund-num">${got.size}</div><div class="small muted">我們一起解鎖的成就</div>
       <div class="row" style="justify-content:center;gap:16px;margin-top:8px">${['g', 's', 'b'].map((t) => `<span class="ach-tier t-${t}">${tiers[t]} ${cnt(t)}/${tot(t)}</span>`).join('')}</div></div>
     <div class="ach-grid">${sorted.map((a) => {
       const ok = got.has(a.id), v = Math.min(m[a.m] || 0, a.goal);
