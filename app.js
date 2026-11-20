@@ -3663,20 +3663,31 @@ async function askAddMemory({ title, date, kind = 'other', note = '' }) {
 function datesJar() {
   const ideas = list('ideas').filter((x) => !x.used);
   const used = list('ideas').filter((x) => x.used).sort((a, b) => (b.usedAt || 0) - (a.usedAt || 0));
-  const slips = ideas.slice(0, 14).map((x, i) => { const r = ((i * 37) % 21) - 10; return `<rect x="${58 + (i % 4) * 20 + ((i * 13) % 6)}" y="${152 - Math.floor(i / 4) * 16 - ((i * 7) % 5)}" width="24" height="12" rx="2" fill="${['#ffc2d1', '#ffe3a3', '#c9e8d8', '#d6e4ff', '#ead6ff'][i % 5]}" transform="rotate(${r} ${54 + (i % 5) * 22} ${154 - Math.floor(i / 5) * 18})"/>`; }).join('');
-  return `<div class="card center jar-card">
-      <svg viewBox="0 0 200 190" class="jar-svg" id="jar">
-        <rect x="64" y="18" width="72" height="16" rx="5" class="jar-lid"/>
-        <path d="M60 34 H140 Q150 40 148 56 L150 160 Q150 176 134 176 H66 Q50 176 50 160 L52 56 Q50 40 60 34 Z" class="jar-glass"/>
-        <g class="jar-slips">${slips}</g>
-        <path d="M60 34 H140 Q150 40 148 56 L150 160 Q150 176 134 176 H66 Q50 176 50 160 L52 56 Q50 40 60 34 Z" class="jar-outline"/>
-        <path d="M62 58 Q60 100 64 150" class="jar-shine"/>
-        <rect x="78" y="78" width="44" height="26" rx="4" class="jar-label"/><text x="100" y="95" text-anchor="middle" class="jar-text">約會</text>
+  // 圖騰風點子罐：雙線框、底紋、光輪徽章裡一個線條罐子，紙條是摺好的小籤
+  const slips = ideas.slice(0, 12).map((x, i) => { const cx = 82 + (i % 4) * 12 + ((i * 7) % 5), cy = 146 - Math.floor(i / 4) * 11 - ((i * 5) % 4), r = ((i * 37) % 31) - 15;
+    return `<g transform="translate(${cx} ${cy}) rotate(${r})"><rect x="-6" y="-3.6" width="12" height="7.2" rx="1" class="${i % 3 ? 'e-bg' : 'e-acc-f'} e-ink-s" stroke-width=".7"/><path d="M-3.5 -.6 H3.5 M-3.5 1.4 H1.5" class="e-ink-s" stroke-width=".5"/></g>`; }).join('');
+  const ring = Array.from({ length: 36 }, (_, i) => { const a = i / 36 * Math.PI * 2; return `<circle cx="${(120 + Math.sin(a) * 74).toFixed(1)}" cy="${(110 - Math.cos(a) * 74).toFixed(1)}" r="${i % 3 ? .9 : 1.7}" class="e-ink-f"/>`; }).join('');
+  return `<div class="card jar-card2 emb-F-date">
+      <svg viewBox="0 0 240 236" class="jar-emb" id="jar">
+        <defs>${festPattern('hearts', 'jarpat')}</defs>
+        <rect width="240" height="236" rx="18" class="e-bg"/><rect width="240" height="236" rx="18" fill="url(#jarpat)" opacity=".55"/>
+        <rect x="8" y="8" width="224" height="220" rx="13" class="e-ink-s" stroke-width=".9" fill="none"/><rect x="13" y="13" width="214" height="210" rx="10" class="e-acc-s" stroke-width=".6" fill="none"/>
+        <rect x="80" y="18" width="80" height="14" rx="7" class="e-bg"/><text x="120" y="28.5" text-anchor="middle" font-size="7.5" letter-spacing="3" class="e-ink-f e-small">約 會 點 子</text>
+        ${ring}<circle cx="120" cy="110" r="66" class="e-bg e-ink-s" stroke-width="1.4"/><circle cx="120" cy="110" r="60" class="e-acc-s" stroke-width=".8" fill="none"/>
+        <g class="jar-body">
+          <rect x="96" y="58" width="48" height="10" rx="3" class="e-acc-f e-ink-s" stroke-width="1.2"/>
+          <path d="M100 68 H140 Q147 72 146 82 L147 150 Q147 160 137 160 H103 Q93 160 93 150 L94 82 Q93 72 100 68 Z" class="e-bg e-ink-s" stroke-width="1.5"/>
+          <g>${slips}</g>
+          <path d="M100 86 Q98 115 101 146" class="e-acc-s" stroke-width="2" stroke-linecap="round" fill="none" opacity=".7"/>
+          <path d="M120 100 C117 95 109 95 109 102 C109 108 116 112 120 115 C124 112 131 108 131 102 C131 95 123 95 120 100 Z" class="e-acc-f e-ink-s" stroke-width="1"/>
+        </g>
+        <line x1="40" y1="190" x2="200" y2="190" class="e-ink-s" stroke-width=".7"/><circle cx="36" cy="190" r="1.5" class="e-ink-f"/><circle cx="204" cy="190" r="1.5" class="e-ink-f"/>
+        <text x="120" y="209" text-anchor="middle" font-size="16" class="e-ink-f e-title">點子罐</text>
+        <text x="120" y="222" text-anchor="middle" font-size="7" letter-spacing="1.6" class="e-ink-f e-small">罐子裡有 ${ideas.length} 個點子</text>
       </svg>
-      <div class="small muted" style="margin:-4px 0 10px">罐子裡有 ${ideas.length} 個點子</div>
       <div class="btn-row" style="justify-content:center"><button class="btn ghost" data-act="ideaAdd"><i data-ic="plus"></i> 丟一個點子</button><button class="btn" data-act="ideaShake" ${ideas.length ? '' : 'disabled'}>搖一搖</button></div>
     </div>
-    ${ideas.length ? `<div class="card"><h3 style="font-size:15px">罐子裡的點子</h3>${ideas.map((x) => `<div class="list-row"><span class="grow">${esc(x.text)}<div class="small muted">${esc(nick(x.by))} 丟的</div></span>${x.by === me() ? `<button class="small muted" data-act="ideaDel" data-id="${x.id}">✕</button>` : ''}</div>`).join('')}</div>` : ''}
+    ${ideas.length ? `<div class="card"><h3 style="font-size:15px">罐子裡的點子</h3><div class="idea-slips">${ideas.map((x, i) => `<div class="idea-chip emb-F-date" style="--r:${((i % 5) - 2) * 1.2}deg"><span class="grow">${esc(x.text)}<small>${esc(nick(x.by))} 丟的</small></span>${x.by === me() ? `<button data-act="ideaDel" data-id="${x.id}" aria-label="刪除">✕</button>` : ''}</div>`).join('')}</div></div>` : ''}
     ${used.length ? `<details class="card"><summary>抽過的點子（${used.length}）</summary>${used.slice(0, 30).map((x) => `<div class="list-row"><span class="grow muted">${esc(x.text)}</span></div>`).join('')}</details>` : ''}`;
 }
 ACT.ideaAdd = async () => {
@@ -3692,7 +3703,7 @@ ACT.ideaShake = async () => {
   const jar = $('#jar'); jar && jar.classList.add('shake'); sfx('flip'); vibrate([20, 40, 20, 40, 20]);
   await sleep(900); jar && jar.classList.remove('shake');
   const x = ideas[Math.floor(Math.random() * ideas.length)];
-  const m = openModal(`<div class="center"><div class="idea-slip">${esc(x.text)}</div><p class="small muted">${esc(nick(x.by))} 丟進去的點子</p>
+  const m = openModal(`<div class="center"><div class="idea-slip2 emb-F-date"><span class="is-top">抽 到 的 點 子</span><b>${esc(x.text)}</b><span class="is-by">— ${esc(nick(x.by))} 丟進去的</span></div>
     <div class="btn-row" style="justify-content:center"><button class="btn ghost" id="is-again">再搖一次</button><button class="btn" id="is-go">就決定是它</button></div></div>`, { center: true });
   sfx('chime');
   $('#is-again', m).onclick = () => { closeModal(m); ACT.ideaShake(); };

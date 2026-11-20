@@ -1431,3 +1431,16 @@ html[data-theme="night"] .emb-F-pet { --e-bg: #18141c; --e-ink: #ece4ef; --e-acc
 .card.has-peek { overflow: visible !important; }
 .note-peek { position: absolute; bottom: -24px; top: auto; z-index: 3; clip-path: inset(9px -6px -6px -6px); }
 .note-peek.side-r { right: 22px; } .note-peek.side-l { left: 22px; }
+/* 點子罐（圖騰） */
+.jar-card2 { padding: 10px; }
+.jar-emb { width: 100%; max-width: 330px; display: block; margin: 0 auto 10px; border-radius: 18px; box-shadow: 0 6px 18px rgba(0, 0, 0, .18); }
+.jar-emb.shake .jar-body { animation: jarShake .3s ease-in-out 3; transform-origin: 120px 160px; transform-box: view-box; }
+.idea-slips { display: flex; flex-direction: column; gap: 8px; margin-top: 6px; }
+.idea-chip { display: flex; align-items: center; gap: 8px; padding: 10px 12px; border-radius: 8px; background: var(--e-bg); color: var(--e-ink); border: 1px solid color-mix(in srgb, var(--e-ink) 30%, transparent); box-shadow: inset 0 0 0 3px var(--e-bg), inset 0 0 0 4px color-mix(in srgb, var(--e-acc) 70%, transparent); transform: rotate(var(--r)); font-family: var(--serif); font-size: 14px; }
+.idea-chip small { display: block; font-family: var(--sans); font-size: 11px; opacity: .65; margin-top: 2px; }
+.idea-chip button { background: none; border: 0; color: inherit; opacity: .5; font-size: 12px; }
+.idea-slip2 { margin: 6px auto 14px; max-width: 290px; padding: 24px 22px 18px; border-radius: 12px; background: var(--e-bg); color: var(--e-ink); display: flex; flex-direction: column; gap: 10px; align-items: center;
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--e-ink) 45%, transparent), inset 0 0 0 6px var(--e-bg), inset 0 0 0 7px color-mix(in srgb, var(--e-acc) 80%, transparent), 0 10px 28px rgba(0, 0, 0, .3); animation: pop .4s cubic-bezier(.3, 1.5, .5, 1); }
+.idea-slip2 .is-top { font-size: 10px; letter-spacing: .3em; font-family: var(--serif); font-weight: 700; }
+.idea-slip2 b { font-family: var(--serif); font-size: 22px; line-height: 1.4; }
+.idea-slip2 .is-by { font-size: 12px; opacity: .7; }
