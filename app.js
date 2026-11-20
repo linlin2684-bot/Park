@@ -997,8 +997,20 @@ function sayLine(k, idx) {
     const cu = typeof customLines === 'function' ? customLines(k) : [];
     if (cu.length && Math.random() < .3) { const t = withName(k, cu[Math.floor(Math.random() * cu.length)].t); toast(t); dexNote(k, null); return t; }
   }
-  const i = idx === undefined ? Math.floor(Math.random() * L.length) : idx;
+  const i = idx === undefined ? pickLineIdx(k, L.length) : idx;
   toast(L[i]); dexNote(k, i); return L[i];
+}
+// 台詞不要解鎖太快：大多時候說已經聽過的；新台詞每人每天最多 3 句，而且要碰運氣
+const DEX_NEW_PER_DAY = 3, DEX_NEW_CHANCE = .3;
+function dexQuota(kind) { const k = `park-dexnew-${kind}-${dkey()}-${me()}`; return { used: +(localStorage.getItem(k) || 0), use: () => localStorage.setItem(k, +(localStorage.getItem(k) || 0) + 1) }; }
+function pickLineIdx(k, n) {
+  const seen = (((S.couple || {}).dex || {})[k] || {}).l || {};
+  const old = [], fresh = [];
+  for (let i = 0; i < n; i++) (seen[i] ? old : fresh).push(i);
+  const q = dexQuota('line');
+  const goNew = fresh.length && (!old.length || (q.used < DEX_NEW_PER_DAY && Math.random() < DEX_NEW_CHANCE));
+  if (goNew) { if (old.length) q.use(); return fresh[Math.floor(Math.random() * fresh.length)]; }
+  return old[Math.floor(Math.random() * old.length)];
 }
 
 // ---------- 路過首頁 ----------
@@ -1020,7 +1032,7 @@ function catStroll(force) {
   if (S.tab !== 'home' || (S.couple?.members || []).length < 2 || document.querySelector('.cat-stroll, .anniv-intro, .story, .tour, .modal-back')) return;
   if (!force && typeof carryStroll === 'function' && carryStroll()) return;
   const key = 'park-stroll-at';
-  if (!force && (now() - +(localStorage.getItem(key) || 0) < 8 * 60000 || Math.random() > .45)) return;
+  if (!force && (now() - +(localStorage.getItem(key) || 0) < 12 * 60000 || Math.random() > .4)) return;
   localStorage.setItem(key, now());
   const k = force || pickFriend();
   // 有時候兩隻一起路過，會演一段小劇場
@@ -5033,11 +5045,13 @@ const SCENES = [
 const sceneSeen = () => S.couple?.scenes || {};
 
 function pickScene(k) {
+  // 小劇場：每人每天最多看到 1 齣新的，其他時候重演看過的
   const cand = SCENES.filter((s) => s.a === k || s.b === k);
-  if (!cand.length || Math.random() > .4) return null;
-  const fresh = cand.filter((s) => !sceneSeen()[s.id]);
-  const pool = fresh.length && Math.random() < .7 ? fresh : cand;
-  return pool[Math.floor(Math.random() * pool.length)];
+  if (!cand.length || Math.random() > .3) return null;
+  const fresh = cand.filter((s) => !sceneSeen()[s.id]), old = cand.filter((s) => sceneSeen()[s.id]);
+  const q = dexQuota('scene');
+  if (fresh.length && q.used < 1 && Math.random() < (old.length ? .35 : .6)) { q.use(); return fresh[Math.floor(Math.random() * fresh.length)]; }
+  return old.length ? old[Math.floor(Math.random() * old.length)] : null;
 }
 
 function bubble(text, x, top, cls = '') {
