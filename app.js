@@ -956,7 +956,7 @@ const FRIENDS = {
   calico: { name: '小魚乾', kind: '三花貓', intro: '最愛小魚乾的三花，很會撒嬌。', w: 78, lines: () => COAT_TRAITS.calico.lines },
   tuxedo: { name: '吵吵貓', kind: '賓士貓', intro: '喜歡送別人一朵花，行為常常有點好笑。', w: 78, lines: () => COAT_TRAITS.tuxedo.lines },
   haohao: { name: '還好', kind: '黃金獵犬', intro: '樂天又有點無厘頭的大狗狗，堅持自己是女生。', w: 112,
-    lines: ['還好：我是女生～', '還好：嗷把拔貓咪好可愛喔～', '還好追著自己的尾巴轉了三圈，然後忘記自己在幹嘛', '還好：今天也是很好的一天耶～', '還好躺下來翻肚子：我是女生～摸我～', '還好把球叼過來，結果是一顆橘子', '還好：嗷！（不知道在嗷什麼）', '還好跟陷阱貓打招呼，被無視了，但還是很開心', '還好：把拔～把拔貓咪呢？把拔貓咪呢？', '還好：嗷～把拔貓咪～', '還好：我比較喜歡把拔', '還好：哈哈～', '還好：嗷把拔我是還好～', '還好看到蝴蝶，追到忘記回家', '還好：嗷～我也要巧克力～'] },
+    lines: ['還好：我是女生～', '還好：嗷把拔貓咪好可愛喔～', '還好追著自己的尾巴轉了三圈，然後忘記自己在幹嘛', '還好：今天也是很好的一天耶～', '還好躺下來翻肚子：我是女生～摸我～', '還好把球叼過來，結果是一顆橘子', '還好：嗷！（不知道在嗷什麼）', '還好跟陷阱貓打招呼，被無視了，但還是很開心', '還好：把拔～把拔貓咪呢？把拔貓咪呢？', '還好：嗷～把拔貓咪～', '還好：我比較喜歡把拔', '還好：哈哈～', '還好：嗷把拔我是還好…', '還好看到蝴蝶，追到忘記回家', '還好：嗷～我也要巧克力～'] },
   doggy: { name: '狗狗', kind: '小狗', intro: '家裡最年長的小動物，大家都喜歡牠。愛捉弄小小黑，喜歡自己香香的。', w: 78,
     lines: ['狗狗偷偷拍了一下小小黑的尾巴，然後裝作什麼都沒發生', '狗狗把阿扁的玩具藏起來了', '狗狗聞了聞你：汪，去洗澡', '狗狗：汪去洗澡！（但說到牠自己洗澡就跑掉了）', '狗狗香香的，因為牠很在意自己香不香', '狗狗趁小小黑睡覺，偷偷趴在牠旁邊', '狗狗被小棍棍踩了一腳，一臉無奈', '狗狗洗完澡到處給大家聞：香不香？', '狗狗把阿扁擠到旁邊，自己躺在最軟的位置'] },
   abian: { name: '阿扁', kind: '小狗', intro: '愛思考的小狗，怕被捏鼻子，聽到諧音梗會拍拍手。和狗狗是好朋友。', w: 78,
@@ -1565,10 +1565,15 @@ ${(c.members || []).length < 2 ? `<div class="list-row" data-act="invite"><span 
 
 ACT.poolManager = () => {
   const draw = (m) => {
-    const pool = list('pool').sort((a, b) => D.RARITY_ORDER.indexOf(a.rarity) - D.RARITY_ORDER.indexOf(b.rarity) || (a.at || 0) - (b.at || 0));
+    // 還沒抽到過的卡藏起來（兩個人任一人抽到就公開；自己加的自己看得到）
+    const drawn = new Set(list('gacha').filter((g) => g.how === 'gacha').map((g) => g.title));
+    const all = list('pool');
+    const pool = all.filter((p) => p.by === me() || drawn.has(p.title)).sort((a, b) => D.RARITY_ORDER.indexOf(a.rarity) - D.RARITY_ORDER.indexOf(b.rarity) || (a.at || 0) - (b.at || 0));
+    const hidden = all.length - pool.length;
     const html = `${mhead('扭蛋卡池')}
       <p class="small muted" style="margin-top:0">扭蛋時會從這裡隨機抽一張，抽到的卡由對方負責兌現。點一張卡就能編輯，你們兩個都可以新增。</p>
       <button class="btn block" id="pm-add">＋ 新增一張到卡池</button>
+      ${hidden ? `<div class="pm-hidden"><span class="pm-q">${avQuestionSVG()}</span><span>還有 <b>${hidden}</b> 張還沒抽到，抽到才會出現在這裡</span></div>` : ''}
       <div class="mt">${pool.map((p) => `<div class="list-row pool-row" data-edit="${p.id}">
         <div class="emb-${p.rarity}" style="width:44px;height:44px;flex:none">${emblemMini(p)}</div>
         <div class="grow"><div><span style="color:var(--r-${p.rarity.toLowerCase()});font-weight:800;font-family:var(--serif)">${p.rarity}</span>　<b>${esc(p.title)}</b></div>
