@@ -1491,3 +1491,14 @@ html[data-theme="night"] .emb-F-pet { --e-bg: #18141c; --e-ink: #ece4ef; --e-acc
 .av-grid .av-lock { opacity: .9; cursor: default; }
 .av-q .e-ink-s { stroke: color-mix(in srgb, var(--e-ink) 70%, transparent); }
 .pet-acc button.sil .pet-thumb svg { filter: brightness(0) opacity(.3) !important; }
+.bt-row { display: flex; gap: 6px; align-items: stretch; }
+.bt-row .quiz-opt { flex: 1; margin-bottom: 8px; }
+.bt-swap { flex: none; width: 44px; margin-bottom: 8px; border-radius: 14px; background: var(--card2); border: 0; color: var(--muted); display: grid; place-items: center; }
+.bt-swap svg { width: 18px; height: 18px; }
+.wl-jar { display: flex; align-items: center; gap: 6px; font-size: 13px; color: var(--muted); margin: 8px 2px 0; font-weight: 600; }
+.wl-jar input { width: 16px; height: 16px; accent-color: var(--accent); margin: 0; }
+.bday-reveal .br-emb { display: grid; place-items: center; margin-top: 4px; animation: brPop .7s cubic-bezier(.2,1.6,.4,1) both; }
+@keyframes brPop { from { transform: scale(.4) rotate(-20deg); opacity: 0; } }
+.pet-forms button .q-emb { display: block; width: 46px; height: 46px; margin: 2px auto 3px; }
+.pet-forms button .q-emb svg { width: 46px; height: 46px; max-height: none; }
+.pet-forms button.lk { border-style: solid; border-color: color-mix(in srgb, var(--ink) 10%, transparent); }

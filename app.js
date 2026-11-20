@@ -1393,14 +1393,16 @@ function doRender() {
   setSection(S.tab);
   dexResetOnce();
   if (typeof lookTick === 'function') lookTick();
-  if (typeof missRain === 'function') missRain();
-  if (typeof redeemPopup === 'function') redeemPopup();
+  const busy = document.querySelector('.anniv-intro, .tour');
+  if (!busy && typeof missRain === 'function') missRain();
+  if (!busy && typeof redeemPopup === 'function') redeemPopup();
   if (S.tab !== 'home') document.querySelectorAll('.cat-stroll').forEach((x) => x.remove());
   const A = annivInfo(); document.documentElement.dataset.anniv = A.is ? '1' : '';
   renderTop(); renderNav(); renderMain();
   setTimeout(catStroll, 2500 + Math.random() * 4000);
   if (A.is) { annivIntro(); annivRibbon(); }
   else if (tourNeeded()) setTimeout(() => startTour(), 1200);
+  else if (!busy && localStorage.getItem(`park-tour-${me()}`)) setTimeout(bdayReveal, 1500);
 }
 document.addEventListener('focusout', () => setTimeout(() => {
   const a = document.activeElement;
@@ -3182,8 +3184,8 @@ ACT.battle = () => {
         : `<button class="btn block" data-act="battleClaim" data-id="${b.id}"><i data-ic="flag"></i> 我完成了！</button>`}`;
   } else {
     body = `<p class="small muted" style="margin-top:0">選一個挑戰，7 天內誰先完成誰贏，輸的人要發一張卡給贏的人。</p>
-      ${battlePicks().map((t) => `<button class="quiz-opt" data-act="battleNew" data-t="${esc(t)}">${esc(t)}</button>`).join('')}
-      <button class="link center" data-act="battleShuffle" style="display:block;margin:2px auto 8px"><i data-ic="swap"></i> 換一批</button>
+      ${battlePicks().map((t, i) => `<div class="bt-row"><button class="quiz-opt" data-act="battleNew" data-t="${esc(t)}">${esc(t)}</button>${battleSwapLeft() ? `<button class="bt-swap" data-act="battleSwapOne" data-s="${i}" aria-label="換掉這個"><i data-ic="swap"></i></button>` : ''}</div>`).join('')}
+      <p class="small muted center" style="margin:2px 0 8px">${battleSwapLeft() ? '每個人每週可以換掉其中一個' : '這週已經換過了，下週一會有新的'}</p>
       <button class="quiz-opt" data-act="battleNew" data-t=""><i data-ic="edit"></i> 自己出題…</button>`;
   }
   closeAll();
@@ -3193,11 +3195,23 @@ ACT.battle = () => {
     ${hist.length ? `<h3 style="font-size:15px;margin-top:14px">對戰紀錄</h3>${hist.slice(0, 10).map((x) => `<div class="list-row"><span class="grow">${esc(x.task)}</span><span class="small">${x.status === 'draw' ? '平手' : '<i data-ic="trophy"></i> ' + esc(nick(x.winner))}</span><span class="when">${fmtDate(x.at)}</span></div>`).join('')}` : ''}`);
 };
 // 一次只給 5 個挑戰選，不想要可以換一批
-function battlePicks() {
-  S.battleSeed ||= Math.floor(Math.random() * 1e9);
-  return shuffled(D.BATTLE_TASKS.slice(), S.battleSeed).slice(0, 5);
+// 一週固定 5 個；每個人每週可以換掉其中 1 個
+function battlePickIdx() {
+  const wk = weekKey(), base = shuffled(D.BATTLE_TASKS.map((_, i) => i), hash('bt' + wk + (S.cid || ''))).slice(0, 5);
+  const ov = ((S.couple?.battleSwaps || {})[wk] || {}).ov || {};
+  return base.map((v, i) => (ov[i] != null ? ov[i] : v));
 }
-ACT.battleShuffle = () => { S.battleSeed = Math.floor(Math.random() * 1e9); ACT.battle(); };
+function battlePicks() { return battlePickIdx().map((i) => D.BATTLE_TASKS[i]); }
+const battleSwapLeft = () => !(((S.couple?.battleSwaps || {})[weekKey()] || {}).by || {})[me()];
+ACT.battleSwapOne = async (el, e) => {
+  e && e.stopPropagation();
+  if (!battleSwapLeft()) return toast('這週已經換過一次了');
+  const slot = +el.dataset.s, wk = weekKey(), cur = new Set(battlePickIdx());
+  const cand = D.BATTLE_TASKS.map((_, i) => i).filter((i) => !cur.has(i));
+  const ni = pick(cand);
+  await S.store.updateCouple(S.cid, { [`battleSwaps.${wk}.ov.${slot}`]: ni, [`battleSwaps.${wk}.by.${me()}`]: true });
+  toast('換好了，這週不能再換了'); setTimeout(ACT.battle, 300);
+};
 ACT.battleNew = async (el) => {
   if (!partner()) return toast('對方加入後才能對戰');
   let t = el.dataset.t;
@@ -3283,15 +3297,22 @@ function weeklyHTML() {
       const pending = req && req.wk === wk && req.i === i;
       const anyDone = done(i, me()) || (p && done(i, p));
       return `<div class="task ${done(i, me()) ? 'done' : ''}">
-      <button class="ck" data-act="taskDo" data-i="${i}" ${done(i, me()) ? 'disabled' : ''}>${done(i, me()) ? '✓' : ''}</button>
+      <button class="ck" data-act="${done(i, me()) ? 'taskUndo' : 'taskDo'}" data-i="${i}">${done(i, me()) ? '✓' : ''}</button>
       <span class="tt">${esc(t)}${pending ? `<div class="small" style="color:var(--accent)">${req.by === me() ? '等對方同意換這項…' : esc(nick(req.by)) + ' 想換掉這項'}</div>` : ''}</span>
       <span class="small muted">${p && done(i, p) ? avatar(p) + '✓' : ''}</span>
       ${pending && req.by !== me() ? `<button class="btn sm ghost" data-act="taskSwapNo">不要</button><button class="btn sm" data-act="taskSwapOk">同意</button>`
         : pending ? `<button class="small muted" data-act="taskSwapNo">取消</button>`
-        : !anyDone && p && !req ? `<button class="small muted" data-act="taskSwapReq" data-i="${i}">換</button>` : ''}</div>`;
+        : !anyDone && p && !req && !Object.keys((S.couple.taskOverride || {})[wk] || {}).length ? `<button class="small muted" data-act="taskSwapReq" data-i="${i}">換</button>` : ''}</div>`;
     }).join('')}
-    <p class="small muted" style="margin:6px 0 0">每週一換新任務，誠實打勾喔</p></div>`;
+    <p class="small muted" style="margin:6px 0 0">每週一換新任務。打錯可以再點一次取消；每週可以申請換一項，對方同意才換</p></div>`;
 }
+ACT.taskUndo = async (el) => {
+  const i = +el.dataset.i, wk = weekKey(), t = weekTasks()[i];
+  if (!(await confirmBox(`取消「${t}」的打勾？\n加的 ${D.POINTS.weeklyTask} 點會扣回來`, '取消打勾'))) return;
+  await col('taskDone').remove(`${wk}_${i}_${me()}`);
+  await addPoints(me(), -D.POINTS.weeklyTask, '取消每週任務：' + t);
+  toast('取消了');
+};
 ACT.taskSwapReq = async (el) => {
   const i = +el.dataset.i;
   if (!(await confirmBox(`想把「${weekTasks()[i]}」換掉嗎？\n要 ${nick(partner())} 同意才會換`, '送出申請'))) return;
@@ -3721,6 +3742,7 @@ function datesList() {
   return `<div class="seg" style="margin-bottom:10px">${WATCH_KINDS.map(([id, n]) => `<button class="${k === id ? 'on' : ''}" data-act="watchKind" data-k="${id}">${n}</button>`).join('')}</div>
     <div class="card">
       <div class="row" style="gap:8px"><input id="wl-in" class="grow" maxlength="40" placeholder="${{ movie: '想一起看的電影', drama: '想一起追的劇', food: '想一起吃的店或料理', place: '想一起去的地方', other: '想一起做的事' }[k]}"><button class="btn sm" data-act="watchAdd">新增</button></div>
+      <label class="wl-jar"><input type="checkbox" id="wl-jar"> 也丟進點子罐</label>
       <div class="mt">${items.map((x) => `<div class="goal ${x.done ? 'done' : ''}"><button class="ck" data-act="watchToggle" data-id="${x.id}">${x.done ? '✓' : ''}</button>
         <span class="grow">${esc(x.title)}${x.review ? `<div class="small muted">「${esc(x.review)}」</div>` : `<div class="small muted">${esc(nick(x.by))} 加的</div>`}</span>
         ${x.by === me() && !x.done ? `<button class="small muted" data-act="watchDel" data-id="${x.id}">✕</button>` : ''}</div>`).join('') || '<div class="empty">清單還是空的</div>'}</div>
@@ -3729,7 +3751,13 @@ function datesList() {
 ACT.watchKind = (el) => { S.watchKind = el.dataset.k; render(); };
 ACT.watchAdd = async () => {
   const i = $('#wl-in'); const v = i && i.value.trim(); if (!v) return;
-  await col('watch').add({ title: v, kind: S.watchKind || 'movie', by: me(), done: false, at: now() });
+  const k = S.watchKind || 'movie';
+  await col('watch').add({ title: v, kind: k, by: me(), done: false, at: now() });
+  const jar = $('#wl-jar');
+  if (jar && jar.checked) {
+    await col('ideas').add({ text: { movie: '一起看《' + v + '》', drama: '一起追《' + v + '》', food: '一起去吃 ' + v, place: '一起去 ' + v, other: v }[k], by: me(), used: false, at: now() });
+    toast('也丟進點子罐了');
+  }
   i.value = ''; sfx('pop');
 };
 ACT.watchDel = async (el) => { await col('watch').remove(el.dataset.id); };
@@ -4630,9 +4658,9 @@ ACT.petOpen = () => {
       <button class="btn sm ghost" id="pt-feed">餵罐罐 <small>${canState().daily ? '今天的' : `剩 ${canState().stock} 個`}</small></button>
     </div>
     <h3 class="pet-h">長大</h3>
-    <div class="pet-forms">${PET_STAGES.map((s, i) => `<button data-form="${i}" class="${P.show === i ? 'on' : ''} ${i > P.st ? 'lk' : ''}" ${i > P.st ? 'disabled' : ''}>${i > P.st ? '<b class="q">？</b>' : `${petSVG(i, 'ok', '', { blink: false })}<span>${s.name}</span>`}</button>`).join('')}</div>
+    <div class="pet-forms">${PET_STAGES.map((s, i) => `<button data-form="${i}" class="${P.show === i ? 'on' : ''} ${i > P.st ? 'lk' : ''}" ${i > P.st ? 'disabled' : ''}>${i > P.st ? `<span class="q-emb">${avQuestionSVG()}</span>` : `${petSVG(i, 'ok', '', { blink: false })}<span>${s.name}</span>`}</button>`).join('')}</div>
     <h3 class="pet-h">裝扮</h3>
-    <div class="pet-forms looks">${(() => { const U = lookUnlocked(); return `<button data-look="" class="${!P.look ? 'on' : ''}"><span class="none">不換</span></button>` + PET_LOOKS.map((l) => U.has(l.id) ? `<button data-look="${l.id}" class="${P.look === l.id ? 'on' : ''}">${petSVG(P.show, 'ok', '', { blink: false, look: l.id })}<span>${l.name}</span></button>` : `<button class="lk" disabled><b class="q">？</b><small>${esc(l.hint)}</small></button>`).join(''); })()}</div>
+    <div class="pet-forms looks">${(() => { const U = lookUnlocked(); return `<button data-look="" class="${!P.look ? 'on' : ''}"><span class="none">不換</span></button>` + PET_LOOKS.map((l) => U.has(l.id) ? `<button data-look="${l.id}" class="${P.look === l.id ? 'on' : ''}">${petSVG(P.show, 'ok', '', { blink: false, look: l.id })}<span>${l.name}</span></button>` : `<button class="lk" disabled><span class="q-emb">${avQuestionSVG()}</span><small>${esc(l.hint)}</small></button>`).join(''); })()}</div>
     <h3 class="pet-h">配件</h3>
     <div class="pet-acc">
       <button data-w="" class="${!P.wear ? 'on' : ''}"><span>不戴</span></button>
@@ -4829,11 +4857,11 @@ ACT.deepAnswer = async (el) => {
 //  第一次打開的導覽：小小黑帶路，介紹五個分頁
 // ============================================================
 const TOUR = [
-  { tab: 'home', pose: 'wave', t: '嗨，我是小小黑！', s: '這裡是你們兩個人的遊樂園。首頁看得到在一起的天數、彼此的心情，右上角的愛心按一下就是「想你」。我也住在首頁，記得常來摸摸我。' },
-  { tab: 'wallet', pose: 'box', t: '票夾', s: '收到的票券都在這裡。新的要先刮開，想用的時候長按就能兌換。你也可以按「發一張卡」送給對方。' },
-  { tab: 'play', pose: 'yarn', t: '遊樂區', s: '扭蛋機 20 點扭一次，還有命運轉盤、真心話大冒險、默契問答、對戰挑戰。完成每週任務、回答問題都會拿到點數。' },
-  { tab: 'travel', pose: 'suitcase', t: '約會', s: '排約會可以加到手機行事曆提醒。沒想法就去點子罐搖一個，想看的電影、想吃的店放進清單。' },
-  { tab: 'memory', pose: 'loaf', t: '回憶', s: '時間軸、相簿、季問答都在這裡，右上角是你們的成就。一起慢慢把這裡填滿吧！' },
+  { tab: 'home', pose: 'wave', t: '嗨，我是小小黑！', s: '這裡是你們兩個人的遊樂園。首頁有在一起的天數和今天的心情；右上角的愛心按一下，對方就會知道你在想他。我住在首頁，常來摸摸我，我會慢慢長大喔。' },
+  { tab: 'wallet', pose: 'box', t: '票夾', s: '收到的票券都放在這裡。新卡要先刮開，想用的時候長按就能兌換，對方會馬上收到。收藏冊裡是你們一張一張集起來的卡。' },
+  { tab: 'play', pose: 'yarn', t: '遊樂區', s: '扭蛋機用點數或扭蛋券轉。完成每週任務、對戰挑戰、回答問題都能拿點數；蓋章集滿也會送扭蛋券。' },
+  { tab: 'travel', pose: 'suitcase', t: '約會', s: '排好的約會可以加進手機行事曆。沒想法就去點子罐搖一個；想看的、想吃的、想去的都先記進清單。' },
+  { tab: 'memory', pose: 'loaf', t: '回憶', s: '時間軸、相簿、紙條盒和季問答都在這裡。很多東西要一起玩才會出現，慢慢發現吧！' },
 ];
 function tourNeeded() {
   return S.couple && (S.couple.members || []).length >= 2 && !localStorage.getItem(`park-tour-${me()}`) && !document.querySelector('.anniv-intro, .tour');
@@ -4861,7 +4889,7 @@ function startTour(force) {
         </div>`;
       $$('[data-tour]', el).forEach((b) => b.onclick = () => {
         const v = b.dataset.tour;
-        if (v === 'skip' || (v === '1' && k === TOUR.length - 1)) { el.remove(); S.tab = 'home'; render(); if (v === '1') { confetti(60); sfx('chime'); } return; }
+        if (v === 'skip' || (v === '1' && k === TOUR.length - 1)) { el.remove(); S.tab = 'home'; render(); if (v === '1') { confetti(60); sfx('chime'); } setTimeout(bdayReveal, 900); return; }
         k += +v; draw();
       });
     }, 120);
@@ -4869,6 +4897,25 @@ function startTour(force) {
   draw();
 }
 ACT.tourReplay = () => { closeAll(); startTour(true); };
+
+// 導覽結束之後，才把生日卡送到他面前（週年動畫 → 導覽 → 生日卡）
+function bdayReveal() {
+  const key = `park-bday-reveal-${S.cid}-${me()}`;
+  if (localStorage.getItem(key) || document.querySelector('.anniv-intro, .tour, .bday-reveal')) return;
+  const mine = list('cards').filter((c) => c.owner === me() && c.series === D.BIRTHDAY_SERIES);
+  if (!mine.length) return;
+  localStorage.setItem(key, '1');
+  const m = openModal(`<div class="bday-reveal center">
+      <div class="br-emb">${typeof bookMotif === 'function' ? `<svg viewBox="-60 -60 120 120" class="emb-C" width="120" height="120"><circle r="56" class="e-bg e-ink-s" stroke-width="1.4"/><circle r="49" class="e-acc-s" stroke-width=".8" fill="none" stroke-dasharray="2 3"/>${bookMotif('candle')}</svg>` : ''}</div>
+      <h3 style="justify-content:center;margin:6px 0 2px">${esc(D.BIRTHDAY_SERIES)}</h3>
+      <p class="small muted" style="margin:0 0 12px">${esc(nick(S.couple.creator))} 為你準備了 ${mine.length} 張生日卡，放在你的票夾裡了</p>
+      <button class="btn block" id="br-go">去看看</button>
+      <button class="link center" id="br-later" style="display:block;margin:8px auto 0">等一下再看</button>
+    </div>`, { center: true });
+  confetti(80); sfx('chime');
+  $('#br-go', m).onclick = () => { closeModal(m); S.tab = 'wallet'; render(); };
+  $('#br-later', m).onclick = () => closeModal(m);
+}
 // ============================================================
 //  小動物：雙人小劇場、值日生、節日／心情限定、圖鑑書
 // ============================================================
