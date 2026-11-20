@@ -5319,9 +5319,8 @@ festMotif = function (key, c) {
     <rect x="-8" y="17" width="16" height="5" rx="1" class="e-ink-f"/>${S1('M-4 22 V32 M0 22 V34 M4 22 V32', 1.2)}`;
   if (key === 'date') return `<rect x="-26" y="-20" width="52" height="44" rx="5" class="e-bg e-ink-s" stroke-width="1.6"/><rect x="-26" y="-20" width="52" height="11" rx="5" class="e-acc-f"/>${S1('M-26 -9 H26', 1.2)}
     ${S1('M-14 -26 V-15 M14 -26 V-15', 2.2)}${heart(1, 8)}`;
-  if (key === 'pet') return `<g stroke-linejoin="round"><path d="M-22 -2 L-20 -26 L-6 -14 Z M22 -2 L20 -26 L6 -14 Z" fill="#2b2633" class="e-ink-s" stroke-width="1.2"/>
-    <ellipse cx="0" cy="4" rx="25" ry="21" fill="#2b2633" class="e-ink-s" stroke-width="1.2"/></g>
-    <path d="M-17 -6 L-16 -20 L-9 -14 Z M17 -6 L16 -20 L9 -14 Z" fill="#e9a3b8"/>
+  if (key === 'pet') return `<path d="M-24 4 C-25 -6 -22 -12 -20 -14 L-21 -27 L-8 -18 C-3 -19.5 3 -19.5 8 -18 L21 -27 L20 -14 C22 -12 25 -6 24 4 C23 17 12 25 0 25 C-12 25 -23 17 -24 4 Z" fill="#2b2633" class="e-ink-s" stroke-width="1.2" stroke-linejoin="round"/>
+    <path d="M-18 -17 L-19.4 -24 L-11.5 -18.8 Z M18 -17 L19.4 -24 L11.5 -18.8 Z" fill="#e9a3b8" stroke-linejoin="round"/>
     <ellipse cx="-9" cy="2" rx="4.4" ry="5.4" fill="#f5c843"/><ellipse cx="9" cy="2" rx="4.4" ry="5.4" fill="#f5c843"/>
     <ellipse cx="-9" cy="2.5" rx="1.4" ry="4" fill="#2b2633"/><ellipse cx="9" cy="2.5" rx="1.4" ry="4" fill="#2b2633"/>
     <circle cx="-7.8" cy="0" r="1" fill="#fff"/><circle cx="10.2" cy="0" r="1" fill="#fff"/><path d="M-2 11 L2 11 L0 13 Z" fill="#e9a3b8"/>
