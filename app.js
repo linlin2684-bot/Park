@@ -1016,6 +1016,7 @@ function walker(k, cls = '') {
 function catStroll(force) {
   // 週年動畫、回顧故事、新手導覽進行中不打擾
   if (S.tab !== 'home' || (S.couple?.members || []).length < 2 || document.querySelector('.cat-stroll, .anniv-intro, .story, .tour, .modal-back')) return;
+  if (!force && typeof carryStroll === 'function' && carryStroll()) return;
   const key = 'park-stroll-at';
   if (!force && (now() - +(localStorage.getItem(key) || 0) < 8 * 60000 || Math.random() > .45)) return;
   localStorage.setItem(key, now());
@@ -1749,7 +1750,7 @@ PAGES.home = {
 
     ${dailyCardHTML()}
 
-    <button class="card note-row" data-act="writeNote"><span class="lr-i"><i data-ic="letter"></i></span><span class="grow"><b>藏一張小紙條</b><div class="small muted">藏在 App 某個角落，等 ${esc(nick(p) || '對方')} 自己發現${list('notes').filter((n) => n.by === me() && !n.found).length ? `・${list('notes').filter((n) => n.by === me() && !n.found).length} 張還沒被找到` : ''}</div></span><span style="color:var(--muted);font-size:20px">›</span></button>`;
+    <div class="card note-row note-row2"><button class="nr-main" data-act="writeNote"><span class="lr-i"><i data-ic="letter"></i></span><span class="grow"><b>藏一張小紙條</b><div class="small muted">藏在 App 某個角落，等 ${esc(nick(p) || '對方')} 自己發現${list('notes').filter((n) => n.by === me() && !n.found).length ? `・${list('notes').filter((n) => n.by === me() && !n.found).length} 張還沒被找到` : ''}</div></span></button><button class="nr-box" data-act="noteBox"><i data-ic="book"></i><small>紙條盒</small></button></div>`;
   },
 };
 
@@ -1848,34 +1849,6 @@ ACT.dailyToMem = async (el) => {
 };
 
 // ---------- 情話小紙條 ----------
-ACT.writeNote = async () => {
-  if (!partner()) return toast('對方加入後才能藏紙條喔');
-  const text = await promptBox('寫一張小紙條', { placeholder: `想對 ${nick(partner())} 說的話…`, multiline: true, ok: '藏起來' });
-  if (!text) return;
-  const tab = pick(TABS).id;
-  await col('notes').add({ by: me(), to: partner(), text, found: false, spot: { tab, x: 6 + Math.random() * 80, y: 8 + Math.random() * 84 }, at: now() });
-  toast(`藏好了，看 ${nick(partner())} 什麼時候發現 🤫`);
-};
-function placeHiddenNotes(main) {
-  for (const n of list('notes')) {
-    if (n.to !== me() || n.found || !n.spot || n.spot.tab !== S.tab) continue;
-    const b = document.createElement('button');
-    b.className = 'hidden-note'; b.innerHTML = ic('letter');
-    b.dataset.act = 'findNote'; b.dataset.id = n.id;
-    b.style.left = n.spot.x + '%'; b.style.top = n.spot.y + '%';
-    main.appendChild(b);
-  }
-}
-ACT.findNote = async (el) => {
-  const n = list('notes').find((x) => x.id === el.dataset.id);
-  if (!n) return;
-  vibrate(40); confetti(40, ['#ff6f91', '#ffc2d1', '#fff']);
-  openModal(`${mhead('<i data-ic="letter"></i> 你找到一張小紙條！')}
-    <div class="letter">${esc(n.text)}</div>
-    <p class="small muted center">—— ${esc(nick(n.by))} · ${fmtFull(n.at)}</p>`, { center: true });
-  await col('notes').update(n.id, { found: true, foundAt: now() });
-  await notify(n.by, 'note', '你藏的小紙條被找到了 💌');
-};
 // ============================================================
 //  圖騰系統：依卡名產生和風幾何底紋＋中央徽章＋卡框（不用 emoji）
 // ============================================================
@@ -5746,6 +5719,160 @@ async function dailyStreakTicket() {
   }
   if (n > 0 && n % 7 === 0) await ticketOnce(`daily7-${me()}-${dkey()}`, [me()], `連續 ${n} 天回答每日一問`);
 }
+// ============================================================
+//  小紙條：信紙、藏起來（從卡片底下露出一角／小小黑底下／小動物叼著走過）、
+//  拆信動畫、紙條盒
+// ============================================================
+const NOTE_PAPERS = [
+  { id: 'lined', name: '橫線' }, { id: 'grid', name: '格子' }, { id: 'sticky', name: '便條紙' }, { id: 'cat', name: '小小黑' },
+];
+// 墨水顏色：沒選就依信紙配一個
+const NOTE_INKS = [
+  { id: '', name: '自動' }, { id: '#4a3520', name: '咖啡' }, { id: '#2e2a33', name: '墨黑' }, { id: '#8c2340', name: '酒紅' },
+  { id: '#24406b', name: '深藍' }, { id: '#2f5b47', name: '森綠' }, { id: '#5b3d86', name: '紫藤' }, { id: '#b0552a', name: '橘棕' },
+];
+const PAPER_INK = { lined: '#4a3520', grid: '#24406b', sticky: '#2e2a33', cat: '#8c2340' };
+const noteInk = (n) => (n && n.ink) || PAPER_INK[(n && n.paper) || 'lined'] || '#4a3520';
+const NOTE_CARRIERS = ['haohao', 'doggy', 'abian', 'calico', 'white', 'tuxedo', 'black'];
+const paperCls = (n) => 'paper-' + ((n && n.paper) || 'lined');
+const catCorner = '<svg class="paper-catmark" viewBox="0 0 40 30"><path d="M8 28 Q6 16 12 12 L11 3 L17 9 Q20 8 23 9 L29 3 L28 12 Q34 16 32 28 Z" fill="#2b2633"/><ellipse cx="16" cy="17" rx="2" ry="2.4" fill="#ffd970"/><ellipse cx="24" cy="17" rx="2" ry="2.4" fill="#ffd970"/><path d="M19 21 L21 21 L20 22 Z" fill="#ff9fb4"/></svg>';
+const paperDeco = (n) => (((n && n.paper) || 'lined') === 'cat' ? catCorner : ((n && n.paper) === 'sticky' ? '<span class="paper-tape"></span>' : ''));
+// 摺起來的紙條（藏起來時露出的那一角）
+const foldedNoteSVG = (paper = 'lined') => {
+  const fill = { lined: '#fffaf0', grid: '#f6f8fb', sticky: '#fff1a6', cat: '#fbf3ea' }[paper] || '#fffaf0';
+  return `<svg viewBox="0 0 44 32" class="note-fold"><path d="M2 4 L36 2 L42 8 L40 30 L4 29 Z" fill="${fill}" stroke="#d8c3a4" stroke-width=".8"/><path d="M36 2 L36 9 L42 8 Z" fill="#e9dcc6" stroke="#d8c3a4" stroke-width=".6"/><path d="M8 13 H32 M8 18 H30 M8 23 H24" stroke="#d9c9ae" stroke-width=".9"/><circle cx="33" cy="23" r="4.2" fill="#c8283c"/><path d="M33 21.2 C32.4 20.2 30.8 20.4 30.8 21.8 C30.8 23 32.2 23.9 33 24.6 C33.8 23.9 35.2 23 35.2 21.8 C35.2 20.4 33.6 20.2 33 21.2 Z" fill="#f6c3cc"/></svg>`;
+};
+
+// ---------- 寫紙條 ----------
+ACT.writeNote = () => {
+  if (!partner()) return toast('對方加入後才能藏紙條喔');
+  let paper = 'lined', ink = '';
+  const m = openModal(`${mhead('寫一張小紙條')}
+    <div class="np-pick">${NOTE_PAPERS.map((x) => `<button data-p="${x.id}" class="${x.id === paper ? 'on' : ''}"><span class="np-sw paper-${x.id}"></span>${x.name}</button>`).join('')}</div>
+    <div class="np-ink">${NOTE_INKS.map((x) => `<button data-i="${x.id}" class="${x.id === ink ? 'on' : ''}" title="${x.name}"><span style="background:${x.id || 'conic-gradient(#4a3520,#24406b,#8c2340,#2f5b47,#4a3520)'}"></span><small>${x.name}</small></button>`).join('')}</div>
+    <div class="letter note-paper ${paperCls({ paper })}" id="nw-paper" style="--ink:${noteInk({ paper, ink })}"><textarea id="nw-t" maxlength="300" placeholder="想對 ${esc(nick(partner()))} 說的話…"></textarea><div class="nw-from">—— ${esc(nick(me()))}</div>${paperDeco({ paper })}</div>
+    <button class="btn block mt" id="nw-ok"><i data-ic="letter"></i> 折起來，藏好</button>`, { center: true, cls: 'note-write' });
+  $$('.np-pick button', m).forEach((b) => b.onclick = () => {
+    paper = b.dataset.p;
+    $$('.np-pick button', m).forEach((x) => x.classList.toggle('on', x === b));
+    const pp = $('#nw-paper', m); pp.className = `letter note-paper ${paperCls({ paper })}`;
+    pp.querySelectorAll('.paper-catmark,.paper-tape').forEach((x) => x.remove()); pp.insertAdjacentHTML('beforeend', paperDeco({ paper }));
+    pp.style.setProperty('--ink', noteInk({ paper, ink }));
+  });
+  $$('.np-ink button', m).forEach((b) => b.onclick = () => {
+    ink = b.dataset.i;
+    $$('.np-ink button', m).forEach((x) => x.classList.toggle('on', x === b));
+    $('#nw-paper', m).style.setProperty('--ink', noteInk({ paper, ink }));
+  });
+  $('#nw-ok', m).onclick = async () => {
+    const text = $('#nw-t', m).value.trim();
+    if (!text) return toast('先寫點什麼');
+    $('#nw-ok', m).disabled = true;
+    // 藏的地方：卡片底下露出一角／小小黑底下／小動物叼著走過
+    const r = Math.random();
+    const spot = r < .5 ? { kind: 'peek', tab: pick(TABS).id, idx: Math.floor(Math.random() * 20) }
+      : r < .75 ? { kind: 'pet', tab: 'home' } : { kind: 'carry', tab: 'home', who: pick(NOTE_CARRIERS) };
+    await col('notes').add({ by: me(), to: partner(), text, paper, ...(ink ? { ink } : {}), found: false, spot, at: now() });
+    // 折起來＋封蠟
+    const pp = $('#nw-paper', m); pp.classList.add('folding'); sfx('pop');
+    setTimeout(() => { pp.innerHTML = `<div class="nw-sealed">${foldedNoteSVG(paper)}</div>`; pp.classList.add('sealed'); sfx('stamp'); }, 650);
+    setTimeout(() => { closeModal(m); toast(`藏好了，看 ${nick(partner())} 什麼時候發現`); }, 1600);
+  };
+};
+
+// ---------- 藏起來的樣子 ----------
+function placeHiddenNotes(main) {
+  const mine = list('notes').filter((n) => n.to === me() && !n.found && n.spot && n.spot.tab === S.tab);
+  for (const n of mine) {
+    const sp = n.spot;
+    if (sp.kind === 'carry') continue; // 交給路過的小動物
+    let host = null;
+    if (sp.kind === 'pet') host = main.querySelector('.pet-card');
+    if (sp.kind === 'peek' || !host) { const cards = [...main.querySelectorAll('.card')].filter((c) => !c.parentElement.closest('.card') && !c.closest('.modal-back')); if (cards.length) host = cards[(sp.idx || 0) % cards.length]; }
+    if (!host || sp.x != null && !sp.kind) {
+      const b = document.createElement('button');
+      b.className = 'hidden-note'; b.innerHTML = ic('letter'); b.dataset.act = 'findNote'; b.dataset.id = n.id;
+      b.style.left = (sp.x || 50) + '%'; b.style.top = (sp.y || 50) + '%';
+      main.appendChild(b); continue;
+    }
+    // 從卡片底下露出一角（掛在卡片本身，排版變動也跟著走）
+    host.classList.add('has-peek');
+    const b = document.createElement('button');
+    b.className = 'note-peek side-' + ((n.id.charCodeAt(0) % 2) ? 'r' : 'l'); b.innerHTML = foldedNoteSVG(n.paper); b.dataset.act = 'findNote'; b.dataset.id = n.id;
+    host.appendChild(b);
+  }
+}
+// 小動物叼著紙條走過首頁（找到之前，每兩分鐘最多出現一次）
+function carryStroll() {
+  const n = list('notes').find((x) => x.to === me() && !x.found && x.spot?.kind === 'carry');
+  if (!n || now() - +(localStorage.getItem('park-carry-at') || 0) < 120000) return false;
+  localStorage.setItem('park-carry-at', now());
+  const el = walker(n.spot.who || 'haohao');
+  el.classList.add('carrying');
+  el.insertAdjacentHTML('beforeend', `<span class="carry-note">${foldedNoteSVG(n.paper)}</span>`);
+  const timer = setTimeout(() => el.remove(), 9500);
+  el.onclick = () => { clearTimeout(timer); el.classList.add('caught'); setTimeout(() => el.remove(), 1400); ACT.findNote({ dataset: { id: n.id } }); };
+  document.body.appendChild(el);
+  return true;
+}
+
+// ---------- 拆信 ----------
+ACT.findNote = async (el) => {
+  const n = list('notes').find((x) => x.id === el.dataset.id);
+  if (!n) return;
+  document.querySelectorAll(`.note-peek[data-id="${n.id}"]`).forEach((x) => x.remove());
+  vibrate(40);
+  const m = openModal(`<div class="nt-stage" id="nt-st">
+      <div class="nt-title">你找到一張小紙條！</div>
+      <div class="nt-env"><div class="nt-back"></div><div class="nt-letter letter note-paper ${paperCls(n)}" style="--ink:${noteInk(n)}"><div class="nt-text"></div><div class="nw-from nt-from">—— ${esc(nick(n.by))}・${fmtFull(n.at)}</div>${paperDeco(n)}</div><div class="nt-front"></div><div class="nt-flap"></div><div class="nt-seal"><svg viewBox="-12 -12 24 24"><circle r="11" fill="#c8283c"/><circle r="8.5" fill="none" stroke="#9e1d2e" stroke-width="1"/><path d="M0 -1.6 C-1 -3.6 -4.4 -3.4 -4.4 -.6 C-4.4 1.8 -1.6 3.6 0 5 C1.6 3.6 4.4 1.8 4.4 -.6 C4.4 -3.4 1 -3.6 0 -1.6 Z" fill="#f6c3cc"/></svg></div></div>
+      <div class="nt-hint small muted">點一下拆開</div>
+    </div>`, { center: true, cls: 'note-open' });
+  const st = $('#nt-st', m);
+  let opened = false;
+  const open = async () => {
+    if (opened) return; opened = true;
+    st.classList.add('s1'); sfx('pop'); vibrate(20);              // 封蠟彈開
+    await sleep(380); st.classList.add('s2');                      // 掀開信封蓋
+    await sleep(450); st.classList.add('s3'); sfx('flip');         // 信紙抽出來展開
+    await sleep(700); st.classList.add('s4');
+    confetti(36, ['#ff6f91', '#ffc2d1', '#fff']);
+    // 字一個一個浮出來：先是漸層色，再慢慢定成墨水的顏色
+    const box = $('.nt-text', m), chars = Array.from(n.text), step = Math.max(6, Math.min(16, 1800 / chars.length));
+    for (let i = 0; i < chars.length; i++) {
+      const sp = document.createElement('span'); sp.className = chars[i] === '\n' ? '' : 'ink-ch'; sp.textContent = chars[i];
+      sp.style.setProperty('--d', `${(i % 12) * 30}ms`); box.appendChild(sp);
+      if (i % 2 === 1) await sleep(step * 2);
+    }
+    st.classList.add('s5');
+  };
+  st.onclick = open;
+  setTimeout(open, 1400);
+  if (!n.found) {
+    await col('notes').update(n.id, { found: true, foundAt: now() });
+    await notify(n.by, 'note', '你藏的小紙條被找到了 💌');
+  }
+};
+
+// ---------- 紙條盒 ----------
+ACT.noteBox = (el, _e, tab = 'got') => {
+  const got = list('notes').filter((n) => n.to === me() && n.found).sort((a, b) => (b.foundAt || b.at) - (a.foundAt || a.at));
+  const hidden = list('notes').filter((n) => n.to === me() && !n.found).length;
+  const mine = list('notes').filter((n) => n.by === me()).sort((a, b) => b.at - a.at);
+  const tabName = { home: '首頁', wallet: '票夾', play: '遊樂區', travel: '約會', memory: '回憶' };
+  const where = (n) => (n.spot?.kind === 'carry' ? `交給${FRIENDS[n.spot.who]?.name || '小動物'}叼著` : n.spot?.kind === 'pet' ? '藏在小小黑底下' : `藏在「${tabName[n.spot?.tab] || '某個'}」分頁`);
+  const m = openModal(`${mhead('紙條盒')}
+    <div class="seg" id="nb-seg"><button data-t="got" class="${tab === 'got' ? 'on' : ''}">收到的 ${got.length}</button><button data-t="mine" class="${tab === 'mine' ? 'on' : ''}">我藏的 ${mine.length}</button></div>
+    ${tab === 'got' ? `
+      ${hidden ? `<p class="small center nb-tease">${esc(nick(partner()))} 還藏了 ${hidden} 張紙條給你，還沒找到</p>` : ''}
+      <div class="nb-grid">${got.map((n, i) => `<button class="nb-note letter note-paper ${paperCls(n)}" data-id="${n.id}" style="--r:${((i % 5) - 2) * 1.4}deg;--ink:${noteInk(n)}"><span class="nb-txt">${esc(n.text)}</span><span class="nb-meta">${esc(nick(n.by))}・${new Date(n.foundAt || n.at).toLocaleDateString('zh-TW')}</span>${paperDeco(n)}</button>`).join('') || '<p class="small muted center" style="grid-column:1/-1">還沒有找到紙條，四處看看吧</p>'}</div>`
+    : `<div class="nb-list">${mine.map((n) => `<div class="nb-row"><span class="nb-fold">${foldedNoteSVG(n.paper)}</span><span class="grow"><span class="nb-rt">${esc(n.text)}</span><small class="muted">${new Date(n.at).toLocaleDateString('zh-TW')}・${where(n)}</small></span><span class="chip ${n.found ? 'ok' : ''}">${n.found ? `已被找到 ${new Date(n.foundAt).toLocaleDateString('zh-TW', { month: 'numeric', day: 'numeric' })}` : '還藏著'}</span></div>`).join('') || '<p class="small muted center">還沒藏過紙條</p>'}</div>`}`,
+  { center: true, cls: 'note-box' });
+  $$('#nb-seg button', m).forEach((b) => b.onclick = () => { closeModal(m); ACT.noteBox(null, null, b.dataset.t); });
+  $$('.nb-note', m).forEach((b) => b.onclick = () => {
+    const n = list('notes').find((x) => x.id === b.dataset.id);
+    openModal(`<div class="letter note-paper ${paperCls(n)} nb-read" style="--ink:${noteInk(n)}">${esc(n.text)}<div class="nw-from">—— ${esc(nick(n.by))}・${fmtFull(n.at)}</div>${paperDeco(n)}</div>`, { center: true });
+  });
+};
 // ============================================================
 //  啟動
 // ============================================================
