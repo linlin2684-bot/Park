@@ -1264,3 +1264,33 @@ html[data-theme="night"] .pet-visitor.locked .cat-svg { filter: brightness(0) in
 .ticket.slot-locked { opacity: .5; filter: grayscale(1); border: 1px dashed var(--line); background: transparent; }
 .ticket.slot-locked .stub { background: var(--card2); }
 .ticket.slot-locked .t-title { letter-spacing: .2em; }
+
+.pet-forms { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+.pet-forms button { background: var(--card2); color: var(--ink); border-radius: 12px; padding: 9px 4px; font-weight: 700; font-size: 13px; display: flex; flex-direction: column; align-items: center; gap: 2px; border: 1.5px solid transparent; }
+.pet-forms button small { font-size: 10px; color: var(--muted); font-weight: 500; }
+.pet-forms button.on { border-color: var(--accent); color: var(--accent); }
+.pet-forms button:disabled { opacity: .45; }
+
+.emb-F-whiteday { --e-bg: #f1f5fa; --e-ink: #2e4f74; --e-acc: #b9cde4; }
+html[data-theme="night"] .emb-F-whiteday { --e-bg: #141c27; --e-ink: #cfe0f5; --e-acc: #3e5d82; }
+.emb-F-confess { --e-bg: #fdf0f4; --e-ink: #a3245a; --e-acc: #f1a7c3; }
+html[data-theme="night"] .emb-F-confess { --e-bg: #2a0f1c; --e-ink: #f8c3d8; --e-acc: #8e2e58; }
+.emb-F-qixi { --e-bg: #eff0f9; --e-ink: #262f6b; --e-acc: #d6b25e; }
+html[data-theme="night"] .emb-F-qixi { --e-bg: #12152b; --e-ink: #d6dbf7; --e-acc: #8f7334; }
+.emb-F-moon { --e-bg: #f3f1f8; --e-ink: #3a3266; --e-acc: #e6c56e; }
+html[data-theme="night"] .emb-F-moon { --e-bg: #17142a; --e-ink: #e2dbf7; --e-acc: #8c7535; }
+.emb-F-halloween { --e-bg: #f6f0f7; --e-ink: #4b2a63; --e-acc: #ef9a3c; }
+html[data-theme="night"] .emb-F-halloween { --e-bg: #1d1226; --e-ink: #e7d4f2; --e-acc: #9a5a1c; }
+.emb-F-nye { --e-bg: #eef1f8; --e-ink: #1d2a52; --e-acc: #d9b45a; }
+html[data-theme="night"] .emb-F-nye { --e-bg: #10162a; --e-ink: #d3dcf5; --e-acc: #8b7230; }
+.emb-F-eve { --e-bg: #fbf0ec; --e-ink: #9b2a1e; --e-acc: #e1a940; }
+html[data-theme="night"] .emb-F-eve { --e-bg: #2a110d; --e-ink: #f6cbbf; --e-acc: #8f6421; }
+.emb-F-date { --e-bg: #fbf1ee; --e-ink: #8a3348; --e-acc: #efb39a; }
+html[data-theme="night"] .emb-F-date { --e-bg: #26131a; --e-ink: #f4c9d1; --e-acc: #874052; }
+.emb-F-pet { --e-bg: #f4f0f3; --e-ink: #2b2633; --e-acc: #e4b8c8; }
+html[data-theme="night"] .emb-F-pet { --e-bg: #18141c; --e-ink: #ece4ef; --e-acc: #6e5070; }
+
+.redeem-pop .rp-head { text-align: center; font-family: var(--serif); font-size: 20px; font-weight: 900; margin: 2px 0 12px; }
+.redeem-pop .rp-who { color: var(--accent); }
+.redeem-pop .rp-title { text-align: center; font-size: 18px; font-weight: 800; padding: 20px; }
+.redeem-pop #rp-ok { margin-top: 8px; }

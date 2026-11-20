@@ -974,7 +974,7 @@ function friendArt(k, opts) {
 
 // ---------- 圖鑑紀錄（兩個人共用） ----------
 async function dexNote(k, idx) {
-  if (!S.couple || !S.cid) return;
+  if (!S.couple || !S.cid || (S.couple.members || []).length < 2) return;
   const D0 = (S.couple.dex || {})[k] || {};
   const first = !D0.met, newLine = idx != null && !(D0.l || {})[idx];
   if (!first && !newLine) return;
@@ -1013,7 +1013,7 @@ function walker(k, cls = '') {
 }
 function catStroll(force) {
   // 週年動畫、回顧故事、新手導覽進行中不打擾
-  if (S.tab !== 'home' || document.querySelector('.cat-stroll, .anniv-intro, .story, .tour, .modal-back')) return;
+  if (S.tab !== 'home' || (S.couple?.members || []).length < 2 || document.querySelector('.cat-stroll, .anniv-intro, .story, .tour, .modal-back')) return;
   const key = 'park-stroll-at';
   if (!force && (now() - +(localStorage.getItem(key) || 0) < 8 * 60000 || Math.random() > .45)) return;
   localStorage.setItem(key, now());
@@ -1174,6 +1174,7 @@ async function holidayDrops() {
       await col('events').add({ to: u, by: 'sys', type: 'card', text: '今天有一張節日限定券送給你 🎁', detail: D.HOLIDAY_CARDS[r.key].title, at: now(), read: false });
     }
   }
+  if (typeof extraHolidayDrops === 'function') await extraHolidayDrops();
 }
 
 // ---------- 進入空間 ----------
@@ -1388,6 +1389,7 @@ function doRender() {
   setSection(S.tab);
   dexResetOnce();
   if (typeof missRain === 'function') missRain();
+  if (typeof redeemPopup === 'function') redeemPopup();
   if (S.tab !== 'home') document.querySelectorAll('.cat-stroll').forEach((x) => x.remove());
   const A = annivInfo(); document.documentElement.dataset.anniv = A.is ? '1' : '';
   renderTop(); renderNav(); renderMain();
@@ -2569,7 +2571,9 @@ ACT.openCard = (el) => {
     if (c.mystery) $('#secret', m).innerHTML = `<div class="secret-reveal">盲盒揭曉：${esc(c.secret)}</div>`;
     hold.outerHTML = `<div class="ctx-cat jump">${catPose('jump')}</div><p class="center" style="font-weight:700">兌換成功！好好享受</p><button class="btn block" data-act="close">完成</button>`;
     await col('cards').update(c.id, { used: (c.used || 0) + 1, log: [...(c.log || []), { at: now(), how: 'redeem' }] });
-    if (c.from !== me() && c.from !== 'sys') await notify(c.from, 'redeem', `${nick(me())} 使用了一張票券 ✂️`, c.mystery ? `神秘盲盒：${c.secret}` : c.title);
+    // 兌換時一定通知對方（系統送的卡也是）；對方那邊會跳出大卡片
+    const to = c.from !== me() && c.from !== 'sys' ? c.from : partner();
+    if (to) await col('events').add({ to, by: me(), type: 'redeem', text: `${nick(me())} 使用了一張票券`, detail: c.mystery ? `神秘盲盒：${c.secret}` : c.title, cardId: c.id, at: now(), read: false });
   };
 };
 
@@ -2769,6 +2773,8 @@ function walletBook() {
     ...ms.map((u) => ({ key: `wish:${u}`, series: WISH_SERIES, title: `${nick(u)}的許願卡`, owner: u })),
     { key: '節日系列', series: '節日系列', title: '節日系列' },
     { key: '旅行系列', series: '旅行系列', title: '旅行系列' },
+    { key: '約會系列', series: '約會系列', title: '約會系列' },
+    { key: '小小黑系列', series: '小小黑系列', title: '小小黑系列' },
     { key: '想你系列', series: '想你系列', title: '想你系列' },
     { key: '成就系列', series: '成就系列', title: '成就系列' },
     ...Object.keys(groups).filter((k) => !k.startsWith('wish:') && !BOOK_META[k]).map((k) => ({ key: k, series: k, title: k })),
@@ -2776,20 +2782,21 @@ function walletBook() {
   return books.map((b) => {
     const meta = BOOK_META[b.series] || BOOK_META['節日系列'];
     const cs = (groups[b.key] || []).sort((a, c) => (a.kind === 'collect' ? 1 : 0) - (c.kind === 'collect' ? 1 : 0) || rarityRank(a.rarity) - rarityRank(c.rarity) || a.at - c.at);
-    const slots = SERIES_SLOTS[b.series] ? SERIES_SLOTS[b.series]().filter((x) => !cs.some((c) => c.title === x.title)) : [];
-    const got = SERIES_SLOTS[b.series] ? new Set(cs.map((c) => c.title)).size : cs.filter(seriesCollected).length;
+    const allSlots = SERIES_SLOTS[b.series] ? SERIES_SLOTS[b.series]() : null;
+    const slots = allSlots ? allSlots.filter((x) => !cs.some((c) => (x.match ? x.match(c) : c.title === x.title))) : [];
+    const got = allSlots ? allSlots.length - slots.length : cs.filter(seriesCollected).length;
     const isB = b.series === D.BIRTHDAY_SERIES;
     const empty = !cs.length;
     const shut = S.bookShut[b.key];
     const svg = bookCoverSVG(meta, {
-      title: b.title, sub: meta.sub, got, total: SERIES_SLOTS[b.series] ? SERIES_SLOTS[b.series]().length : cs.length, empty: empty && !slots.length,
+      title: b.title, sub: meta.sub, got, total: allSlots ? allSlots.length : cs.length, empty: empty && !slots.length,
       slogan: isB ? `「${D.BIRTHDAY_SLOGAN}」` : '', sloganOn: isB && cs.length && got === cs.length,
     });
     return `<div class="book emb-${meta.pal}">
       <button class="book-cover2" ${empty && !slots.length ? '' : `data-act="bookToggle" data-k="${esc(b.key)}"`}>${svg}</button>
-      <div class="book-note">${empty && !slots.length ? esc(meta.how) : slots.length && !shut ? `還有 ${slots.length} 張沒拿到，灰色的是拿法` : isB && got < cs.length ? `每張生日卡至少兌換一次，就會解鎖封面標語${shut ? ' · 點封面展開' : ''}` : shut ? `${cs.length} 張 · 點封面展開` : '點封面可以收起'}</div>
+      <div class="book-note">${empty && !slots.length ? esc(meta.how) : slots.length && !shut ? `還有 ${slots.length} 張沒拿到` : isB && got < cs.length ? `每張生日卡至少兌換一次，就會解鎖封面標語${shut ? ' · 點封面展開' : ''}` : shut ? `${cs.length} 張 · 點封面展開` : '點封面可以收起'}</div>
       ${empty || shut ? '' : cs.map((c) => `<div style="${seriesCollected(c) || b.series === WISH_SERIES ? '' : 'filter:grayscale(.85);opacity:.55'}">${ticketHTML(c, { showFrom: false, showOwner: c.owner !== me() && b.series !== WISH_SERIES })}</div>`).join('')}
-      ${shut ? '' : slots.map((x) => `<div class="ticket slot-locked"><div class="stub"><span class="rk">？</span><span class="rl">${D.RARITY[x.rarity]?.label || ''}</span></div><div class="perf"></div><div class="body"><div class="t-title">？？？</div><div class="t-desc">${esc(x.how)}</div></div></div>`).join('')}
+      ${shut ? '' : slots.map((x) => `<div class="ticket slot-locked"><div class="stub"><span class="rk">？</span><span class="rl">${D.RARITY[x.rarity]?.label || ''}</span></div><div class="perf"></div><div class="body"><div class="t-title">？？？</div></div></div>`).join('')}
     </div>`;
   }).join('');
 }
@@ -3375,7 +3382,7 @@ async function travelDrop(key, tpl, text) {
 const inTaiwan = (lat, lng) => lat >= 21.7 && lat <= 26.5 && lng >= 118.0 && lng <= 122.3;
 async function checkTravelDrops() {
   if (!S.couple || (S.couple.members || []).length < 2 || !S.d.trips) return;
-  const T = D.TRAVEL_DROPS, ts = list('trips');
+  const T = D.TRAVEL_DROPS, ts = countedTrips();
   if (ts.length >= 1) await travelDrop('trip1', T.trip1, '第一個足跡！旅行限定卡掉落 📍');
   if (ts.length >= 5) await travelDrop('trip5', T.trip5, '足跡滿 5 個！旅行限定卡掉落 🛂');
   if (ts.length >= 10) await travelDrop('trip10', T.trip10, '足跡滿 10 個！旅行限定卡掉落 ✈️');
@@ -3385,6 +3392,7 @@ async function checkTravelDrops() {
     if (!t.date || t.date.slice(5) !== md || +t.date.slice(0, 4) >= y) continue;
     if (await travelDrop(`revisit-${t.id}-${y}`, { ...T.revisit, desc: `${y - +t.date.slice(0, 4)} 年前的${t.name}，再一起回去一次` }, `${t.name}滿 ${y - +t.date.slice(0, 4)} 年了！舊地重遊券掉落 🏔️`)) break;
   }
+  if (typeof travelExtraDrops === 'function') await travelExtraDrops(ts);
 }
 async function checkFund() {
   if (!S.couple || (S.couple.members || []).length < 2) return;
@@ -3572,7 +3580,7 @@ ACT.dateEdit = (el, e, preset = {}) => {
     const v = read(); if (!v.title) return toast('寫一下要做什麼'); if (!v.date) return toast('選一下日期');
     if (d) await col('dates').update(d.id, v);
     else {
-      const id = await col('dates').add({ ...v, by: me(), done: false, at: now() });
+      const id = await col('dates').add({ ...v, by: me(), done: false, at: now(), ...(preset.ideaId ? { ideaId: preset.ideaId } : {}) });
       if (preset.ideaId) await col('ideas').update(preset.ideaId, { used: true, usedAt: now() });
       if (partner()) await notify(partner(), 'date', `${nick(me())} 排了一個約會：${v.date.slice(5).replace('-', '/')}`, v.title);
       closeModal(m); toast('排進行程了'); sfx('pop');
@@ -3944,6 +3952,7 @@ function scheduleAchievements() {
     const got = computeAch();
     achCardDrops(got);
     if (typeof missCardDrops === 'function') missCardDrops();
+    if (typeof seriesDrops === 'function') seriesDrops();
     const key = 'park-ach-' + S.cid + '-' + me();
     const raw = localStorage.getItem(key);
     if (raw == null) { localStorage.setItem(key, JSON.stringify([...got])); return; }
@@ -4348,16 +4357,17 @@ async function annivRibbon() {
 
 const PET_STAGES = [
   { xp: 0, name: '小奶貓', scale: .72 },
-  { xp: 60, name: '少年貓', scale: .86 },
-  { xp: 200, name: '大貓咪', scale: 1 },
-  { xp: 500, name: '貓老大', scale: 1.06 },
+  // 每個階段大約半年（兩個人認真養，一天大概三四十點）
+  { xp: 6000, name: '少年貓', scale: .86 },
+  { xp: 12000, name: '大貓咪', scale: 1 },
+  { xp: 18000, name: '貓老大', scale: 1.06 },
 ];
 const PET_ACC = [
-  { id: 'bow', name: '粉紅蝴蝶結', xp: 30 },
-  { id: 'bell', name: '鈴鐺項圈', xp: 100 },
-  { id: 'scarf', name: '小圍巾', xp: 250 },
-  { id: 'flower', name: '小花', xp: 380 },
-  { id: 'crown', name: '小皇冠', xp: 500 },
+  { id: 'bow', name: '粉紅蝴蝶結', xp: 200 },
+  { id: 'bell', name: '鈴鐺項圈', xp: 1000 },
+  { id: 'scarf', name: '小圍巾', xp: 2500 },
+  { id: 'flower', name: '小花', xp: 4500 },
+  { id: 'crown', name: '小皇冠', xp: 6000 },
   { id: 'santa', name: '聖誕帽', xp: 0, month: 12 },
   // 週年紀念日（兩人都加入後）自動送的見面禮，會直接幫牠戴上
   { id: 'ribbon', name: '週年紅緞帶', anniv: true },
@@ -4393,12 +4403,15 @@ function petState() {
   const month = new Date().getMonth() + 1;
   const owned = pet.owned || [];
   const unlocked = PET_ACC.filter((a) => (a.gacha || a.anniv) ? owned.includes(a.id) : a.month ? a.month === month : xp >= a.xp);
-  return { pet, xp, st, stage: PET_STAGES[st], next, mood, hrs, unlocked, name: pet.name || PET_DEFAULT_NAME, wear: pet.wear || '' };
+  // 長大之後可以自由切換成以前的型態
+  const show = pet.form != null && pet.form <= st ? pet.form : st;
+  return { pet, xp, st, show, stage: PET_STAGES[st], next, mood, hrs, unlocked, name: pet.name || PET_DEFAULT_NAME, wear: pet.wear || '' };
 }
 
 // 互動加經驗（小事都會加一點；每人每天有上限，避免狂刷）
 async function petXP(n, why = '') {
-  if (!S.couple) return;
+  // 等兩個人都加入才開始養
+  if (!S.couple || (S.couple.members || []).length < 2) return;
   const k = `park-petxp-${dkey()}-${me()}`;
   const used = +(localStorage.getItem(k) || 0);
   const add = Math.max(0, Math.min(n, 30 - used));
@@ -4406,7 +4419,7 @@ async function petXP(n, why = '') {
   const before = petState().st;
   await S.store.coupleTx(S.cid, (c) => ({ 'pet.xp': ((c.pet || {}).xp || 0) + add, [`pet.last.${me()}`]: now() }));
   const after = petState().st;
-  if (after > before) setTimeout(() => { toast(`${petState().name} 長大了！變成${PET_STAGES[after].name}`); confetti(80, ['#2b2633', '#ffd970', '#c98aa0', '#fff']); }, 400);
+  if (after > before) setTimeout(() => { toast(`${petState().name} 長大了！可以變成${PET_STAGES[after].name}了，到牠的房間切換型態`); confetti(80, ['#2b2633', '#ffd970', '#c98aa0', '#fff']); }, 400);
 }
 
 function petAccArt(wear) {
@@ -4470,7 +4483,7 @@ function petTimePose() { const h = new Date().getHours(); return h >= 22 || h < 
 function petArt(P, big) {
   const tp = petTimePose();
   if (tp) return `<div class="pet-pose" data-pose="${tp}">${catPose(tp, P.wear)}</div>`;
-  return petSVG(P.st, P.mood, P.wear);
+  return petSVG(P.show, P.mood, P.wear);
 }
 const PET_TIME_TEXT = { sleep: '睡得正香，小聲一點', stretch: '剛睡醒，正在伸懶腰' };
 const PET_MOOD_TEXT = { happy: '心情超好，尾巴翹得高高的', ok: '在窩裡等你們來玩', miss: '好久沒人理牠了，有點想你們' };
@@ -4482,7 +4495,7 @@ function petHomeCard() {
   return `<div class="card pet-card ${dv ? 'has-visitor' : ''}" data-act="petOpen">
     <div class="pet-room"><div class="pet-stage">${petArt(P)}</div>${dv}</div>
     <div class="grow">
-      <div class="pet-name">${esc(P.name)} <span class="chip">${P.stage.name}</span></div>
+      <div class="pet-name">${esc(P.name)} <span class="chip">${PET_STAGES[P.show].name}</span></div>
       <div class="small muted ${dv ? 'duty-say' : ''}">${dv ? dutyText() : PET_TIME_TEXT[petTimePose()] || PET_MOOD_TEXT[P.mood]}</div>
       <div class="pet-bar"><div style="width:${pct}%"></div></div>
       <div class="small muted">${P.next ? `再 ${P.next.xp - P.xp} 點經驗長成${P.next.name}` : '已經是最大隻的貓老大了'}</div>
@@ -4502,6 +4515,7 @@ ACT.petPat = async (el, e) => {
   if (localStorage.getItem(k)) return toast(`${petState().name} 呼嚕呼嚕～（今天摸過了，明天再來）`);
   localStorage.setItem(k, '1');
   await petXP(3, 'pat');
+  await S.store.coupleTx(S.cid, (c) => ({ 'pet.pats': (((c.pet || {}).pats) || 0) + 1 }));
   toast(`${petState().name} 很開心！經驗 +3`);
 };
 
@@ -4516,13 +4530,19 @@ ACT.petOpen = () => {
       <button class="btn sm ghost" id="pt-feed">餵罐罐 <small>10點</small></button>
       <button class="btn sm ghost" id="pt-name">改名字</button>
     </div>
-    <h3 style="font-size:15px">配件</h3>
+    <h3 style="font-size:15px">型態</h3>
+    <div class="pet-forms">${PET_STAGES.map((s, i) => `<button data-form="${i}" class="${P.show === i ? 'on' : ''}" ${i > P.st ? 'disabled' : ''}>${s.name}<small>${i > P.st ? `經驗 ${s.xp}` : P.show === i ? '現在' : '切換'}</small></button>`).join('')}</div>
+    <h3 style="font-size:15px;margin-top:14px">配件</h3>
     <div class="pet-acc">
       <button data-w="" class="${!P.wear ? 'on' : ''}"><span>不戴</span></button>
       ${PET_ACC.map((a) => { const ok = P.unlocked.some((x) => x.id === a.id); return `<button data-w="${a.id}" class="${P.wear === a.id ? 'on' : ''} ${ok ? '' : 'locked'}" ${ok ? '' : 'disabled'}><span class="pet-thumb">${petSVG(2, 'ok', a.id, { blink: false })}</span><span>${a.name}</span><small>${ok ? '' : a.anniv ? '週年紀念日' : a.gacha ? '扭蛋掉落' : a.month ? `${a.month} 月限定` : `經驗 ${a.xp}`}</small></button>`; }).join('')}
     </div>
     <h3 style="font-size:15px;margin-top:14px">怎麼養大牠</h3>
     <p class="small muted" style="margin:0;line-height:1.8">每天摸摸 +3・按想你 +1・回答每日一問 +2・幫對方蓋章 +3・完成每週任務 +3・兌換票券 +3・季問答 +5<br>一個人一天最多 +30，兩個人一起養長得最快。扭蛋時偶爾會額外掉出限定配件。超過一天半沒人理牠，牠會開始想你們。</p>`);
+  $$('.pet-forms button', m).forEach((b) => b.onclick = async () => {
+    await S.store.updateCouple(S.cid, { 'pet.form': +b.dataset.form });
+    closeModal(m); ACT.petOpen();
+  });
   $$('.pet-acc button', m).forEach((b) => b.onclick = async () => {
     await S.store.updateCouple(S.cid, { 'pet.wear': b.dataset.w });
     closeModal(m); ACT.petOpen();
@@ -4919,7 +4939,7 @@ function withName(k, t) { const n = FRIENDS[k].name; return t.includes(n) ? t : 
 
 // ---------- 值日生（偶爾才有） ----------
 function dutyToday() {
-  if (!S.couple) return null;
+  if (!S.couple || (S.couple.members || []).length < 2) return null;
   const pv = localStorage.getItem('park-duty-preview');
   // 只有遇過的小動物才會來當值日生
   const d = S.couple.dex || {};
@@ -5098,6 +5118,13 @@ async function dexResetOnce() {
     try { const seen = JSON.parse(localStorage.getItem(ak) || 'null'); if (seen) localStorage.setItem(ak, JSON.stringify(seen.filter((x) => !String(x).startsWith('dex_')))); } catch {}
     localStorage.setItem(fk, '1');
   }
+  // 對方加入的那一刻：小小黑經驗、圖鑑、小劇場全部歸零，從兩個人一起開始
+  if ((S.couple.members || []).length >= 2 && !S.couple.togetherStart && !dexResetBusy) {
+    dexResetBusy = true;
+    await S.store.coupleTx(S.cid, (x) => (x.togetherStart ? null : { togetherStart: now(), dex: {}, scenes: {}, dexReset: 2, 'pet.xp': 0, 'pet.pats': 0, 'pet.last': {}, 'pet.form': null }));
+    dexResetBusy = false;
+    return;
+  }
   if (S.couple.dexReset >= 1 || dexResetBusy) return;
   dexResetBusy = true;
   await S.store.coupleTx(S.cid, (x) => (x.dexReset >= 1 ? null : { dex: {}, scenes: {}, dexReset: 1 }));
@@ -5167,7 +5194,8 @@ function missEarned() {
   const ms = S.couple?.members || [];
   if (ms.length < 2) return [];
   const [A, B] = ms, other = (u) => (u === A ? B : A);
-  const all = list('misses').filter((m) => m.at).sort((x, y) => x.at - y.at);
+  const t0 = S.couple.togetherStart || Infinity;
+  const all = list('misses').filter((m) => m.at && m.at >= t0).sort((x, y) => x.at - y.at);
   const by = (u) => all.filter((m) => m.by === u);
   const out = [], def = (id) => MISS_DEFS.find((d) => d.id === id);
   const give = (id, u, key) => out.push({ def: def(id), to: other(u), from: u, key });      // u 想人 → 對方收到
@@ -5217,6 +5245,262 @@ async function missCardDrops() {
       await col('events').add({ to: e.to, by: d.both ? 'sys' : e.from, type: 'card', text: '收到一張想你限定券', detail: d.title, at: now(), read: false });
     }
   } finally { missDropBusy = false; }
+}
+// ============================================================
+//  收藏冊擴充：節日（13）、旅行（16）、約會（10）、小小黑（9）
+//  ＋ 兌換時對方跳出大卡片
+// ============================================================
+
+// ---------- 新的節日／系列外觀 ----------
+Object.assign(FESTS, {
+  whiteday:  { label: '白 色 情 人 節', foot: '白色情人節限定', pat: 'snow' },
+  confess:   { label: '告 白 限 定', foot: '520 限定', pat: 'hearts' },
+  qixi:      { label: '七 夕 限 定', foot: '七夕限定', pat: 'sparkle' },
+  moon:      { label: '中 秋 限 定', foot: '中秋限定', pat: 'sparkle' },
+  halloween: { label: '萬 聖 限 定', foot: '萬聖節限定', pat: 'grid' },
+  nye:       { label: '跨 年 限 定', foot: '跨年限定', pat: 'sparkle' },
+  eve:       { label: '除 夕 限 定', foot: '除夕限定', pat: 'plum' },
+  date:      { label: '約 會 系 列', foot: '約會系列', pat: 'hearts' },
+  pet:       { label: '小 小 黑 系 列', foot: '小小黑系列', pat: 'rings' },
+});
+Object.assign(TRAVEL_TM, { 存錢筒開張: 'suitcase', 四季旅人: 'map', 壽星旅行: 'camera', 跨年在旅途: 'plane', 老地方: 'pin', 旅行攝影集: 'camera', 二十站: 'globe' });
+const _festMotif0 = festMotif;
+festMotif = function (key, c) {
+  const S1 = (d, w = 1.5, cls = 'e-ink-s') => `<path d="${d}" class="${cls}" stroke-width="${w}" fill="none" stroke-linecap="round" stroke-linejoin="round"/>`;
+  const heart = (s = 1, y = 0, cls = 'e-acc-f e-ink-s') => `<path transform="translate(0 ${y}) scale(${s})" d="M0 10 C-3 7 -12 1 -12 -5 C-12 -9.5 -8.5 -12 -5 -12 C-2.5 -12 -1 -10.5 0 -8.5 C1 -10.5 2.5 -12 5 -12 C8.5 -12 12 -9.5 12 -5 C12 1 3 7 0 10 Z" class="${cls}" stroke-width="${1.2 / s}"/>`;
+  if (key === 'whiteday') return `<path d="M-14 -8 L-30 -16 L-30 0 Z M14 -8 L30 -16 L30 0 Z" class="e-acc-f e-ink-s" stroke-width="1.3" stroke-linejoin="round"/>
+    <ellipse cx="0" cy="-8" rx="15" ry="12" class="e-bg e-ink-s" stroke-width="1.6"/>${S1('M-9 -15 Q0 -4 9 -15 M-11 -5 Q0 4 11 -5', 1)}
+    <rect x="-16" y="10" width="32" height="20" rx="3" class="e-bg e-ink-s" stroke-width="1.5"/><rect x="-3" y="10" width="6" height="20" class="e-acc-f"/>${S1('M-16 18 H16', 1)}`;
+  if (key === 'confess') return `${heart(2.4, -4, 'e-bg e-ink-s')}<text x="0" y="0" text-anchor="middle" font-size="13" font-weight="900" class="e-ink-f" font-family="serif">520</text>${heart(.6, 26)}`;
+  if (key === 'qixi') return `${S1('M-34 16 Q0 -16 34 16', 1.8)}${S1('M-28 16 Q0 -10 28 16', 1)}
+    ${[-24, -12, 0, 12, 24].map((x) => `<path d="M${x} ${x === 0 ? -1 : Math.abs(x) === 12 ? 2 : 9} l-4 -3 l8 0 z" class="e-ink-f"/>`).join('')}
+    <path d="M-26 -22 l2 5 l5 2 l-5 2 l-2 5 l-2 -5 l-5 -2 l5 -2 z M26 -22 l2 5 l5 2 l-5 2 l-2 5 l-2 -5 l-5 -2 l5 -2 z" class="e-acc-f e-ink-s" stroke-width=".8"/>`;
+  if (key === 'moon') return `<circle cx="4" cy="-6" r="22" class="e-acc-f e-ink-s" stroke-width="1.6"/>
+    <circle cx="-4" cy="-12" r="3" class="e-bg"/><circle cx="12" cy="0" r="2" class="e-bg"/><circle cx="2" cy="6" r="1.6" class="e-bg"/>
+    <path d="M-34 22 Q-28 14 -18 18 Q-12 10 -2 16 Q6 12 10 20 L-34 20 Z" class="e-bg e-ink-s" stroke-width="1.3" stroke-linejoin="round"/>${S1('M12 28 Q20 22 30 26', 1.2)}`;
+  if (key === 'halloween') return `<ellipse cx="0" cy="6" rx="26" ry="20" class="e-acc-f e-ink-s" stroke-width="1.6"/>${S1('M-9 -12 Q-14 6 -9 25 M9 -12 Q14 6 9 25 M0 -14 V26', 1)}
+    ${S1('M0 -14 Q1 -22 6 -25', 2.2)}<path d="M-14 0 l5 -6 l5 6 z M4 0 l5 -6 l5 6 z" class="e-ink-f"/><path d="M-12 12 l4 4 l4 -4 l4 4 l4 -4 l4 4 l4 -4" class="e-ink-s" stroke-width="1.4" fill="none" stroke-linejoin="round"/>`;
+  if (key === 'nye') { let s = ''; for (let i = 0; i < 12; i++) { const a = i * 30 * Math.PI / 180, r1 = 8, r2 = i % 2 ? 22 : 30; s += S1(`M${(Math.sin(a) * r1).toFixed(1)} ${(-6 - Math.cos(a) * r1).toFixed(1)} L${(Math.sin(a) * r2).toFixed(1)} ${(-6 - Math.cos(a) * r2).toFixed(1)}`, 1.4); s += `<circle cx="${(Math.sin(a) * (r2 + 3)).toFixed(1)}" cy="${(-6 - Math.cos(a) * (r2 + 3)).toFixed(1)}" r="1.4" class="e-acc-f"/>`; }
+    return s + `<circle cx="0" cy="-6" r="4" class="e-acc-f e-ink-s" stroke-width="1.2"/><text x="0" y="36" text-anchor="middle" font-size="7" class="e-ink-f" font-weight="800">00:00</text>`; }
+  if (key === 'eve') return `${S1('M0 -34 V-26', 1.4)}<rect x="-8" y="-27" width="16" height="5" rx="1" class="e-ink-f"/>
+    <ellipse cx="0" cy="-2" rx="20" ry="20" class="e-acc-f e-ink-s" stroke-width="1.6"/>${S1('M-10 -19 Q-16 -2 -10 15 M10 -19 Q16 -2 10 15 M0 -22 V18', 1)}
+    <rect x="-8" y="17" width="16" height="5" rx="1" class="e-ink-f"/>${S1('M-4 22 V32 M0 22 V34 M4 22 V32', 1.2)}`;
+  if (key === 'date') return `<rect x="-26" y="-20" width="52" height="44" rx="5" class="e-bg e-ink-s" stroke-width="1.6"/><rect x="-26" y="-20" width="52" height="11" rx="5" class="e-acc-f"/>${S1('M-26 -9 H26', 1.2)}
+    ${S1('M-14 -26 V-15 M14 -26 V-15', 2.2)}${heart(1, 8)}`;
+  if (key === 'pet') return `<path d="M-22 -2 L-20 -26 L-6 -14 Z M22 -2 L20 -26 L6 -14 Z" class="e-ink-f"/><path d="M-17 -6 L-16 -20 L-9 -14 Z M17 -6 L16 -20 L9 -14 Z" class="e-acc-f"/>
+    <ellipse cx="0" cy="4" rx="25" ry="21" class="e-ink-f"/><ellipse cx="-9" cy="2" rx="4.4" ry="5.4" class="e-bg"/><ellipse cx="9" cy="2" rx="4.4" ry="5.4" class="e-bg"/>
+    <ellipse cx="-9" cy="2.5" rx="1.4" ry="4" class="e-ink-f"/><ellipse cx="9" cy="2.5" rx="1.4" ry="4" class="e-ink-f"/><path d="M-2 11 L2 11 L0 13 Z" class="e-acc-f"/>`;
+  return _festMotif0(key, c);
+};
+const _bookMotif0 = bookMotif;
+bookMotif = function (kind) {
+  if (kind === 'date') return festMotif('date');
+  if (kind === 'pet') return festMotif('pet');
+  return _bookMotif0(kind);
+};
+Object.assign(BOOK_META, {
+  '約會系列': { pal: 'F-date', motif: 'date', pat: 'hearts', sub: '一起出門的紀錄', how: '在約會分頁把約會按「完成」就會開始收集' },
+  '小小黑系列': { pal: 'F-pet', motif: 'pet', pat: 'rings', sub: '和小小黑一起長大', how: '摸摸、餵罐罐、陪牠長大都會掉卡' },
+});
+
+// ---------- 共用：系列卡掉落（key 只掉一次） ----------
+async function seriesDrop(key, tpl, series, fest, to, text) {
+  const ok = await S.store.coupleTx(S.cid, (x) => (x.drops && x.drops[key] ? null : { [`drops.${key}`]: true }));
+  if (!ok) return false;
+  for (const u of to) {
+    await col('cards').add(cardDoc({ ...tpl, series, fest }, u, 'sys'));
+    await col('events').add({ to: u, by: 'sys', type: 'card', text, detail: tpl.title, at: now(), read: false });
+  }
+  return true;
+}
+
+// ---------- 節日系列：新增 7 個 ----------
+const HOLIDAY_MORE = {
+  whiteday:  { title: '白色情人節回禮券', rarity: 'R', desc: '換一份回禮', fest: 'whiteday', how: '3/14 白色情人節' },
+  confess:   { title: '520 告白券', rarity: 'SR', desc: '換一段當面說的告白', fest: 'confess', how: '5/20' },
+  qixi:      { title: '七夕鵲橋券', rarity: 'SR', desc: '換一次整天不看手機的約會', fest: 'qixi', how: '農曆 7/7 七夕' },
+  moon:      { title: '中秋賞月券', rarity: 'R', desc: '一起賞月、一起吃柚子', fest: 'moon', how: '農曆 8/15 中秋' },
+  halloween: { title: '不給糖就搗蛋券', rarity: 'R', desc: '換一個無傷大雅的惡作劇', fest: 'halloween', how: '10/31 萬聖節' },
+  nye:       { title: '跨年之吻', rarity: 'SR', desc: '倒數歸零的那個吻', fest: 'nye', how: '12/31 跨年夜' },
+  eve:       { title: '除夕團圓券', rarity: 'SR', desc: '換一頓一起吃的年夜飯', fest: 'eve', how: '農曆除夕' },
+};
+function lunarMD(d) {
+  try {
+    const p = new Intl.DateTimeFormat('zh-TW-u-ca-chinese', { month: 'numeric', day: 'numeric' }).formatToParts(d);
+    return [parseInt(p.find((x) => x.type === 'month').value, 10), parseInt(p.find((x) => x.type === 'day').value, 10)];
+  } catch (e) { return [0, 0]; }
+}
+function holidayMoreToday(d = new Date()) {
+  const md = `${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+  const [lm, ld] = lunarMD(d), tm = new Date(d); tm.setDate(tm.getDate() + 1);
+  const [tlm, tld] = lunarMD(tm);
+  const out = [];
+  if (md === '03-14') out.push('whiteday');
+  if (md === '05-20') out.push('confess');
+  if (lm === 7 && ld === 7) out.push('qixi');
+  if (lm === 8 && ld === 15) out.push('moon');
+  if (md === '10-31') out.push('halloween');
+  if (md === '12-31') out.push('nye');
+  if (tlm === 1 && tld === 1) out.push('eve');
+  return out;
+}
+async function extraHolidayDrops() {
+  const c = S.couple;
+  if (!c || (c.members || []).length < 2) return;
+  const y = new Date().getFullYear();
+  for (const k of holidayMoreToday()) {
+    const t = HOLIDAY_MORE[k];
+    await seriesDrop(`${y}-${k}`, t, '節日系列', t.fest, c.members, '今天有一張節日限定券送給你');
+  }
+}
+
+// ---------- 旅行系列：只算 11/20 以後的足跡，新增 7 張 ----------
+const TRAVEL_START = '2026-11-20';
+const tripDay = (t) => t.date || dkey(new Date(t.at || 0));
+function countedTrips() { return list('trips').filter((t) => tripDay(t) >= TRAVEL_START); }
+const TRAVEL_MORE = {
+  fundFirst: { title: '存錢筒開張', rarity: 'N', desc: '換一杯旅行前的咖啡', how: '第一次存旅行基金' },
+  four: { title: '四季旅人', rarity: 'SR', desc: '換一次你挑的住宿', how: '同一年記 4 個足跡' },
+  bday: { title: '壽星旅行', rarity: 'SR', desc: '壽星這趟不用出錢', how: '足跡日期剛好是其中一人生日' },
+  nye: { title: '跨年在旅途', rarity: 'SSR', desc: '換一張旅途中的跨年合照', how: '足跡日期是 12/31 或 1/1' },
+  old: { title: '老地方', rarity: 'SR', desc: '換一次「我們的老位置」約會', how: '同一個地方記錄 3 次' },
+  photos: { title: '旅行攝影集', rarity: 'R', desc: '換一本洗出來的小相簿', how: '相簿裡標記到旅行的照片滿 30 張' },
+  twenty: { title: '二十站', rarity: 'SSR', desc: '換一趟對方全包的旅行', how: '足跡滿 20 站' },
+};
+const kmBetween = (a, b) => { const R = 6371, r = Math.PI / 180, dLa = (b.lat - a.lat) * r, dLo = (b.lng - a.lng) * r; const h = Math.sin(dLa / 2) ** 2 + Math.cos(a.lat * r) * Math.cos(b.lat * r) * Math.sin(dLo / 2) ** 2; return 2 * R * Math.asin(Math.sqrt(h)); };
+async function travelExtraDrops(ts) {
+  const T = TRAVEL_MORE, ms = S.couple.members;
+  const drop = (k, cond, msg) => (cond ? travelDrop(`more-${k}`, T[k], msg) : false);
+  await drop('fundFirst', list('deposits').length >= 1, '第一次存旅行基金！旅行限定卡掉落');
+  const years = {}; ts.forEach((t) => { const y = tripDay(t).slice(0, 4); years[y] = (years[y] || 0) + 1; });
+  await drop('four', Object.values(years).some((n) => n >= 4), '一年四個足跡！旅行限定卡掉落');
+  const bdays = ms.map((u) => prof(u).bday).filter(Boolean);
+  await drop('bday', ts.some((t) => bdays.includes(tripDay(t).slice(5))), '生日在旅途中！旅行限定卡掉落');
+  await drop('nye', ts.some((t) => ['12-31', '01-01'].includes(tripDay(t).slice(5))), '在旅途中跨年！旅行限定卡掉落');
+  const same = (a, b) => (a.name || '').trim() === (b.name || '').trim() || (a.lat != null && b.lat != null && kmBetween(a, b) < 1);
+  await drop('old', ts.some((a) => ts.filter((b) => same(a, b)).length >= 3), '同一個地方第三次！旅行限定卡掉落');
+  const ids = new Set(ts.map((t) => t.id));
+  await drop('photos', list('photos').filter((p) => p.tripId && ids.has(p.tripId)).length >= 30, '旅行照片滿 30 張！旅行限定卡掉落');
+  await drop('twenty', ts.length >= 20, '足跡滿 20 站！旅行限定卡掉落');
+}
+
+// ---------- 約會系列 ----------
+const DATE_DEFS = [
+  { id: 'd1', title: '初約', rarity: 'N', desc: '換一張約會合照', how: '第 1 次完成約會' },
+  { id: 'd10', title: '十次約會', rarity: 'R', desc: '換一次你決定的晚餐', how: '完成 10 次約會' },
+  { id: 'd30', title: '三十次約會', rarity: 'SR', desc: '換一整天的約會規劃，對方負責', how: '完成 30 次約會' },
+  { id: 'd50', title: '五十次約會', rarity: 'SSR', desc: '換一個你一直想去的地方', how: '完成 50 次約會' },
+  { id: 'd100', title: '一百次約會', rarity: 'SSR', desc: '換一份紀念禮物', how: '完成 100 次約會' },
+  { id: 'month4', title: '這個月都約滿', rarity: 'SR', desc: '換一次賴床早午餐', how: '同一個月完成 4 次約會' },
+  { id: 'idea5', title: '說走就走', rarity: 'R', desc: '換一次臨時起意的出門', how: '點子罐抽中的點子完成 5 個' },
+  { id: 'w10', title: '爆米花', rarity: 'R', desc: '換一桶爆米花和你選的片', how: '一起看清單看完 10 部' },
+  { id: 'w30', title: '影評人', rarity: 'SR', desc: '換一次電影院約會，對方請', how: '一起看清單看完 30 部' },
+  { id: 'drama3', title: '補完計畫', rarity: 'R', desc: '換一個追劇宵夜', how: '影集看完 3 部' },
+];
+function dateEarned() {
+  const done = list('dates').filter((d) => d.done);
+  const months = {}; done.forEach((d) => { const m = (d.date || dkey(new Date(d.doneAt || d.at))).slice(0, 7); months[m] = (months[m] || 0) + 1; });
+  const watched = list('watch').filter((w) => w.done && (w.kind === 'movie' || w.kind === 'drama'));
+  const got = new Set();
+  [['d1', 1], ['d10', 10], ['d30', 30], ['d50', 50], ['d100', 100]].forEach(([id, n]) => { if (done.length >= n) got.add(id); });
+  if (Object.values(months).some((n) => n >= 4)) got.add('month4');
+  if (done.filter((d) => d.ideaId).length >= 5) got.add('idea5');
+  if (watched.length >= 10) got.add('w10');
+  if (watched.length >= 30) got.add('w30');
+  if (watched.filter((w) => w.kind === 'drama').length >= 3) got.add('drama3');
+  return got;
+}
+
+// ---------- 小小黑系列 ----------
+const PET_DEFS = [
+  { id: 'pat', title: '初次見面', rarity: 'N', desc: '換一個摸頭', how: '第一次摸摸小小黑' },
+  { id: 'feed', title: '第一個罐罐', rarity: 'N', desc: '換一份點心', how: '第一次餵罐罐' },
+  { id: 'teen', title: '少年貓', rarity: 'R', desc: '換一次一起逛寵物店', how: '長成少年貓' },
+  { id: 'big', title: '大貓咪', rarity: 'SR', desc: '換一次貓咪咖啡廳約會', how: '長成大貓咪' },
+  { id: 'boss', title: '貓老大', rarity: 'SSR', desc: '換一個貓咪造型的禮物', how: '長成貓老大' },
+  { id: 'feed30', title: '罐罐達人', rarity: 'SR', desc: '換一頓宵夜', how: '餵罐罐累計 30 次' },
+  { id: 'gacha', title: '稀有配件', rarity: 'SR', desc: '換一個小驚喜', how: '第一次扭到扭蛋限定配件' },
+  { id: 'allacc', title: '全身行頭', rarity: 'SSR', desc: '換一次拍貼', how: '收集全部配件' },
+  { id: 'bday', title: '小小黑週年', rarity: 'SR', desc: '換一個蛋糕一起吃', how: '小小黑來家裡滿一年（每年）' },
+];
+function petEarned() {
+  const P = petState(), pet = P.pet || {}, got = new Set();
+  const feeds = list('points').filter((x) => x.amt < 0 && /罐罐/.test(x.reason || '')).length;
+  if ((pet.pats || 0) >= 1) got.add('pat');
+  if (feeds >= 1) got.add('feed');
+  if (feeds >= 30) got.add('feed30');
+  if (P.st >= 1) got.add('teen');
+  if (P.st >= 2) got.add('big');
+  if (P.st >= 3) got.add('boss');
+  const owned = pet.owned || [];
+  if (PET_ACC.some((a) => a.gacha && owned.includes(a.id))) got.add('gacha');
+  if (PET_ACC.every((a) => a.month || (a.gacha || a.anniv ? owned.includes(a.id) : P.xp >= a.xp))) got.add('allacc');
+  return got;
+}
+function petBdayKeys() {
+  const born = S.couple.createdAt; if (!born) return [];
+  const b = new Date(born), t = new Date(); t.setHours(0, 0, 0, 0);
+  const out = [];
+  for (let y = b.getFullYear() + 1; y <= t.getFullYear(); y++) if (t >= new Date(y, b.getMonth(), b.getDate())) out.push(y);
+  return out.slice(-1);
+}
+
+let seriesBusy = false;
+async function seriesDrops() {
+  const ms = S.couple?.members || [];
+  if (ms.length < 2 || seriesBusy) return;
+  seriesBusy = true;
+  try {
+    for (const id of dateEarned()) { const t = DATE_DEFS.find((x) => x.id === id); await seriesDrop(`date-${id}`, t, '約會系列', 'date', ms, '約會系列掉了一張卡'); }
+    for (const id of petEarned()) { const t = PET_DEFS.find((x) => x.id === id); await seriesDrop(`pet-${id}`, t, '小小黑系列', 'pet', ms, `${petState().name}送你們一張卡`); }
+    if (S.d.trips && S.d.deposits && S.d.photos) await travelExtraDrops(countedTrips());
+    for (const y of petBdayKeys()) await seriesDrop(`pet-bday-${y}`, PET_DEFS.find((x) => x.id === 'bday'), '小小黑系列', 'pet', ms, `${petState().name}來家裡滿 ${y - new Date(S.couple.createdAt).getFullYear()} 年了`);
+  } finally { seriesBusy = false; }
+}
+
+// ---------- 收藏冊格子（還沒拿到的顯示拿法） ----------
+Object.assign(SERIES_SLOTS, {
+  '節日系列': () => {
+    const role = prof(me()).role;
+    const base = [
+      { fest: 'queen', title: '壽星女王券', rarity: 'SSR', how: '她的生日', only: 'her' },
+      { fest: 'king', title: '壽星國王券', rarity: 'SSR', how: '他的生日', only: 'him' },
+      { fest: 'anniv', title: '週年紀念券', rarity: 'SSR', how: '交往紀念日' },
+      { fest: 'valentine', title: '情人節限定券', rarity: 'SR', how: '2/14 情人節' },
+      { fest: 'xmas', title: '聖誕交換券', rarity: 'SR', how: '12/25 聖誕節' },
+      { fest: 'newyear', title: '新年第一張券', rarity: 'SR', how: '1/1 新年' },
+      ...Object.values(HOLIDAY_MORE),
+    ];
+    return base.filter((x) => !x.only || x.only === role).map((x) => ({ ...x, match: (c) => festKey(c) === x.fest }));
+  },
+  '旅行系列': () => [
+    ...Object.entries(D.TRAVEL_DROPS).map(([k, t]) => ({ title: t.title, rarity: t.rarity, how: { fund25: '旅行基金存到 25%', fund50: '旅行基金存到 50%', fund75: '旅行基金存到 75%', trip1: '記下第一個足跡', trip5: '足跡滿 5 站', trip10: '足跡滿 10 站', abroad: '第一次一起出國', revisit: '去過的地方滿一年那天' }[k] || '' })),
+    { title: D.TRAVEL_CARD.title, rarity: D.TRAVEL_CARD.rarity, how: '旅行基金存滿' },
+    ...Object.values(TRAVEL_MORE),
+  ].map((x) => (x.title === D.TRAVEL_DROPS.revisit?.title ? { ...x, match: (c) => c.title === x.title || /舊地重遊/.test(c.title) } : x)),
+  '約會系列': () => DATE_DEFS,
+  '小小黑系列': () => PET_DEFS,
+});
+
+// ---------- 兌換時：對方跳出大卡片 ----------
+function redeemPopup() {
+  if (!S.d.events || !S.d.cards || document.querySelector('.redeem-pop')) return;
+  const key = `park-redeem-pop-${S.cid}-${me()}`;
+  const evs = list('events').filter((e) => e.to === me() && e.type === 'redeem' && e.cardId);
+  let seen = null; try { seen = JSON.parse(localStorage.getItem(key) || 'null'); } catch (e) {}
+  if (!seen) { localStorage.setItem(key, JSON.stringify(evs.map((e) => e.id))); return; }
+  const e = evs.filter((x) => !seen.includes(x.id) && !x.read).sort((a, b) => a.at - b.at)[0];
+  if (!e) return;
+  seen.push(e.id); localStorage.setItem(key, JSON.stringify(seen.slice(-300)));
+  const c = list('cards').find((x) => x.id === e.cardId);
+  const m = openModal(`<div class="redeem-pop">
+      <div class="rp-head"><span class="rp-who">${esc(nick(e.by))}</span> 要兌換這張！</div>
+      ${c ? bigCardHTML(c).replace(/<p class="center small muted"[\s\S]*?<\/p>\s*$/, '') : `<div class="rp-title">${esc(e.detail)}</div>`}
+      <button class="btn block" id="rp-ok">收到，馬上來</button>
+    </div>`, { center: true, cls: 'redeem-pop-back' });
+  if (c && typeof attachCardFX === 'function') attachCardFX(m);
+  sfx('chime'); confetti(c && (c.rarity === 'SSR' || c.rarity === 'SR') ? 90 : 45);
+  $('#rp-ok', m).onclick = async () => { closeModal(m); await col('events').update(e.id, { read: true }); setTimeout(redeemPopup, 400); };
 }
 // ============================================================
 //  啟動
