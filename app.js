@@ -1383,6 +1383,7 @@ function doRender() {
   const a = document.activeElement;
   if (a && a.closest && a.closest('#main') && /INPUT|TEXTAREA|SELECT/.test(a.tagName)) { S.deferRender = true; renderTop(); renderNav(); return; }
   setSection(S.tab);
+  dexResetOnce();
   if (S.tab !== 'home') document.querySelectorAll('.cat-stroll').forEach((x) => x.remove());
   const A = annivInfo(); document.documentElement.dataset.anniv = A.is ? '1' : '';
   renderTop(); renderNav(); renderMain();
@@ -4897,18 +4898,20 @@ function dutyHomeCard() {
   const k = dutyToday();
   if (!k) return '';
   const f = FRIENDS[k], met = !!((S.couple.dex || {})[k] || {}).met;
-  const said = localStorage.getItem(`park-duty-${dkey()}-${me()}`);
+  const said = localStorage.getItem(`park-duty2-${dkey()}-${me()}`);
   return `<button class="card duty-card" data-act="dutyHi" data-k="${k}">
     <span class="duty-art ${met ? '' : 'locked'}">${withHat(k, friendArt(k))}</span>
     <span class="grow"><span class="duty-tag">今日值日生</span><b>${met ? esc(f.name) : '？？？'}</b>
       <span class="small muted duty-say">${said ? esc(said) : met ? '今天輪到牠來值日，跟牠打聲招呼' : '一位還沒見過的朋友來值日了'}</span></span>
-    <span class="duty-hi">${said ? '再一次' : '打招呼'}</span></button>`;
+    <span class="duty-hi ${said ? 'done' : ''}">${said ? '明天見' : '打招呼'}</span></button>`;
 }
 ACT.dutyHi = (el) => {
+  // 值日生一天只打一次招呼，台詞要慢慢收集
+  if (localStorage.getItem(`park-duty2-${dkey()}-${me()}`)) return toast('今天已經打過招呼了，明天見');
   const k = el.dataset.k, r = el.querySelector('.duty-art').getBoundingClientRect();
   sfx('heart'); floaty(r.left + r.width / 2, r.top, ['#ff9fb4', '#ffd45c']);
   const t = sayLine(k);
-  localStorage.setItem(`park-duty-${dkey()}-${me()}`, t);
+  localStorage.setItem(`park-duty2-${dkey()}-${me()}`, t);
   setTimeout(() => { const n = document.querySelector('.duty-card'); if (n) n.outerHTML = dutyHomeCard(); }, 50);
 };
 
@@ -5040,6 +5043,15 @@ function refreshBook(m) {
 }
 const uid8 = () => Math.random().toString(36).slice(2, 10);
 ACT.dex = () => { const m = openModal(bookHTML(), { center: true, cls: 'dex-book' }); wireBook(m, 0); };
+
+// 一次性：圖鑑歸零（值日生可以一直刷台詞的時候收集得太快了）
+let dexResetBusy = false;
+async function dexResetOnce() {
+  if (!S.couple || !S.cid || S.couple.dexReset >= 1 || dexResetBusy) return;
+  dexResetBusy = true;
+  await S.store.coupleTx(S.cid, (x) => (x.dexReset >= 1 ? null : { dex: {}, scenes: {}, dexReset: 1 }));
+  dexResetBusy = false;
+}
 // ============================================================
 //  啟動
 // ============================================================
