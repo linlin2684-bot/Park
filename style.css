@@ -587,6 +587,7 @@ input[type="date"]::-webkit-date-and-time-value { text-align: left; }
 .emb-F-king      { --e-bg: #f0f2f7; --e-ink: #22365f; --e-acc: #c9a65a; }
 .emb-F-anniv     { --e-bg: #f9f2ea; --e-ink: #6c1f36; --e-acc: #d4ae68; }
 .emb-F-valentine { --e-bg: #fdf1f3; --e-ink: #a2253f; --e-acc: #eeaab8; }
+.emb-F-miss      { --e-bg: #fcf0f2; --e-ink: #8c1f3c; --e-acc: #e79aae; }
 .emb-F-xmas      { --e-bg: #eff5f0; --e-ink: #1e5038; --e-acc: #c6a04e; }
 .emb-F-newyear   { --e-bg: #fcf3ec; --e-ink: #9e2f1f; --e-acc: #d8a443; }
 .emb-F-travel    { --e-bg: #eef6f6; --e-ink: #1f5962; --e-acc: #93c2c3; }
@@ -594,6 +595,7 @@ html[data-theme="night"] .emb-F-queen     { --e-bg: #2a151a; --e-ink: #f2cbc4; -
 html[data-theme="night"] .emb-F-king      { --e-bg: #121a2c; --e-ink: #e7d49d; --e-acc: #4a5e8e; }
 html[data-theme="night"] .emb-F-anniv     { --e-bg: #22101a; --e-ink: #efd3a0; --e-acc: #7a2f48; }
 html[data-theme="night"] .emb-F-valentine { --e-bg: #2b1018; --e-ink: #f6c2cd; --e-acc: #8b3046; }
+html[data-theme="night"] .emb-F-miss      { --e-bg: #2a0f17; --e-ink: #f7c4d0; --e-acc: #8f2c49; }
 html[data-theme="night"] .emb-F-xmas      { --e-bg: #0f1f17; --e-ink: #e3cd8f; --e-acc: #2f6a4c; }
 html[data-theme="night"] .emb-F-newyear   { --e-bg: #29120c; --e-ink: #f2c66d; --e-acc: #8b3624; }
 html[data-theme="night"] .emb-F-travel    { --e-bg: #0f1f22; --e-ink: #bfe3e2; --e-acc: #2f6a70; }
@@ -1242,3 +1244,19 @@ html[data-theme="night"] .pet-visitor.locked .cat-svg { filter: brightness(0) in
 .pet-room.big .pet-visitor { width: 92px; margin-left: -18px; }
 .pet-room.big .pet-visitor.fr-v-haohao, .pet-room.big .pet-visitor.fr-v-gungun, .pet-room.big .pet-visitor.fr-v-shark { width: 110px; }
 .pet-room.big .pv-tag { font-size: 11px; padding: 2px 9px; }
+
+/* 想你：愛心雨 */
+.heart-rain { position: fixed; inset: 0; z-index: 160; pointer-events: none; overflow: hidden; }
+.heart-rain span { position: absolute; top: -40px; display: block; animation: heartFall linear forwards; opacity: 0; filter: drop-shadow(0 2px 4px rgba(200, 40, 60, .25)); }
+.heart-rain svg { width: 100%; height: auto; display: block; }
+@keyframes heartFall {
+  0% { transform: translate(0, 0) rotate(var(--r)) scale(.6); opacity: 0; }
+  10% { opacity: 1; transform: translate(calc(var(--sw) * .3), 10vh) rotate(var(--r)) scale(1); }
+  50% { transform: translate(var(--sw), 55vh) rotate(calc(var(--r) * -1)); }
+  85% { opacity: .9; }
+  100% { transform: translate(calc(var(--sw) * -.4), 110vh) rotate(var(--r)); opacity: 0; }
+}
+
+.hero-miss.cool { filter: saturate(.35) brightness(.85); opacity: .75; }
+.hero-miss.nope { animation: missNope .4s ease-in-out; }
+@keyframes missNope { 20%, 60% { transform: translateX(-4px) rotate(-6deg); } 40%, 80% { transform: translateX(4px) rotate(6deg); } }

@@ -1387,6 +1387,7 @@ function doRender() {
   if (a && a.closest && a.closest('#main') && /INPUT|TEXTAREA|SELECT/.test(a.tagName)) { S.deferRender = true; renderTop(); renderNav(); return; }
   setSection(S.tab);
   dexResetOnce();
+  if (typeof missRain === 'function') missRain();
   if (S.tab !== 'home') document.querySelectorAll('.cat-stroll').forEach((x) => x.remove());
   const A = annivInfo(); document.documentElement.dataset.anniv = A.is ? '1' : '';
   renderTop(); renderNav(); renderMain();
@@ -1703,7 +1704,7 @@ PAGES.home = {
     return `${annivHomeCard()}
     ${homeNextDate()}
     <div class="card hero">
-      <button class="hero-miss" data-act="miss" id="missbtn" aria-label="想你"><i data-ic="heart" class="ic-fill"></i></button>
+      <button class="hero-miss ${missCoolLeft() > 0 ? 'cool' : ''}" data-act="miss" id="missbtn" aria-label="想你"><i data-ic="heart" class="ic-fill"></i></button>
       <div class="small muted">我們在一起</div>
       <div class="days">第 ${money(daysTogether())} <small>天</small></div>
       <div class="couple"><span>${avatar(me())} ${esc(nick(me()))}</span><span class="heart"><i data-ic="heart" class="ic-fill"></i></span><span>${p ? `${avatar(p)} ${esc(nick(p))}` : '<span class="muted">等待對方加入…</span>'}</span></div>
@@ -1752,7 +1753,18 @@ function missStreak(uid) {
   while (days.has(dkey(d))) { n++; d.setDate(d.getDate() - 1); }
   return n;
 }
+// 想你：每個人 5 分鐘才能按一次
+const MISS_COOL = 5 * 60000;
+function missCoolLeft() {
+  const last = Math.max(0, ...list('misses').filter((m) => m.by === me()).map((m) => m.at || 0));
+  return Math.max(0, last + MISS_COOL - now());
+}
 ACT.miss = async (el, e) => {
+  const left = missCoolLeft();
+  if (left > 0) {
+    el.classList.remove('nope'); void el.offsetWidth; el.classList.add('nope');
+    return toast(`剛剛才想過了，${left > 60000 ? Math.ceil(left / 60000) + ' 分鐘' : Math.ceil(left / 1000) + ' 秒'}後可以再想一次`);
+  }
   const r = el.getBoundingClientRect();
   floaty(r.left + r.width / 2, r.top); sfx('heart');
   el.classList.remove('pulse'); void el.offsetWidth; el.classList.add('pulse');
@@ -2070,6 +2082,7 @@ const FESTS = {
   xmas:      { label: '聖 誕 限 定', foot: '聖誕限定', pat: 'snow' },
   newyear:   { label: '新 年 限 定', foot: '新年限定', pat: 'plum' },
   travel:    { label: '旅 行 限 定', foot: '旅行系列', pat: 'grid' },
+  miss:      { label: '想 你 限 定', foot: '想你系列', pat: 'hearts' },
 };
 function festKey(c) { return c && (c.fest || FEST_BY_TITLE[c.title]) || ''; }
 
@@ -2129,6 +2142,12 @@ function festMotif(key, c) {
       <path d="M0 -34 L1.8 -27.8 L8 -26 L1.8 -24.2 L0 -18 L-1.8 -24.2 L-8 -26 L-1.8 -27.8 Z" class="e-ink-f"/>
       <circle cx="-14" cy="-26" r="1" class="e-ink-f"/><circle cx="14" cy="-26" r="1" class="e-ink-f"/>
       <text x="0" y="30" text-anchor="middle" font-size="9" letter-spacing="2" class="e-ink-f e-small">${yr > 0 ? `第 ${yr} 年` : '紀念日'}</text>`;
+  }
+  if (key === 'miss') {
+    // 一顆大愛心包著小愛心，下面是心跳線
+    return `<path d="M0 20 C-6 14 -25 3 -25 -10 C-25 -19 -18 -25 -10.5 -25 C-5.5 -25 -2 -22 0 -18 C2 -22 5.5 -25 10.5 -25 C18 -25 25 -19 25 -10 C25 3 6 14 0 20 Z" class="e-bg e-ink-s" stroke-width="1.6" stroke-linejoin="round"/>
+      <path d="M0 8 C-4 5 -13 -1 -13 -8.5 C-13 -13 -9.5 -16 -6 -16 C-3 -16 -1 -14.2 0 -12 C1 -14.2 3 -16 6 -16 C9.5 -16 13 -13 13 -8.5 C13 -1 4 5 0 8 Z" class="e-acc-f e-ink-s" stroke-width="1"/>
+      <path d="M-30 30 L-17 30 L-13 24 L-9 36 L-5 30 L5 30 L9 24 L13 36 L17 30 L30 30" class="e-ink-s" stroke-width="1.3" fill="none" stroke-linecap="round" stroke-linejoin="round"/>`;
   }
   if (key === 'valentine') {
     return `<path d="M0 6 C0 14 -1.5 22 0 34" class="e-ink-s" stroke-width="1.4" stroke-linecap="round"/>
@@ -2225,6 +2244,7 @@ const BOOK_META = {
   [D.BIRTHDAY_SERIES]: { pal: 'C', motif: 'candle', pat: 'sparkle', sub: '25 歲生日限定', how: '他加入時就會收到整套生日卡' },
   '節日系列': { pal: 'F-anniv', motif: 'stars', pat: 'rings', sub: '節日與紀念日限定', how: '生日、週年、情人節、聖誕、新年當天自動掉落' },
   '旅行系列': { pal: 'F-travel', motif: 'compass', pat: 'grid', sub: '旅途中的里程碑', how: '存旅行基金、記錄足跡、第一次出國、舊地重遊都會掉卡' },
+  '想你系列': { pal: 'F-miss', motif: 'heart', pat: 'hearts', sub: '按下想你的累積', how: '按想你累計 100、520、1314 次，對方會收到一張' },
   '成就系列': { pal: 'SSR', motif: 'stars', pat: 'rings', sub: '金色成就的紀念', how: '解鎖金色成就時，兩人各掉一張' },
   [WISH_SERIES]: { pal: 'W', motif: 'wish', pat: 'sparkle', sub: '許願池實現的願望', how: '在許願池許願，對方點頭就會收進來' },
 };
@@ -2246,6 +2266,7 @@ function bookMotif(kind) {
       ${star(22, -22, 8)}${star(-24, 22, 6)}<circle cx="24" cy="18" r="1.6" class="e-ink-f"/><circle cx="-24" cy="-20" r="1.3" class="e-ink-f"/>`;
   }
   if (kind === 'compass') return festMotif('travel');
+  if (kind === 'heart') return festMotif('miss');
   // wish：流星
   const pts = Array.from({ length: 10 }, (_, i) => { const a = (i * 36 - 90) * Math.PI / 180, r = i % 2 ? 6.5 : 15; return `${(10 + Math.cos(a) * r).toFixed(1)},${(-10 + Math.sin(a) * r).toFixed(1)}`; }).join(' ');
   return `<path d="M-34 30 Q-14 22 -2 4" class="e-acc-s" stroke-width="2.2" fill="none" stroke-linecap="round"/>
@@ -2746,6 +2767,7 @@ function walletBook() {
     ...ms.map((u) => ({ key: `wish:${u}`, series: WISH_SERIES, title: `${nick(u)}的許願卡`, owner: u })),
     { key: '節日系列', series: '節日系列', title: '節日系列' },
     { key: '旅行系列', series: '旅行系列', title: '旅行系列' },
+    { key: '想你系列', series: '想你系列', title: '想你系列' },
     ...Object.keys(groups).filter((k) => !k.startsWith('wish:') && !BOOK_META[k]).map((k) => ({ key: k, series: k, title: k })),
   ];
   return books.map((b) => {
@@ -3916,6 +3938,7 @@ function scheduleAchievements() {
     if (!S.couple || COLS.some((c) => !S.d[c])) return;
     const got = computeAch();
     achCardDrops(got);
+    if (typeof missCardDrops === 'function') missCardDrops();
     const key = 'park-ach-' + S.cid + '-' + me();
     const raw = localStorage.getItem(key);
     if (raw == null) { localStorage.setItem(key, JSON.stringify([...got])); return; }
@@ -5074,6 +5097,71 @@ async function dexResetOnce() {
   dexResetBusy = true;
   await S.store.coupleTx(S.cid, (x) => (x.dexReset >= 1 ? null : { dex: {}, scenes: {}, dexReset: 1 }));
   dexResetBusy = false;
+}
+// ============================================================
+//  想你：愛心雨、想你系列紀念卡
+// ============================================================
+
+// 對方想你的時候：打開 App（或 App 開著）就會下一陣愛心雨
+function missRain() {
+  const p = partner();
+  if (!p || !S.d.misses || !S.cid) return;
+  const key = `park-miss-seen-${S.cid}-${me()}`;
+  const theirs = list('misses').filter((m) => m.by === p);
+  const latest = Math.max(0, ...theirs.map((m) => m.at || 0));
+  const last = +(localStorage.getItem(key) || 0);
+  if (!last) { localStorage.setItem(key, latest || now()); return; }
+  const fresh = theirs.filter((m) => m.at > last);
+  if (!fresh.length) return;
+  localStorage.setItem(key, latest);
+  heartRain();
+  setTimeout(() => toast(`${nick(p)} 想了你 ${fresh.length} 次`), 500);
+}
+function heartRain(n = 34) {
+  if (document.querySelector('.heart-rain')) return;
+  const C = ['#e2445f', '#ff6f91', '#ff9db4', '#ffc2d1', '#c8283c', '#f7a1b5'];
+  const wrap = document.createElement('div');
+  wrap.className = 'heart-rain';
+  let h = '';
+  for (let i = 0; i < n; i++) {
+    const s = 14 + Math.random() * 22, x = Math.random() * 100, d = 2.6 + Math.random() * 1.8, dl = Math.random() * 1.4, sw = (Math.random() * 40 - 20).toFixed(0);
+    h += `<span style="left:${x.toFixed(1)}%;width:${s.toFixed(0)}px;animation-duration:${d.toFixed(2)}s;animation-delay:${dl.toFixed(2)}s;--sw:${sw}px;--r:${(Math.random() * 50 - 25).toFixed(0)}deg">
+      <svg viewBox="0 0 24 22"><path d="M12 21 C9 18 1 13 1 6.5 C1 3 3.7 1 6.6 1 C9 1 10.8 2.4 12 4.4 C13.2 2.4 15 1 17.4 1 C20.3 1 23 3 23 6.5 C23 13 15 18 12 21 Z" fill="${C[i % C.length]}"/></svg></span>`;
+  }
+  wrap.innerHTML = h;
+  document.body.appendChild(wrap);
+  sfx('heart');
+  setTimeout(() => wrap.remove(), 6500);
+}
+
+// 想你系列：一個人累計按想你 100／520／1314 次，對方收到一張限定券
+const MISS_SERIES = '想你系列';
+const MISS_CARDS = [
+  { n: 100, title: '想你一百次', desc: '想了你一百次的證明。兌換一個很久很久、不能先放開的擁抱', rarity: 'SR', mark: '想' },
+  { n: 520, title: '520 我愛你', desc: '按了 520 次想你。兌換一次約會，去哪裡由你決定', rarity: 'SSR', mark: '愛' },
+  { n: 1314, title: '一生一世', desc: '按了 1314 次想你。兌換一個願望，什麼都可以', rarity: 'SSR', mark: '生' },
+];
+// 冷卻時間到了，愛心恢復亮亮的
+setInterval(() => { const b = document.querySelector('#missbtn.cool'); if (b && missCoolLeft() <= 0) b.classList.remove('cool'); }, 15000);
+let missDropBusy = false;
+async function missCardDrops() {
+  const ms = S.couple?.members || [];
+  if (ms.length < 2 || missDropBusy || !S.d.misses) return;
+  missDropBusy = true;
+  try {
+    for (const u of ms) {
+      const p = ms.find((x) => x !== u);
+      const n = list('misses').filter((m) => m.by === u).length;
+      for (const t of MISS_CARDS) {
+        const k = `miss-${u}-${t.n}`;
+        if (n < t.n || (S.couple.drops || {})[k]) continue;
+        const ok = await S.store.coupleTx(S.cid, (x) => (x.drops && x.drops[k] ? null : { [`drops.${k}`]: true }));
+        if (!ok) continue;
+        await col('cards').add(cardDoc({ title: t.title, desc: t.desc, rarity: t.rarity, mark: t.mark, series: MISS_SERIES, fest: 'miss' }, p, u));
+        await col('events').add({ to: p, by: u, type: 'card', text: `${nick(u)} 已經想了你 ${t.n} 次，送你一張想你限定券`, detail: t.title, at: now(), read: false });
+      }
+    }
+  } finally { missDropBusy = false; }
 }
 // ============================================================
 //  啟動
