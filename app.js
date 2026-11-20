@@ -915,8 +915,8 @@ function pandaArt() {
       <path d="M-13.2 -13.5 L-15 -22.5 L-7 -18.6 Z M13.2 -13.5 L15 -22.5 L7 -18.6 Z" fill="${W}"/>
       <path d="M-11 -16 L-12 -20.5 L-8.5 -18 Z M11 -16 L12 -20.5 L8.5 -18 Z" fill="${D}"/>
       <ellipse cx="0" cy="-3" rx="19" ry="16" fill="${R}" stroke="${RL}" stroke-width="1"/>
-      <ellipse cx="-9" cy="2" rx="7.5" ry="7" fill="${W}"/><ellipse cx="9" cy="2" rx="7.5" ry="7" fill="${W}"/>
-      <ellipse cx="0" cy="5" rx="7" ry="5.6" fill="${W}"/>
+      <path d="M-17.5 -1 Q-17 -7 -13 -7 Q-12 0 -14.5 5 Q-17 4 -17.5 -1 Z M17.5 -1 Q17 -7 13 -7 Q12 0 14.5 5 Q17 4 17.5 -1 Z" fill="${W}"/>
+      <ellipse cx="0" cy="4.6" rx="6.4" ry="5.2" fill="${W}"/>
       <ellipse cx="-6.5" cy="-13" rx="3.2" ry="2.2" fill="${W}"/><ellipse cx="6.5" cy="-13" rx="3.2" ry="2.2" fill="${W}"/>
       <circle cx="-7" cy="-4" r="3.4" fill="${D}"/><circle cx="7" cy="-4" r="3.4" fill="${D}"/>
       <circle cx="-5.8" cy="-5.3" r="1.2" fill="#fff"/><circle cx="8.2" cy="-5.3" r="1.2" fill="#fff"/><circle cx="-7.8" cy="-2.6" r=".55" fill="#fff"/><circle cx="6.2" cy="-2.6" r=".55" fill="#fff"/>
