@@ -41,7 +41,7 @@ async function schedDeliver() {
   const sc = S.couple?.sched || {}, today = dkey();
   for (const [id, x] of Object.entries(sc)) {
     if (!x || x.day > today) continue;
-    const ok = await S.store.coupleTx(S.cid, (c) => ((c.sched || {})[id] ? { [`sched.${id}`]: null } : null));
+    const ok = await S.store.coupleTx(S.cid, (c) => ((c.sched || {})[id] ? { [`sched.${id}`]: S.store.DEL ? S.store.DEL() : null } : null));
     if (!ok) continue;
     const t = { ...x.t };
     if (t.expDur) { if (t.expDur <= 86400000) { const d = new Date(); d.setHours(23, 59, 59, 999); t.expiresAt = d.getTime(); } else t.expiresAt = now() + t.expDur; delete t.expDur; }
@@ -125,7 +125,8 @@ async function dailyCollideBonus(w) {
 
 // ---------- 重複卡換罐罐 ----------
 ACT.dupToCan = async (el) => {
-  const c = list('cards').find((x) => x.id === el.dataset.id); if (!c || c.owner !== me() || c.used) return;
+  const c = list('cards').find((x) => x.id === el.dataset.id); if (!c || c.owner !== me() || c.used || el.disabled) return;
+  el.disabled = true;   // 連點兩下不會換到兩個罐罐
   await col('cards').remove(c.id);
   await giveCan(me(), '', true);
   el.closest('.dup-row') && (el.closest('.dup-row').innerHTML = `<span class="small">換好了，${esc(petState().name)}多了一個罐罐</span>`);
@@ -145,6 +146,7 @@ async function pruneOld() {
     if (w && w < cutWk) up[`drops.${key}`] = X;
     if (S.couple.drops[key] === null) up[`drops.${key}`] = X;
   }
+  for (const [id, x] of Object.entries(S.couple.sched || {})) if (x === null) up[`sched.${id}`] = X;
   for (const f of ['taskOverride', 'battleSwaps']) for (const w of Object.keys(S.couple[f] || {})) if (w < cutWk) up[`${f}.${w}`] = X;
   if (Object.keys(up).length) { try { await S.store.updateCouple(S.cid, up); } catch (e) {} }
 }

@@ -349,6 +349,13 @@ function refreshBook(m) {
     requestAnimationFrame(() => { const pg = $$('.db-page', m)[p]; if (pg) pg.scrollTop = y; });
   }, 120);
 }
+// 每台手機各自清一次「記得的」成就、紙條、提醒（加入後 7 天內第一次打開時）
+function localFreshStart(ts, force) {
+  const fk = `park-fresh-${S.cid}`;
+  if (!force && (localStorage.getItem(fk) === String(ts) || now() - ts > 7 * 86400000)) return;
+  Object.keys(localStorage).filter((k) => /^park-(ach|miss-seen|redeem-pop|duty|stroll-pat|carry|dexreset|dexnew|petxp|fundpet|mreview|poke)/.test(k)).forEach((k) => localStorage.removeItem(k));
+  localStorage.setItem(fk, String(ts));
+}
 const uid8 = () => Math.random().toString(36).slice(2, 10);
 ACT.dex = () => { const m = openModal(bookHTML(), { center: true, cls: 'dex-book' }); wireBook(m, 0); };
 
@@ -368,6 +375,8 @@ async function dexResetOnce() {
     try { await joinFreshStart(); } finally { dexResetBusy = false; }
     return;
   }
+  // 加入那一刻是在對方手機上清的：這台手機也要把自己記得的成就、提醒清掉（只做一次）
+  if (S.couple.togetherStart && S.couple.dexReset >= 2 && !dexResetBusy) localFreshStart(S.couple.togetherStart);
   if (S.couple.dexReset >= 1 || dexResetBusy) return;
   dexResetBusy = true;
   await S.store.coupleTx(S.cid, (x) => (x.dexReset >= 1 ? null : { dex: {}, scenes: {}, dexReset: 1 }));
@@ -377,7 +386,8 @@ async function dexResetOnce() {
 // 對方加入的那一刻：先備份，再把測試期間的東西全部清掉，兩個人從零開始
 // 保留：暱稱、頭像、生日、紀念日、卡池、旅行基金的名稱和目標、對方的生日卡組
 async function joinFreshStart() {
-  const ok = await S.store.coupleTx(S.cid, (x) => (x.togetherStart ? null : { togetherStart: now() }));
+  const ts = now();
+  const ok = await S.store.coupleTx(S.cid, (x) => (x.togetherStart ? null : { togetherStart: ts }));
   if (!ok) return;
   try { await saveCloudBackup('join'); } catch (e) { console.warn('加入前備份失敗', e); }
   const c = S.couple, bSeries = D.BIRTHDAY_SERIES;
@@ -396,7 +406,7 @@ async function joinFreshStart() {
   // 新手禮：兩個人各 40 點（可以扭兩次）
   for (const u of c.members || []) await addPoints(u, 40, '新手禮：歡迎來到遊樂園');
   // 這台手機記得的成就、紙條、提醒也清掉
-  Object.keys(localStorage).filter((k) => /^park-(ach|miss-seen|redeem-pop|duty|stroll-pat|carry|dexreset|dexnew|petxp|fundpet|mreview|poke)/.test(k)).forEach((k) => localStorage.removeItem(k));
+  localFreshStart(ts, true);
   toast('歡迎加入！遊樂園從今天開始重新記錄，兩個人各送 40 點新手禮');
   setTimeout(() => { if (typeof holidayDrops === 'function') holidayDrops(); }, 2500);
 }

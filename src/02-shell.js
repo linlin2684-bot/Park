@@ -278,8 +278,8 @@ function renderOnboard() {
         if (!c) { toast('找不到這組邀請碼'); $('#jn').disabled = false; return; }
         if (!c.members.includes(me())) {
           if (c.members.length >= 2) { toast('這個空間已經有兩個人了'); $('#jn').disabled = false; return; }
+          // 新手禮 40 點在加入那一刻由 joinFreshStart 統一發（這裡不再發入園禮，免得變成 60 點）
           await S.store.updateCouple(code, { members: [...c.members, me()], [`profiles.${me()}`]: { ...p } });
-          await welcomeGift(code, me());
         }
         await S.store.setUser(me(), { coupleId: code });
         enterCouple(code);
