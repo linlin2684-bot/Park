@@ -3321,6 +3321,7 @@ function weeklyHTML() {
 }
 ACT.taskUndo = async (el) => {
   const i = +el.dataset.i, wk = weekKey(), t = weekTasks()[i];
+  if (balance(me()) < D.POINTS.weeklyTask) return toast('這項的點數已經花掉了，沒辦法取消');
   if (!(await confirmBox(`取消「${t}」的打勾？\n加的 ${D.POINTS.weeklyTask} 點會扣回來`, '取消打勾'))) return;
   await col('taskDone').remove(`${wk}_${i}_${me()}`);
   await addPoints(me(), -D.POINTS.weeklyTask, '取消每週任務：' + t);
@@ -3356,8 +3357,11 @@ ACT.taskDo = async (el) => {
   const t = weekTasks()[i];
   if (!(await confirmBox(`完成「${t}」了嗎？`, '完成！'))) return;
   await col('taskDone').set(`${wk}_${i}_${me()}`, { uid: me(), week: wk, i, task: t, at: now() });
-  await addPoints(me(), D.POINTS.weeklyTask, '每週任務：' + t); petXP(3);
-  maybeCan(me(), '完成了每週任務', .5); setTimeout(weekTicketCheck, 800);
+  await addPoints(me(), D.POINTS.weeklyTask, '每週任務：' + t);
+  // 取消再打勾不會重複拿小小黑經驗和罐罐
+  const first = await S.store.coupleTx(S.cid, (c) => ((c.drops || {})[`task-${wk}-${i}-${me()}`] ? null : { [`drops.task-${wk}-${i}-${me()}`]: true }));
+  if (first) { petXP(3); maybeCan(me(), '完成了每週任務', .5); }
+  setTimeout(weekTicketCheck, 800);
   confetti(30); toast(`+${D.POINTS.weeklyTask} 點`);
 };
 // ============================================================
