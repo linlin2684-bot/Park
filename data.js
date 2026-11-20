@@ -1038,4 +1038,12 @@ export const ACHIEVEMENTS = [
   { id: 'deep_change', name: '看見改變', desc: '同一題在不同年份都一起回答過', m: 'deepRepeat', goal: 1, tier: 'g', mark: '變', cat: 'deep' },
   // 週年
   { id: 'anniv_letter', name: '週年情書', desc: '週年紀念日兩個人都寫了信', m: 'annivLetters', goal: 1, tier: 's', mark: '信', cat: 'anniv' },
+  // 小動物圖鑑
+  { id: 'dex_1', name: '第一位朋友', desc: '圖鑑收進第一隻小動物', m: 'dexMet', goal: 1, tier: 'b', mark: '遇', cat: 'dex' },
+  { id: 'dex_5', name: '朋友越來越多', desc: '圖鑑收進 5 隻小動物', m: 'dexMet', goal: 5, tier: 's', mark: '友', cat: 'dex' },
+  { id: 'dex_all', name: '大合照', desc: '遇到所有小動物', m: 'dexMet', goal: 10, tier: 'g', mark: '全', cat: 'dex' },
+  { id: 'dex_full', name: '最懂牠的人', desc: '收齊一隻小動物的所有台詞', m: 'dexFull', goal: 1, tier: 's', mark: '懂', cat: 'dex' },
+  { id: 'dex_custom', name: '幫牠們說話', desc: '幫小動物加 5 句台詞', m: 'dexCustom', goal: 5, tier: 'b', mark: '言', cat: 'dex' },
+  { id: 'dex_scene3', name: '小劇場常客', desc: '看過 3 齣小劇場', m: 'dexScenes', goal: 3, tier: 's', mark: '劇', cat: 'dex' },
+  { id: 'dex_sceneall', name: '全劇終', desc: '看過所有小劇場', m: 'dexScenes', goal: 10, tier: 'g', mark: '幕', cat: 'dex' },
 ];
