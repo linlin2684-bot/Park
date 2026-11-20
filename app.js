@@ -1489,44 +1489,43 @@ ACT.settings = () => {
   const p = prof(me());
   const c = S.couple;
   const m = openModal(`${mhead('<i data-ic="gear"></i> 設定')}
-    <div class="card">
-      <h3>我的資料</h3>
+    <details class="card set-sec"><summary><h3>我的資料</h3><span class="set-ch">›</span></summary><div class="set-body">
       <label>頭像</label>
       <div class="av-grid" id="s-av">${avatarPickerHTML(p.av)}</div>
       <div class="av-emoji-row ${p.av && AVATARS[p.av] ? '' : 'on'}" id="s-emr"><span>或是用一個 Emoji 當頭像</span><input id="s-em" maxlength="2" value="${esc(p.emoji || '')}" placeholder="🙂" aria-label="Emoji 頭像"></div>
       <label>暱稱</label><input id="s-nk" maxlength="12" value="${esc(p.nick || '')}">
       <label>我的生日（月-日）</label><input id="s-bd" value="${esc(p.bday || '')}" placeholder="03-16">
       <label>我們的黑貓叫什麼名字</label><input id="s-pn" maxlength="10" value="${esc((c.pet && c.pet.name) || '小小黑')}">
-    </div>
-    <div class="card">
-      <h3>我們</h3>
+    </div></details>
+    <details class="card set-sec"><summary><h3>我們</h3><span class="set-ch">›</span></summary><div class="set-body">
       <label>在一起的日子</label><input id="s-an" type="date" value="${esc(c.dates?.anniversary || '')}">
       <label>尺度上限（兩人都打開才會出現更高的等級）</label>
       <div class="seg" id="s-sp">${[1, 2, 3].map((l) => `<button data-l="${l}" class="${(p.spice || 1) === l ? 'on' : ''}">${spiceIc(l)} ${D.SPICE[l].label}</button>`).join('')}</div>
       <p class="small muted" style="margin:0" id="s-lv">目前兩人共同等級：${spiceIc(spiceLevel())} ${D.SPICE[spiceLevel()].label}</p>
-    </div>
-    <div class="card">
-      <h3><i data-ic="sparkle"></i> 配色主題</h3>
+    </div></details>
+    <details class="card set-sec"><summary><h3><i data-ic="sparkle"></i> 配色主題</h3><span class="set-ch">›</span></summary><div class="set-body">
       <p class="small muted" style="margin:0 0 10px">只會改變你這支手機的樣子，每個分頁會有自己的主色</p>
       <div class="pal-grid" id="s-pal">${Object.entries(PALETTES).map(([k, p]) => `<button data-p="${k}" class="${paletteId() === k ? 'on' : ''}"><span class="pal-sw">${p.sw.map((c) => `<i style="background:${c}"></i>`).join('')}</span><b>${p.name}</b><small>${p.desc}</small></button>`).join('')}</div>
-    </div>
+    </div></details>
     <button class="btn block" id="s-save">儲存</button>
-    <div class="card mt">
-      <h3>更多</h3>
-      <div class="list-row" data-act="tourReplay"><span class="lr-i"><i data-ic="sparkle"></i></span><span class="grow">重看新手導覽</span>›</div>
-      <div class="list-row" data-act="poolManager"><span class="lr-i"><i data-ic="gacha"></i></span><span class="grow">管理扭蛋卡池</span>›</div>
-      <div class="list-row" data-act="backup"><span class="lr-i"><i data-ic="cloud"></i></span><span class="grow">備份與還原<div class="small muted">每週自動備份，也可以存一份到手機</div></span>›</div>
-      <div class="list-row" data-act="invite"><span class="lr-i"><i data-ic="key"></i></span><span class="grow">邀請碼 ${esc(S.cid)}</span>›</div>
-      <div class="list-row" id="s-noti"><span class="lr-i"><i data-ic="bell"></i></span><span class="grow">開啟瀏覽器通知<div class="small muted">開著 app 的時候才收得到，內容一律低調</div></span>›</div>
+    <details class="card set-sec mt"><summary><h3><i data-ic="violin"></i> 聲音</h3><span class="set-ch">›</span></summary><div class="set-body">
       <div class="list-row" id="s-sfx"><span class="lr-i"><i data-ic="bell"></i></span><span class="grow">音效<div class="small muted">翻卡、刮卡、兌換時的小聲音</div></span><label class="switch"><input type="checkbox" id="s-sfx-in" ${sfxOn() ? 'checked' : ''}><span></span></label></div>
       <div class="list-row" id="s-bgm"><span class="lr-i"><i data-ic="violin"></i></span><span class="grow">背景音樂<div class="small muted">白天鋼琴、晚上 Lo-fi</div></span><label class="switch"><input type="checkbox" id="s-bgm-in" ${bgmEnabled() ? 'checked' : ''}><span></span></label></div>
       <div class="bgm-vol ${bgmEnabled() ? '' : 'off'}" id="s-bgm-v"><span class="small muted">音量</span><input type="range" min="5" max="100" step="5" id="s-bgm-vol" value="${Math.round(bgmVol() * 100)}"></div>
+    </div></details>
+    <details class="card set-sec"><summary><h3>更多</h3><span class="set-ch">›</span></summary><div class="set-body">
+      <div class="list-row" data-act="guide"><span class="lr-i"><i data-ic="book"></i></span><span class="grow">功能介紹<div class="small muted">每個地方可以玩什麼、點數和罐罐怎麼拿</div></span>›</div>
+      <div class="list-row" data-act="tourReplay"><span class="lr-i"><i data-ic="sparkle"></i></span><span class="grow">重看新手導覽</span>›</div>
+      <div class="list-row" data-act="poolManager"><span class="lr-i"><i data-ic="gacha"></i></span><span class="grow">管理扭蛋卡池</span>›</div>
+      <div class="list-row" data-act="backup"><span class="lr-i"><i data-ic="cloud"></i></span><span class="grow">備份與還原<div class="small muted">每週自動備份，也可以存一份到手機</div></span>›</div>
+${(c.members || []).length < 2 ? `<div class="list-row" data-act="invite"><span class="lr-i"><i data-ic="key"></i></span><span class="grow">邀請碼 ${esc(S.cid)}</span>›</div>` : ''}
+      <div class="list-row" id="s-noti"><span class="lr-i"><i data-ic="bell"></i></span><span class="grow">開啟瀏覽器通知<div class="small muted">開著 app 的時候才收得到，內容一律低調</div></span>›</div>
       <div class="list-row" data-act="theme"><span class="lr-i"><i data-ic="candle"></i></span><span class="grow">切換日夜模式（自動／白天／夜晚）</span>›</div>
       ${S.store.mode === 'demo'
         ? `<div class="list-row" data-act="demoSwitch"><span class="lr-i"><i data-ic="swap"></i></span><span class="grow">切換成對方身份</span>›</div>
            <div class="list-row" id="s-reset"><span class="lr-i"><i data-ic="trash"></i></span><span class="grow">清空試玩資料</span>›</div>`
         : `<div class="list-row" id="s-out"><span class="lr-i"><i data-ic="logout"></i></span><span class="grow">登出</span>›</div>`}
-    </div>
+    </div></details>
     <p class="center small muted">兩人遊樂園 · 做給我們兩個</p>`);
   let sp = p.spice || 1;
   $('#s-bgm-in', m).onchange = (e) => { localStorage.setItem('park-bgm', e.target.checked ? 'on' : 'off'); $('#s-bgm-v', m).classList.toggle('off', !e.target.checked); e.target.checked ? bgmStart() : bgmStop(); };
@@ -6310,6 +6309,58 @@ function bgmThemeCheck() { if (BGM.on && BGM.style !== bgmStyleNow()) { bgmStop(
 ['pointerdown', 'keydown'].forEach((ev) => document.addEventListener(ev, () => bgmStart(), { passive: true }));
 document.addEventListener('visibilitychange', () => { if (document.hidden) bgmStop(.3); });
 setInterval(bgmThemeCheck, 60000);
+// ============================================================
+//  設定 → 功能介紹（不暴雷：只講怎麼玩，不講還沒遇到的東西）
+// ============================================================
+const GUIDE = [
+  ['home', '首頁', [
+    '最上面是在一起的天數，旁邊是接下來的紀念日倒數。',
+    '右上角的愛心按一下就是「想你」，對方會收到；按完要等 5 分鐘才能再按。',
+    '每天選一個心情，對方看得到；每日一問兩個人都回答了，才看得到彼此的答案。',
+  ]],
+  ['heart', '小小黑', [
+    '小小黑住在首頁，點牠就能進牠的房間。',
+    '每天摸摸 +3・餵罐罐 +8・按想你 +1・回答每日一問 +2・幫對方蓋章 +3・完成每週任務 +3・兌換票券 +3・季問答 +5。',
+    '一個人一天最多 +30，兩個人一起養長得最快。長大以後可以隨時切換回以前的樣子。',
+    '罐罐每人每天配給一個；回答問題、做任務、被蓋章偶爾也會掉，路過的小動物有時候會叼來。',
+    '超過一天半沒人理牠，牠會開始想你們。裝扮和配件要在特別的時候才拿得到。',
+    '首頁偶爾會有小動物路過，點牠們會說話，遇過的會記進圖鑑。',
+  ]],
+  ['ticket', '票夾', [
+    '收到的新卡要先刮開；想用的時候長按就能兌換，對方會馬上收到。',
+    '按「發一張卡」可以自己寫一張送給對方，還能挑卡面和配色。',
+    '收藏冊裡是你們集起來的卡，三張同一級的可以合成一張更高級的。',
+  ]],
+  ['gacha', '遊樂區', [
+    `扭蛋一次 ${D.POINTS.gachaCost} 點，也可以用扭蛋券。`,
+    `點數這樣拿：被蓋一個章 +${D.POINTS.stamp}・每週任務 +${D.POINTS.weeklyTask}・默契問答答對 +${D.POINTS.quizMatch}・每日一問 +${D.POINTS.daily}。`,
+    `扭蛋券：蓋章集滿 ${D.POINTS.stampsPerSheet} 個送一張，節日和一些特別的時刻也會送。`,
+    '每週任務每週一換新；打錯勾可以再點一次取消，點數會扣回來。每週可以申請換一項，要對方同意。',
+    '對戰挑戰：7 天內先完成的人贏，輸的人發一張卡給贏的人。每個人每週可以換掉一個題目。',
+  ]],
+  ['map', '約會', [
+    '排好的約會可以加進手機行事曆，完成後按「完成」記下來。',
+    '沒想法就去點子罐搖一個；想看的、想吃的、想去的先記進清單，也可以順便丟進點子罐。',
+    '旅行基金：一起存一趟旅行的錢，存滿了會有驚喜。',
+  ]],
+  ['clock', '回憶', [
+    '時間軸、相簿、紙條盒都在這裡；紙條盒可以用日曆或關鍵字找以前的紙條。',
+    '季問答和深度問答，每一季、每一年回答一次，以後可以回頭看。',
+    '右上角是你們的成就。有些東西要等特別的日子才會出現。',
+  ]],
+  ['gear', '聲音和外觀', [
+    '背景音樂白天是鋼琴、晚上是 Lo-fi，設定裡可以關掉或調音量。',
+    '配色主題和日夜模式只會改變你自己這支手機。',
+    '資料每週會自動備份，設定裡也可以自己存一份。',
+  ]],
+];
+ACT.guide = () => {
+  openModal(`${mhead('<i data-ic="book"></i> 功能介紹')}
+    <p class="small muted" style="margin:0 0 10px">打這麼多誰看的完</p>
+    <div class="guide">${GUIDE.map(([ic, t, ps], i) => `<details class="g-sec emb-${['F-anniv', 'F-pet', 'C', 'SR', 'F-date', 'SSR', 'N'][i]}">
+      <summary><span class="g-ic"><i data-ic="${ic}"></i></span><b>${t}</b><span class="g-ch">›</span></summary>
+      <ul>${ps.map((x) => `<li>${esc(x)}</li>`).join('')}</ul></details>`).join('')}</div>`);
+};
 // ============================================================
 //  啟動
 // ============================================================
