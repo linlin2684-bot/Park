@@ -6408,27 +6408,19 @@ function bgmDuck() {
 }
 // 日夜切換時，音樂淡出再換另一首
 function bgmThemeCheck() { if (BGM.on && BGM.style !== bgmStyleNow()) { bgmStop(2); setTimeout(bgmStart, 2300); } }
-// iPhone：一定要在「點畫面」的當下解鎖聲音；另外 iPhone 開靜音模式時網頁聲音預設會被關掉，
-// 所以把聲音類型設成「播放音樂」（iOS 17 以上），舊版就用一段無聲的 <audio> 帶起來
-let bgmSilentEl = null;
+// iPhone：一定要在「點畫面」的當下解鎖聲音。聲音類型設成 ambient：跟著靜音開關，開靜音就不出聲
 function audioUnlock() {
-  try { if (navigator.audioSession && navigator.audioSession.type !== 'playback') navigator.audioSession.type = 'playback'; } catch (e) {}
+  try { if (navigator.audioSession && navigator.audioSession.type !== 'ambient') navigator.audioSession.type = 'ambient'; } catch (e) {}
   try {
     BGM.ctx ||= (typeof AC !== 'undefined' && AC) || new (window.AudioContext || window.webkitAudioContext)();
     if (typeof AC !== 'undefined' && !AC) AC = BGM.ctx; // 音效和音樂共用同一個
     if (BGM.ctx.state !== 'running') BGM.ctx.resume();
     const b = BGM.ctx.createBuffer(1, 1, 22050), src = BGM.ctx.createBufferSource(); src.buffer = b; src.connect(BGM.ctx.destination); src.start(0);
   } catch (e) {}
-  if (!navigator.audioSession && bgmEnabled() && !bgmSilentEl) {
-    try {
-      bgmSilentEl = new Audio('data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQAAAAA=');
-      bgmSilentEl.loop = true; bgmSilentEl.setAttribute('playsinline', ''); bgmSilentEl.volume = 0.01; bgmSilentEl.play().catch(() => {});
-    } catch (e) {}
-  }
   bgmStart();
 }
 ['touchend', 'click', 'pointerdown', 'keydown'].forEach((ev) => document.addEventListener(ev, audioUnlock, { passive: true, capture: true }));
-document.addEventListener('visibilitychange', () => { if (document.hidden) { bgmStop(.3); if (bgmSilentEl) { bgmSilentEl.pause(); bgmSilentEl = null; } } });
+document.addEventListener('visibilitychange', () => { if (document.hidden) bgmStop(.3); });
 setInterval(bgmThemeCheck, 60000);
 // ============================================================
 //  設定 → 功能介紹（不暴雷：只講怎麼玩，不講還沒遇到的東西）
