@@ -1032,7 +1032,7 @@ function catStroll(force) {
   if (S.tab !== 'home' || (S.couple?.members || []).length < 2 || document.querySelector('.cat-stroll, .anniv-intro, .story, .tour, .modal-back')) return;
   if (!force && typeof carryStroll === 'function' && carryStroll()) return;
   const key = 'park-stroll-at';
-  if (!force && (now() - +(localStorage.getItem(key) || 0) < 12 * 60000 || Math.random() > .4)) return;
+  if (!force && (now() - +(localStorage.getItem(key) || 0) < 30 * 60000 || Math.random() > .4)) return;
   localStorage.setItem(key, now());
   const k = force || pickFriend();
   // 有時候兩隻一起路過，會演一段小劇場
