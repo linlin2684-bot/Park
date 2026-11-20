@@ -1609,3 +1609,12 @@ html[data-theme="night"] .emb-F-pet { --e-bg: #18141c; --e-ink: #ece4ef; --e-acc
 .mrev-i span { font-size: 11px; color: var(--muted); }
 .mrev-mood { display: flex; flex-direction: column; gap: 4px; margin-top: 10px; font-size: 12.5px; color: var(--muted); }
 .mrev-mood svg { width: 15px; height: 15px; vertical-align: -3px; }
+.topbar .brand { white-space: nowrap; min-width: 0; overflow: hidden; font-size: clamp(16px, 4.6vw, 19px); }
+@media (max-width: 400px) {
+  .topbar { gap: 6px; padding-left: 12px; padding-right: 12px; }
+  .topbar .icon-btn { width: 34px; height: 34px; }
+  .topbar .icon-btn .ic { width: 18px; height: 18px; }
+  .topbar .pill { padding-left: 9px; padding-right: 9px; gap: 3px; }
+  .topbar .brand { font-size: 16.5px; gap: 4px; }
+  .topbar .brand .ic { width: 22px; height: 22px; }
+}

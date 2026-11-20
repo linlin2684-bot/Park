@@ -1411,6 +1411,7 @@ function doRender() {
   if (!busy && typeof missRain === 'function') missRain();
   if (!busy && typeof redeemPopup === 'function') redeemPopup();
   if (typeof pokeCheck === 'function') pokeCheck();
+  if (typeof pruneOld === 'function' && (S.couple?.members || []).length > 1) setTimeout(pruneOld, 5000);
   if (typeof schedDeliver === 'function' && (S.couple?.members || []).length > 1) schedDeliver();
   { const dd = typeof todayDaily === 'function' && todayDaily(), p = partner(); if (dd && dd.answers && p && dd.answers[me()] && dd.answers[p]) { const w = dailyCollide(dd.answers[me()], dd.answers[p]); if (w && !(S.couple.drops || {})[`dmatch-${dkey()}`]) dailyCollideBonus(w); } }
   if (S.tab !== 'home') document.querySelectorAll('.cat-stroll').forEach((x) => x.remove());
@@ -1737,6 +1738,9 @@ function homeTodos() {
   }
   const tr = S.couple.taskSwapReq;
   if (tr && tr.by !== me() && tr.wk === weekKey()) t.push({ icon: '<i data-ic="swap"></i>', text: `${nick(tr.by)} 想換掉每週任務「${weekTasks()[tr.i] || ''}」`, act: 'tab', tab: 'play', btn: '去看' });
+  for (const c of list('cards').filter((c) => c.owner === me() && c.scratched && c.expiresAt && c.expiresAt > now() && c.expiresAt - now() < 86400000 && remaining(c) > 0)) {
+    t.push({ icon: '<i data-ic="hourglass"></i>', text: `「${c.title}」${new Date(c.expiresAt).getDate() === new Date().getDate() ? '今天' : '明天'}就過期了`, act: 'goScratch', btn: '去用' });
+  }
   if (needDownloadReminder()) t.push({ icon: '<i data-ic="cloud"></i>', text: '這個月還沒把備份存到手機', act: 'downloadBackup', btn: '下載' });
   const caps = list('capsules').filter((c) => c.openAt <= now() && !(c.opened || {})[me()]).length;
   if (p && typeof deepProgress === 'function') {
@@ -5393,11 +5397,13 @@ async function joinFreshStart() {
   await S.store.updateCouple(S.cid, {
     dex: {}, scenes: {}, dexReset: 2, pet: { name: (c.pet && c.pet.name) || '小小黑' }, drops: {}, tickets: {}, cans: {}, canDay: {},
     moods: {}, moodHist: {}, spins: {}, annivLetters: {}, opened: {}, taskOverride: {}, taskSwapReq: null, battleSwaps: {},
-    'fund.rewarded': false, fundsDone: 0,
+    'fund.rewarded': false, fundsDone: 0, sched: {},
   });
+  // 新手禮：兩個人各 40 點（可以扭兩次）
+  for (const u of c.members || []) await addPoints(u, 40, '新手禮：歡迎來到遊樂園');
   // 這台手機記得的成就、紙條、提醒也清掉
-  Object.keys(localStorage).filter((k) => /^park-(ach|miss-seen|redeem-pop|duty|stroll-pat|carry|dexreset)/.test(k)).forEach((k) => localStorage.removeItem(k));
-  toast('歡迎加入！遊樂園從今天開始重新記錄');
+  Object.keys(localStorage).filter((k) => /^park-(ach|miss-seen|redeem-pop|duty|stroll-pat|carry|dexreset|dexnew|petxp|fundpet|mreview|poke)/.test(k)).forEach((k) => localStorage.removeItem(k));
+  toast('歡迎加入！遊樂園從今天開始重新記錄，兩個人各送 40 點新手禮');
   setTimeout(() => { if (typeof holidayDrops === 'function') holidayDrops(); }, 2500);
 }
 // ============================================================
@@ -6620,6 +6626,23 @@ ACT.dupToCan = async (el) => {
   el.closest('.dup-row') && (el.closest('.dup-row').innerHTML = `<span class="small">換好了，${esc(petState().name)}多了一個罐罐</span>`);
   sfx('pop'); toast('換成一個罐罐了');
 };
+
+// ---------- 資料自動整理：清掉兩個月以前的「領過了」小紀錄，避免資料越長越大 ----------
+async function pruneOld() {
+  const k = `park-prune-${S.cid}`;
+  if (!S.couple || localStorage.getItem(k) === dkey()) return;
+  localStorage.setItem(k, dkey());
+  const cut = dkey(new Date(Date.now() - 60 * 86400000)), cutWk = weekKey(new Date(Date.now() - 60 * 86400000));
+  const up = {}, X = S.store.DEL ? S.store.DEL() : null;
+  for (const key of Object.keys(S.couple.drops || {})) {
+    const d = (key.match(/(\d{4}-\d{2}-\d{2})/) || [])[1], w = (key.match(/^(?:task|tk-week)-(\d{4}-W\d{2})/) || [])[1];
+    if (/^(dmatch|care)-/.test(key) && d && d < cut) up[`drops.${key}`] = X;
+    if (w && w < cutWk) up[`drops.${key}`] = X;
+    if (S.couple.drops[key] === null) up[`drops.${key}`] = X;
+  }
+  for (const f of ['taskOverride', 'battleSwaps']) for (const w of Object.keys(S.couple[f] || {})) if (w < cutWk) up[`${f}.${w}`] = X;
+  if (Object.keys(up).length) { try { await S.store.updateCouple(S.cid, up); } catch (e) {} }
+}
 // ============================================================
 //  集點章（徽章風印章）＋約會打卡章＋每月回顧卡
 // ============================================================

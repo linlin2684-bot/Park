@@ -17,7 +17,7 @@ function setPath(obj, path, val) {
     if (typeof o[keys[i]] !== 'object' || o[keys[i]] === null) o[keys[i]] = {};
     o = o[keys[i]];
   }
-  o[keys[keys.length - 1]] = val;
+  if (val === '__DEL__') delete o[keys[keys.length - 1]]; else o[keys[keys.length - 1]] = val;
 }
 
 const rid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
@@ -61,6 +61,7 @@ async function firebaseStore(config) {
     createCouple: (cid, data) => F.setDoc(coupleRef(cid), data),
     watchCouple: (cid, cb) => F.onSnapshot(coupleRef(cid), (s) => cb(s.exists() ? s.data() : null)),
     updateCouple: (cid, patch) => F.updateDoc(coupleRef(cid), patch),
+    DEL: () => F.deleteField(),
     // fn(data) 回傳要更新的欄位（物件）或 null；回傳值代表有沒有更新
     async coupleTx(cid, fn) {
       return F.runTransaction(db, async (tx) => {
@@ -124,6 +125,7 @@ function localStore() {
       listeners.add(fn); setTimeout(fn, 0);
       return () => listeners.delete(fn);
     },
+    DEL: () => '__DEL__',
     async updateCouple(cid, patch) {
       const c = db.couples[cid]; if (!c) return;
       Object.entries(patch).forEach(([k, v]) => setPath(c, k, clone(v)));
