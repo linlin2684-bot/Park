@@ -1393,7 +1393,7 @@ function doRender() {
   setSection(S.tab);
   dexResetOnce();
   if (typeof lookTick === 'function') lookTick();
-  const busy = document.querySelector('.anniv-intro, .tour');
+  const busy = document.querySelector('.anniv-intro, .tour, .story');
   if (!busy && typeof missRain === 'function') missRain();
   if (!busy && typeof redeemPopup === 'function') redeemPopup();
   if (S.tab !== 'home') document.querySelectorAll('.cat-stroll').forEach((x) => x.remove());
@@ -1401,8 +1401,12 @@ function doRender() {
   renderTop(); renderNav(); renderMain();
   setTimeout(catStroll, 2500 + Math.random() * 4000);
   if (A.is) { annivIntro(); annivRibbon(); }
-  else if (tourNeeded()) setTimeout(() => startTour(), 1200);
-  else if (!busy && localStorage.getItem(`park-tour-${me()}`)) setTimeout(bdayReveal, 1500);
+  // 順序：週年動畫 → 導覽 → 生日卡（前一個還開著就先不跳下一個）
+  setTimeout(() => {
+    if (document.querySelector('.anniv-intro, .tour, .story')) return;
+    if (tourNeeded()) startTour();
+    else if (localStorage.getItem(`park-tour-${me()}`)) bdayReveal();
+  }, 1200);
 }
 document.addEventListener('focusout', () => setTimeout(() => {
   const a = document.activeElement;
@@ -4863,7 +4867,7 @@ const TOUR = [
   { tab: 'memory', pose: 'loaf', t: '回憶', s: '時間軸、相簿、紙條盒和季問答都在這裡。很多東西要一起玩才會出現，慢慢發現吧！' },
 ];
 function tourNeeded() {
-  return S.couple && (S.couple.members || []).length >= 2 && !localStorage.getItem(`park-tour-${me()}`) && !document.querySelector('.anniv-intro, .tour');
+  return S.couple && (S.couple.members || []).length >= 2 && !localStorage.getItem(`park-tour-${me()}`) && !document.querySelector('.anniv-intro, .tour, .story');
 }
 function startTour(force) {
   if (!force && !tourNeeded()) return;
@@ -4900,7 +4904,7 @@ ACT.tourReplay = () => { closeAll(); startTour(true); };
 // 導覽結束之後，才把生日卡送到他面前（週年動畫 → 導覽 → 生日卡）
 function bdayReveal() {
   const key = `park-bday-reveal-${S.cid}-${me()}`;
-  if (localStorage.getItem(key) || document.querySelector('.anniv-intro, .tour, .bday-reveal')) return;
+  if (localStorage.getItem(key) || document.querySelector('.anniv-intro, .tour, .story, .bday-reveal, .modal-back')) return;
   const mine = list('cards').filter((c) => c.owner === me() && c.series === D.BIRTHDAY_SERIES);
   if (!mine.length) return;
   localStorage.setItem(key, '1');
@@ -5181,7 +5185,7 @@ function animalPage(k, i) {
     <div class="da-stage">${friendArt(k)}</div>
     <h2 class="da-name">${esc(f.name)}</h2>
     <div class="da-met">${new Date(e.met).toLocaleDateString('zh-TW')} 第一次遇到${e.by ? `・${esc(nick(e.by))}` : ''}</div>
-    <p class="da-intro">${esc(f.intro)}</p>
+    <p class="da-intro">${esc(f.intro.replace('男朋友', nick((S.couple.members || []).find((u) => prof(u).role === 'him')) || '男朋友'))}</p>
     <h3 class="da-h">說過的話 <span>${heard} 句</span></h3>
     ${L.map((t, j) => `<div class="dex-line ${got[j] ? '' : 'locked'}">${got[j] ? esc(t) : '？？？'}</div>`).join('')}
     ${sp.length ? `<h3 class="da-h">限定台詞 <span>${sp.filter((_, j) => got['s' + j]).length} 句</span></h3>
@@ -5644,7 +5648,7 @@ Object.assign(SERIES_SLOTS, {
   '節日系列': () => {
     const role = prof(me()).role;
     const base = [
-      { fest: 'queen', title: '壽星女王券', rarity: 'SSR', how: '她的生日', only: 'her' },
+      { fest: 'queen', title: '壽星女王券', rarity: 'SSR', how: '生日', only: 'her' },
       { fest: 'king', title: '壽星國王券', rarity: 'SSR', how: '他的生日', only: 'him' },
       { fest: 'anniv', title: '週年紀念券', rarity: 'SSR', how: '交往紀念日' },
       { fest: 'valentine', title: '情人節限定券', rarity: 'SR', how: '2/14 情人節' },
