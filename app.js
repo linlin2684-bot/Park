@@ -4889,8 +4889,11 @@ function withName(k, t) { const n = FRIENDS[k].name; return t.includes(n) ? t : 
 function dutyToday() {
   if (!S.couple) return null;
   const pv = localStorage.getItem('park-duty-preview');
-  const pool = DEX_ORDER.filter((k) => k !== 'black');
-  if (pv) return pool.includes(pv) ? pv : pool[0];
+  // 只有遇過的小動物才會來當值日生
+  const d = S.couple.dex || {};
+  const pool = DEX_ORDER.filter((k) => k !== 'black' && (d[k] || {}).met);
+  if (pv) return pool.includes(pv) ? pv : pool[0] || null;
+  if (!pool.length) return null;
   const h = hash('duty' + dkey() + (S.cid || ''));
   if (h % 100 >= 25) return null;   // 大約四天一次
   return pool[(h >>> 8) % pool.length];
