@@ -352,9 +352,9 @@ html[data-theme="night"] .scratch-thumb { background: repeating-linear-gradient(
 .prompt-card { margin-top: 10px; padding: 20px 16px; border-radius: 18px; text-align: center; font-family: var(--serif); font-size: 20px; font-weight: 800; background: linear-gradient(135deg, color-mix(in srgb, var(--accent) 22%, var(--card)), var(--card)); animation: pop .4s; }
 
 /* ---------- 集點章 ---------- */
-.stamp-sheet { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; padding: 12px; border-radius: 14px; background: var(--card2); border: 2px dashed var(--line); }
-.stamp-slot { aspect-ratio: 1; border-radius: 50%; border: 2px dashed var(--line); display: grid; place-items: center; font-size: 22px; }
-.stamp-slot.on { border: 2.5px solid #d4405f; color: #d4405f; background: rgba(212, 64, 95, .07); transform: rotate(-10deg); animation: stampin2 .4s; }
+.stamp-sheet { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; padding: 14px; border-radius: 16px; background: var(--card2); border: 1.4px solid color-mix(in srgb, var(--e-ink) 55%, transparent); box-shadow: inset 0 0 0 4px var(--card2), inset 0 0 0 5px color-mix(in srgb, var(--e-ink) 25%, transparent); }
+.stamp-slot { aspect-ratio: 1; border-radius: 50%; border: 1.2px dashed color-mix(in srgb, var(--e-ink) 35%, transparent); display: grid; place-items: center; font-size: 13px; font-family: var(--serif); font-weight: 700; color: color-mix(in srgb, var(--e-ink) 45%, transparent); position: relative; }
+.stamp-slot.on { border: 0; animation: stampin2 .4s; }
 @keyframes stampin2 { from { transform: scale(2) rotate(-10deg); opacity: 0; } }
 
 .task { display: flex; align-items: center; gap: 10px; padding: 10px 0; border-bottom: 1px dashed var(--line); }
@@ -1585,3 +1585,27 @@ html[data-theme="night"] .emb-F-pet { --e-bg: #18141c; --e-ink: #ece4ef; --e-acc
 .trip-ph { margin: 10px 0; }
 .trip-ph-g { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; margin-top: 6px; }
 .trip-ph-g img { width: 100%; aspect-ratio: 1; object-fit: cover; border-radius: 8px; }
+
+.stamp-slot .seal { position: absolute; inset: -3px; width: calc(100% + 6px); height: calc(100% + 6px); opacity: .93; }
+.seal .e-bg { fill: var(--card2); }
+.seal-ch { font-family: var(--serif); font-weight: 900; font-size: 30px; }
+.seal-t { font-family: var(--serif); font-weight: 900; font-size: 13px; letter-spacing: 1px; }
+.seal-d { font-family: var(--serif); font-weight: 700; font-size: 10px; }
+/* 每月回顧 */
+.mrev { position: relative; border: 1.4px solid var(--e-ink); background: radial-gradient(circle at 18% 0%, color-mix(in srgb, var(--e-acc) 30%, transparent), transparent 60%), var(--card); }
+.mrev::after { content: ''; position: absolute; inset: 5px; border-radius: 18px; border: 1px dashed color-mix(in srgb, var(--e-ink) 40%, transparent); pointer-events: none; }
+.mrev-x { position: absolute; top: 10px; right: 12px; z-index: 2; border: 0; background: none; color: var(--muted); font-size: 14px; }
+.mrev-top { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
+.mrev-medal { width: 78px; height: 78px; flex: none; }
+.mrev-n { font-family: var(--serif); font-weight: 900; font-size: 26px; }
+.mrev-s { font-family: var(--serif); font-weight: 700; font-size: 11px; letter-spacing: 2px; }
+.mrev-eye { font-size: 10px; letter-spacing: .2em; color: var(--e-ink); font-weight: 800; }
+.mrev-h { font-family: var(--serif); font-size: 20px; display: block; margin: 2px 0; }
+.mrev-g { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.mrev-i { background: var(--card2); border-radius: 14px; padding: 10px 6px; text-align: center; display: flex; flex-direction: column; align-items: center; gap: 2px; }
+.mrev-i svg { width: 18px; height: 18px; color: var(--e-ink); }
+.mrev-i b { font-family: var(--serif); font-size: 22px; line-height: 1.1; }
+.mrev-i b small { font-size: 11px; margin-left: 1px; font-weight: 700; }
+.mrev-i span { font-size: 11px; color: var(--muted); }
+.mrev-mood { display: flex; flex-direction: column; gap: 4px; margin-top: 10px; font-size: 12.5px; color: var(--muted); }
+.mrev-mood svg { width: 15px; height: 15px; vertical-align: -3px; }
