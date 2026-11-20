@@ -811,8 +811,8 @@ function coatWalk(key) {
 // ---------- 狗狗一家（同一套畫法：還好、狗狗、阿扁） ----------
 const DOGS = {
   haohao: { base: '#e2b56a', line: '#b98a3e', ear: '#c99448', muzzle: '#f3d9a8', belly: '#f3d9a8', dark: '#2b2226', ears: 'flop', eyes: 'open', mouth: 'open' },
-  doggy: { base: '#efd9ac', line: '#c7a66a', ear: '#e0bf85', muzzle: '#fbf0d8', belly: '#fbf0d8', dark: '#2b2226', ears: 'flop', eyes: 'sleepy', mouth: 'smile', curls: true, brow: true },
-  abian: { base: '#d9bd8c', line: '#a98a58', ear: '#f0e2c4', muzzle: '#ecdcbc', belly: '#ecdcbc', dark: '#2b2226', ears: 'wide', eyes: 'up', mouth: 'small', bigNose: true, pads: true },
+  doggy: { base: '#efd9ac', line: '#c7a66a', ear: '#e0bf85', muzzle: '#fbf0d8', belly: '#fbf0d8', dark: '#2b2226', ears: 'flop', eyes: 'sleepy', mouth: 'smile', curls: true },
+  abian: { base: '#d9bd8c', line: '#a98a58', ear: '#f0e2c4', muzzle: '#ecdcbc', belly: '#ecdcbc', dark: '#2b2226', ears: 'flop', eyes: 'up', mouth: 'small', bigNose: true, pads: true, vest: true },
 };
 function dogArt(key, { off = false } = {}) {
   const c = DOGS[key], sw = 1.2, ly = 80;
@@ -843,8 +843,13 @@ function dogArt(key, { off = false } = {}) {
     <g class="cat-legs-b">${leg(54, 55)}${leg(76, 75)}</g>
     <path d="M30 62 Q30 46 50 46 L88 48 Q102 50 100 66 Q98 82 84 82 L44 82 Q30 82 30 70 Z" fill="${c.base}" stroke="${c.line}" stroke-width="${sw}"/>
     <path d="M40 74 Q60 82 82 76" fill="none" stroke="${c.belly}" stroke-width="5" stroke-linecap="round" opacity=".85"/>
-    ${c.curls ? `<path d="M46 52 q3 -3 6 0 q3 -3 6 0 q3 -3 6 0 q3 -3 6 0 q3 -3 6 0" fill="none" stroke="${c.line}" stroke-width=".9" stroke-linecap="round" opacity=".55"/>` : `<path d="M48 52 l3 -3 M54 50 l3 -3 M84 54 l3 -3" stroke="${c.line}" stroke-width=".9" stroke-linecap="round" opacity=".7"/>`}
-    <g class="dog-head" transform="translate(${c.ears === 'wide' ? 34 : 30} 40)">
+    ${c.vest ? `<path d="M33 56 Q33 47 46 47 L66 48 Q74 64 68 81 L46 81.5 Q33 80 33 70 Z" fill="#f8f4ec" stroke="#d9d0c0" stroke-width="1"/>
+      <path d="M66 48 Q74 64 68 81" fill="none" stroke="#2f4a6e" stroke-width="2.6" stroke-linecap="round"/>
+      <path d="M68.6 53 l-3 2.2 3.6 1.8 -3 2.4 3.8 1.6 -3 2.4 3.6 1.8 -3 2.4 3.2 1.8 -3 2.4 2.6 1.8" fill="none" stroke="#2f4a6e" stroke-width="1.5" stroke-linejoin="round"/>
+      <path d="M46 81.5 L68 81" stroke="#2f4a6e" stroke-width="1.8" stroke-linecap="round"/>
+      <path d="M38 49 Q42 47 46 47" fill="none" stroke="#2f4a6e" stroke-width="2" stroke-linecap="round"/>` : ''}
+    ${c.vest ? '' : c.curls ? `<path d="M46 52 q3 -3 6 0 q3 -3 6 0 q3 -3 6 0 q3 -3 6 0 q3 -3 6 0" fill="none" stroke="${c.line}" stroke-width=".9" stroke-linecap="round" opacity=".55"/>` : `<path d="M48 52 l3 -3 M54 50 l3 -3 M84 54 l3 -3" stroke="${c.line}" stroke-width=".9" stroke-linecap="round" opacity=".7"/>`}
+    <g class="dog-head" transform="translate(30 40)">
       ${ears}
       <path d="M-18 -8 Q-20 -30 2 -31 Q22 -30 20 -8 Q20 10 2 12 Q-18 10 -18 -8 Z" fill="${c.base}" stroke="${c.line}" stroke-width="${sw}"/>
       ${curls}
@@ -859,27 +864,32 @@ function dogArt(key, { off = false } = {}) {
 
 // ---------- 小棍棍（小熊貓） ----------
 function pandaArt() {
-  const R = '#c8642c', RL = '#9c4a1e', W = '#fbf3e6', D = '#3b2a26';
-  const leg = (x1, x2) => `<path d="M${x1} 76 L${x2} 85" stroke="${D}" stroke-width="9" stroke-linecap="round"/>`;
-  return `<svg viewBox="0 0 110 92" class="cat-svg panda-walk" xmlns="http://www.w3.org/2000/svg">
-    <ellipse cx="56" cy="88" rx="32" ry="3.4" fill="currentColor" opacity=".09"/>
-    <g class="panda-tail"><path d="M80 62 Q100 56 104 40 Q106 32 100 34 Q96 50 78 54 Z" fill="${R}" stroke="${RL}" stroke-width="1"/>
-      <path d="M86 57 Q90 53 89 49 M93 52 Q97 47 96 43 M99 45 Q102 41 101 37" fill="none" stroke="#f0b27a" stroke-width="2.4" stroke-linecap="round"/></g>
-    <g class="cat-legs-a">${leg(40, 39.5)}${leg(72, 72.5)}</g>
-    <g class="cat-legs-b">${leg(48, 49)}${leg(64, 63)}</g>
-    <path d="M28 64 Q28 52 42 51 L72 52 Q84 54 83 66 Q82 78 72 78 L40 78 Q28 78 28 70 Z" fill="${R}" stroke="${RL}" stroke-width="1"/>
-    <g class="dog-head" transform="translate(30 44)">
-      <path d="M-14 -12 L-16 -26 L-4 -20 Z M14 -12 L16 -26 L4 -20 Z" fill="${R}" stroke="${RL}" stroke-width="1" stroke-linejoin="round"/>
-      <path d="M-13 -15 L-14 -23 L-7 -19 Z M13 -15 L14 -23 L7 -19 Z" fill="${W}"/>
-      <ellipse cx="0" cy="-4" rx="18" ry="15" fill="${R}" stroke="${RL}" stroke-width="1"/>
-      <path d="M-15 -2 Q-12 -12 -5 -10 Q-4 -2 -9 4 Q-14 4 -15 -2 Z M15 -2 Q12 -12 5 -10 Q4 -2 9 4 Q14 4 15 -2 Z" fill="${W}"/>
-      <ellipse cx="0" cy="4" rx="8" ry="6.5" fill="${W}"/>
-      <path d="M-7 -16 Q-5 -18 -3 -16 M3 -16 Q5 -18 7 -16" fill="none" stroke="${W}" stroke-width="2.2" stroke-linecap="round"/>
-      <ellipse cx="-7" cy="-5" rx="2.3" ry="2.8" fill="${D}"/><ellipse cx="7" cy="-5" rx="2.3" ry="2.8" fill="${D}"/><circle cx="-6.3" cy="-6" r=".8" fill="#fff"/><circle cx="7.7" cy="-6" r=".8" fill="#fff"/>
-      <path d="M-11 -2 Q-9 6 -6 10 M11 -2 Q9 6 6 10" fill="none" stroke="${RL}" stroke-width="1.6" stroke-linecap="round" opacity=".6"/>
-      <ellipse cx="0" cy="1.5" rx="3.6" ry="2.6" fill="${D}"/>
-      <path d="M0 4 L0 5.5 M-3 6.3 Q0 8.3 3 6.3" fill="none" stroke="${D}" stroke-width="1.1" stroke-linecap="round"/>
-      <path d="M-18 3 L-10 3.5 M-18 6 L-10 5.5 M18 3 L10 3.5 M18 6 L10 5.5" stroke="#fff" stroke-width=".6" stroke-linecap="round" opacity=".9"/>
+  const R = '#c7612a', RL = '#9a4518', W = '#fbf3e6', D = '#2e211e', T = '#e59a5e';
+  const leg = (x1, x2) => `<path d="M${x1} 70 L${x2} 85" stroke="${D}" stroke-width="10" stroke-linecap="round"/>`;
+  return `<svg viewBox="0 0 140 92" class="cat-svg panda-walk" xmlns="http://www.w3.org/2000/svg">
+    <ellipse cx="70" cy="88" rx="44" ry="3.6" fill="currentColor" opacity=".09"/>
+    <g class="panda-tail">
+      <path d="M98 50 Q120 42 132 56 Q140 68 134 82 Q128 88 122 82 Q118 70 108 66 Q102 64 98 66 Z" fill="${R}" stroke="${RL}" stroke-width="1"/>
+      <path d="M108 48 Q114 56 110 66 M118 49 Q125 58 120 70 M127 55 Q134 65 128 78" fill="none" stroke="${T}" stroke-width="4.2" stroke-linecap="round"/>
+    </g>
+    <g class="cat-legs-a">${leg(44, 43)}${leg(92, 93)}</g>
+    <g class="cat-legs-b">${leg(54, 55)}${leg(82, 81)}</g>
+    <path d="M30 60 Q30 44 48 43 L94 44 Q106 46 105 58 Q104 72 92 72 L44 72 Q30 72 30 64 Z" fill="${R}" stroke="${RL}" stroke-width="1"/>
+    <path d="M30 60 Q31 70 40 72 L50 72 Q46 62 38 56 Z" fill="${D}"/>
+    <path d="M58 46 q4 -2 8 0 M74 46 q4 -2 8 0" fill="none" stroke="${RL}" stroke-width=".9" stroke-linecap="round" opacity=".6"/>
+    <g class="dog-head" transform="translate(28 40)">
+      <path d="M-14 -11 L-17 -25 L-4 -19 Z M14 -11 L17 -25 L4 -19 Z" fill="${R}" stroke="${RL}" stroke-width="1" stroke-linejoin="round"/>
+      <path d="M-13.2 -13.5 L-15 -22.5 L-7 -18.6 Z M13.2 -13.5 L15 -22.5 L7 -18.6 Z" fill="${W}"/>
+      <path d="M-11 -16 L-12 -20.5 L-8.5 -18 Z M11 -16 L12 -20.5 L8.5 -18 Z" fill="${D}"/>
+      <ellipse cx="0" cy="-3" rx="19" ry="16" fill="${R}" stroke="${RL}" stroke-width="1"/>
+      <ellipse cx="-9" cy="2" rx="7.5" ry="7" fill="${W}"/><ellipse cx="9" cy="2" rx="7.5" ry="7" fill="${W}"/>
+      <ellipse cx="0" cy="5" rx="7" ry="5.6" fill="${W}"/>
+      <ellipse cx="-6.5" cy="-13" rx="3.2" ry="2.2" fill="${W}"/><ellipse cx="6.5" cy="-13" rx="3.2" ry="2.2" fill="${W}"/>
+      <circle cx="-7" cy="-4" r="3.4" fill="${D}"/><circle cx="7" cy="-4" r="3.4" fill="${D}"/>
+      <circle cx="-5.8" cy="-5.3" r="1.2" fill="#fff"/><circle cx="8.2" cy="-5.3" r="1.2" fill="#fff"/><circle cx="-7.8" cy="-2.6" r=".55" fill="#fff"/><circle cx="6.2" cy="-2.6" r=".55" fill="#fff"/>
+      <ellipse cx="0" cy="2.4" rx="2.8" ry="2" fill="${D}"/>
+      <path d="M-2.6 5.6 Q-1.3 7.2 0 5.6 Q1.3 7.2 2.6 5.6" fill="none" stroke="${D}" stroke-width="1" stroke-linecap="round"/>
+      <ellipse cx="-12" cy="4" rx="2.8" ry="1.6" fill="#ff9fb4" opacity=".7"/><ellipse cx="12" cy="4" rx="2.8" ry="1.6" fill="#ff9fb4" opacity=".7"/>
     </g>
   </svg>`;
 }
@@ -892,7 +902,6 @@ function sharkArt({ off = false } = {}) {
     <path d="M56 18 L70 2 Q72 14 76 20 Z" fill="${B}" stroke="${BL}" stroke-width="1.2" stroke-linejoin="round"/>
     <path d="M10 38 Q12 18 44 16 Q80 14 106 34 Q82 56 46 58 Q14 58 10 38 Z" fill="${B}" stroke="${BL}" stroke-width="1.2"/>
     <path d="M12 40 Q24 54 48 56 Q80 54 102 38 Q80 46 48 46 Q24 46 12 40 Z" fill="${W}"/>
-    <path d="M48 50 L40 64 L58 54 Z" fill="${B}" stroke="${BL}" stroke-width="1.2" stroke-linejoin="round"/>
     <path d="M14 42 Q22 50 34 48 Q28 44 26 40 Q20 42 14 42 Z" fill="#f2a3a8"/>
     <path d="M14 42 L17 44.5 L19 42.5 L21.5 45 L23.5 43 L26 45.5 L27 41" fill="none" stroke="#fff" stroke-width="1" stroke-linejoin="round"/>
     ${off ? `<path d="M23 29 L29 29" stroke="#2b2633" stroke-width="1.8" stroke-linecap="round"/><text x="36" y="20" font-size="9" font-weight="800" fill="#9fb7d9" font-family="sans-serif">z</text>`
@@ -916,7 +925,7 @@ const FRIENDS = {
     lines: ['狗狗偷偷拍了一下小小黑的尾巴，然後裝作什麼都沒發生', '狗狗把阿扁的玩具藏起來了', '狗狗聞了聞你：汪，去洗澡', '狗狗：汪去洗澡！（但說到牠自己洗澡就跑掉了）', '狗狗香香的，因為牠很在意自己香不香', '狗狗趁小小黑睡覺，偷偷趴在牠旁邊', '狗狗被小棍棍踩了一腳，一臉無奈'] },
   abian: { name: '阿扁', kind: '小狗', intro: '愛思考的小狗，怕被捏鼻子，聽到諧音梗會拍拍手。和狗狗是好朋友。', w: 92,
     lines: ['阿扁趕快摀住鼻子：不要捏我的鼻子！', '阿扁在思考……為什麼貓咪叫貓咪？', '阿扁在思考……今天的晚餐是什麼', '阿扁聽到一個諧音梗：「狗狗去餐廳點了『汪』子麵」，笑到拍拍手', '阿扁：「你知道小小黑最喜歡什麼運動嗎？『喵』準！」，說完自己拍拍手', '阿扁和狗狗是最好的朋友', '阿扁：讓我想一下……嗯……想完了，忘記剛剛在想什麼'] },
-  gungun: { name: '小棍棍', kind: '小熊貓', intro: '會「棍～」地叫，講話幾乎只講最後一個字。最愛蘋果，喜歡踩狗狗，但狗狗不喜歡。', w: 84,
+  gungun: { name: '小棍棍', kind: '小熊貓', intro: '會「棍～」地叫，講話幾乎只講最後一個字。最愛蘋果，喜歡踩狗狗，但狗狗不喜歡。', w: 104,
     lines: ['小棍棍：棍～', '小棍棍：蛋（荷包蛋的蛋）', '小棍棍：狗狗❤️', '小棍棍：狗狗～（踩）', '小棍棍：蘋果～', '小棍棍被打了一下：一袋～（跑掉）', '小棍棍：……果（想說蘋果）'] },
   shark: { name: '鯊魚', kind: '鯊魚', intro: '男朋友最喜歡的小動物。鼻子被碰到就會關機，再碰一下會倒吸一口氣醒來。', w: 110, swim: true,
     lines: ['鯊魚被碰到鼻子，關機了', '鯊魚：河！（倒吸一口氣，開機了）', '鯊魚：河！河！（嚇一跳游走了）', '鯊魚在空氣裡游泳，看起來很認真'] },

@@ -1084,7 +1084,7 @@ html[data-theme="night"] .jar-svg .jar-glass { fill: rgba(255, 255, 255, .06); }
 .cat-stroll.fr-white .cat-svg { animation: catPrance 1s ease-in-out infinite; }
 .cat-stroll.fr-gungun { animation-duration: 8s; }
 .cat-stroll.fr-gungun .cat-svg { animation: dogBounce .3s ease-in-out infinite; }
-.panda-walk .panda-tail { transform-origin: 80px 60px; animation: dogWag .5s ease-in-out infinite alternate; }
+.panda-walk .panda-tail { transform-origin: 100px 60px; animation: dogWag .5s ease-in-out infinite alternate; }
 .cat-stroll.flee { animation-duration: 1.2s !important; }
 .cat-stroll.flee .cat-svg { animation: dogBounce .12s ease-in-out infinite !important; }
 .cat-stroll.clap { animation-play-state: paused; }
