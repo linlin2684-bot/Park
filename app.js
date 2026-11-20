@@ -2325,8 +2325,7 @@ function bookCoverSVG(meta, st) {
     <line x1="162" y1="98" x2="294" y2="98" class="e-ink-s" stroke-width=".7"/>
     ${st.slogan ? `<text x="162" y="118" font-size="12" class="e-ink-f e-title" ${st.sloganOn ? '' : 'opacity=".35" style="filter:blur(2.5px)"'}>${esc(st.slogan)}</text>` : ''}
     ${st.empty ? `<text x="162" y="142" font-size="10" class="e-ink-f e-small" opacity=".75">尚未收集</text>`
-      : `<rect x="162" y="134" width="132" height="5" rx="2.5" class="e-acc-f" opacity=".45"/><rect x="162" y="134" width="${(132 * pct).toFixed(1)}" height="5" rx="2.5" class="e-ink-f"/>
-         <text x="162" y="152" font-size="9.5" class="e-ink-f e-small">收集 ${st.got} / ${st.total}</text>`}
+      : `<text x="162" y="148" font-size="10" letter-spacing="1" class="e-ink-f e-small">已收集 ${st.got} 張</text>`}
   </svg>`;
 }
 // ============================================================
@@ -2821,13 +2820,13 @@ function walletBook() {
     toc.push({ bi, pal: meta.pal, motif: meta.motif, name: b.title.replace('系列', '').replace('的許願卡', ' 許願'), got, total: allSlots ? allSlots.length : cs.length });
     return `<div class="book emb-${meta.pal}" id="bk-${bi}">
       <button class="book-cover2" ${canOpen ? `data-act="bookOpen" data-k="${esc(b.key)}"` : ''}>${svg}</button>
-      <div class="book-note">${!canOpen ? esc(meta.how) : isB && got < cs.length ? '每張生日卡至少兌換一次，就會解鎖封面標語・點封面翻開' : `${got} / ${allSlots ? allSlots.length : cs.length} 張・點封面翻開`}</div>
+      <div class="book-note">${!canOpen ? esc(meta.how) : isB && got < cs.length ? '每張生日卡至少兌換一次，就會解鎖封面標語・點封面翻開' : `已收集 ${got} 張・點封面翻開`}</div>
     </div>`;
   }).join('');
   // 最上面的目錄：一排小徽章，點了跳到那一本
   const tocHTML = `<div class="book-toc">${toc.map((t) => `<button class="bt-item emb-${t.pal}" data-act="bookJump" data-i="${t.bi}">
       <svg viewBox="-44 -44 88 88" class="bt-medal"><circle r="41" class="e-bg e-ink-s" stroke-width="2"/><circle r="36" class="e-acc-s" stroke-width="1" fill="none"/><g transform="scale(.82)">${bookMotif(t.motif)}</g></svg>
-      <b>${esc(t.name)}</b><small>${t.got}/${t.total}</small></button>`).join('')}</div>`;
+      <b>${esc(t.name)}</b><small>${t.got} 張</small></button>`).join('')}</div>`;
   return tocHTML + html;
 }
 ACT.bookJump = (el) => {
@@ -2923,7 +2922,7 @@ PAGES.play = {
       <button class="game-tile" data-act="food"><span class="gi"><i data-ic="dining" data-medal></i></span><b>今天吃什麼</b><span>選擇障礙救星</span></button>
       <button class="game-tile" data-act="tod"><span class="gi"><i data-ic="dice" data-medal></i></span><b>真心話大冒險</b><span>${spiceIc(spiceLevel())} 目前：${D.SPICE[spiceLevel()].label}</span></button>
       <button class="game-tile" data-act="quiz"><span class="gi"><i data-ic="minds" data-medal></i></span><b>默契問答</b><span>${quizNew ? '今天的題目來了' : (q && p && q.answers[p] ? '看結果' : '等對方作答')}</span>${quizNew ? '<span class="badge-dot">!</span>' : ''}</button>
-      <button class="game-tile wide" data-act="dex"><span class="gi"><i data-ic="book" data-medal></i></span><div class="grow"><b>小動物圖鑑</b><br><span>已經遇到 ${dexCount()}/${DEX_ORDER.length} 隻，牠們會偶爾路過首頁</span></div><span style="font-size:22px">›</span></button>
+      <button class="game-tile wide" data-act="dex"><span class="gi"><i data-ic="book" data-medal></i></span><div class="grow"><b>小動物圖鑑</b><br><span>已經遇到 ${dexCount()} 位朋友，牠們會偶爾路過首頁</span></div><span style="font-size:22px">›</span></button>
       <button class="game-tile wide" data-act="battle"><span class="gi"><i data-ic="swords" data-medal></i></span><div class="grow"><b>對戰挑戰</b><br><span>${bt ? `進行中：${esc(bt.task)}` : '一週內誰先完成？輸的人發卡'}</span></div><span style="font-size:22px">›</span></button>
     </div>
     ${stampCardHTML()}
@@ -4542,6 +4541,13 @@ function petAccArt(wear) {
     santa: `<path d="M35 20 Q44 4 60 9 Q66 12 70 24 L36 22 Z" fill="#e2445f" stroke="#9e2a3c" stroke-width=".8" stroke-linejoin="round"/><path d="M34 21 Q50 17 66 22 L66 26 Q50 21 34 25 Z" fill="#fff"/><circle cx="71" cy="25" r="3" fill="#fff"/>`,
   }[wear] || '';
 }
+// 每個階段身邊的小物：奶瓶 → 毛線球 → 貓抓板 → 王座墊
+const PET_PROPS = [
+  `<g transform="translate(15 70) rotate(-8)"><rect x="-5" y="-1" width="10" height="18" rx="3.5" fill="#f4f1ee" stroke="#c9bfc6" stroke-width=".8"/><rect x="-5" y="7" width="10" height="10" rx="3" fill="#fff8e6"/><path d="M-4.5 6.5 H4.5" stroke="#e6d9b8" stroke-width=".8"/><rect x="-5.5" y="-4" width="11" height="4" rx="1.5" fill="#9fc6e8"/><path d="M-2.5 -4 Q-2.5 -9.5 0 -10 Q2.5 -9.5 2.5 -4 Z" fill="#f2b6c6"/><path d="M-3 4 H-1 M-3 9 H-1 M-3 13 H-1" stroke="#c9bfc6" stroke-width=".6"/></g>`,
+  `<g transform="translate(15 81)"><path d="M6 1 Q14 4 22 2" fill="none" stroke="#e98aa6" stroke-width=".9" stroke-linecap="round"/><circle r="7.5" fill="#e98aa6"/><path d="M-6 -3 Q0 -7 6 -3 M-7 1 Q0 -3 7 1 M-6 5 Q0 1 6 5 M-2 -7 Q-6 0 -2 7" fill="none" stroke="#c9607f" stroke-width=".8"/></g>`,
+  `<g><rect x="5" y="86" width="20" height="3" rx="1.2" fill="#b8916a"/><rect x="11" y="50" width="8" height="37" fill="#d9b88f"/><path d="M11 54 L19 57 M11 60 L19 63 M11 66 L19 69 M11 72 L19 75 M11 78 L19 81" stroke="#b08a60" stroke-width="1.1"/><rect x="7" y="46" width="16" height="5" rx="2" fill="#8f6aa0"/><path d="M19 52 Q23 56 22 60" fill="none" stroke="#f5c843" stroke-width=".9"/><circle cx="22" cy="61" r="1.8" fill="#f5c843"/></g>`,
+  `<g><path d="M18 86 Q18 78 50 78 Q82 78 82 86 Q82 91 50 91 Q18 91 18 86 Z" fill="#b8344a"/><path d="M22 84 Q50 80 78 84" fill="none" stroke="#e8b04b" stroke-width="1"/><circle cx="19" cy="88" r="1.6" fill="#e8b04b"/><circle cx="81" cy="88" r="1.6" fill="#e8b04b"/><path d="M19 89.5 L18 92 M81 89.5 L82 92" stroke="#e8b04b" stroke-width="1"/></g>`,
+];
 function petSVG(st, mood, wear, { blink = true } = {}) {
   const I = CAT_INK;
   const eyes = mood === 'happy'
@@ -4557,6 +4563,7 @@ function petSVG(st, mood, wear, { blink = true } = {}) {
   const s = PET_STAGES[st].scale;
   return `<svg viewBox="0 0 100 92" class="pet-svg pet-${mood}" xmlns="http://www.w3.org/2000/svg">
     <ellipse cx="50" cy="88" rx="${26 * s}" ry="3.5" fill="currentColor" opacity=".1"/>
+    ${PET_PROPS[st] || ''}
     <g transform="translate(50 88) scale(${s}) translate(-50 -88)">
       <g class="pet-body">
         <path class="pet-tail" d="M66 80 Q86 80 84 64 Q83 56 76 58" fill="none" stroke="${I}" stroke-width="5" stroke-linecap="round"/>
@@ -4881,17 +4888,17 @@ const SCENES = [
   { id: 'chase', a: 'haohao', b: 'black', lead: 'black', title: '把拔貓咪',
     lines: [['a', '嗷～把拔貓咪好可愛喔～'], ['b', '還好，好煩'], ['a', '把拔貓咪等等我～你好可愛喔～']] },
   { id: 'step', a: 'gungun', b: 'doggy', lead: 'doggy', title: '踩踩',
-    lines: [['a', '狗狗～'], ['n', '小棍棍踩了狗狗一腳'], ['b', '……'], ['a', '❤️']] },
+    lines: [['a', '狗狗～❤️（踩）'], ['b', '……'], ['a', '狗狗～❤️（踩）'], ['n', '狗狗默默走開了'], ['a', '……狗（跟上去）']] },
   { id: 'bath', a: 'doggy', b: 'abian', lead: 'abian', title: '那你呢',
     lines: [['a', '汪，去洗澡'], ['b', '（思考）……那你呢？'], ['a', '（假裝沒聽到）'], ['b', '（拍拍手）']] },
   { id: 'waltz', a: 'abian', b: 'haohao', lead: 'abian', title: '諧音梗',
     lines: [['a', '還好，你知道什麼狗最會跳舞嗎？'], ['b', '嗷？'], ['a', '「汪」爾滋！'], ['a', '（自己笑到拍拍手）']] },
   { id: 'flower', a: 'tuxedo', b: 'white', lead: 'white', title: '一朵花',
     lines: [['n', '吵吵貓送陷阱貓一朵花'], ['b', '哼，本公主就收下吧'], ['n', '吵吵貓開心到跌倒了']] },
-  { id: 'bite', a: 'orange', b: 'calico', lead: 'calico', title: '一口就好',
-    lines: [['a', '小魚乾……可以分我一口嗎？'], ['b', '（撒嬌）不要～'], ['a', '（默默啃雞腿）']] },
-  { id: 'nap', a: 'calico', b: 'black', lead: 'black', title: '午睡',
-    lines: [['a', '（蹭蹭小小黑）'], ['b', '喵～'], ['n', '兩隻靠在一起，睡著了']] },
+  { id: 'mine', a: 'orange', b: 'calico', lead: 'calico', title: '這是我的！',
+    lines: [['n', '晽晽貓貓看到小魚乾走過來'], ['n', '晽晽貓貓直接把小魚乾撞飛'], ['a', '（抱緊自己的小魚乾）這是我的！'], ['b', '……喵？']] },
+  { id: 'scare', a: 'haohao', b: 'calico', lead: 'calico', title: '嚇一跳',
+    lines: [['a', '嗷！'], ['n', '小魚乾嚇到整隻跳起來'], ['b', '（躲到你後面撒嬌）'], ['a', '哈囉貓咪～']] },
   { id: 'smell', a: 'haohao', b: 'doggy', lead: 'doggy', title: '香香',
     lines: [['b', '汪，去洗澡'], ['a', '我是女生～女生都香香的～'], ['b', '（聞一聞）……汪，去洗澡']] },
   { id: 'apple', a: 'gungun', b: 'haohao', lead: 'gungun', title: '球球',
@@ -5112,7 +5119,7 @@ function coverHTML() {
   return `<section class="db-page db-cover">
     <div class="dc-eyebrow">PARK FRIENDS・兩人遊樂園</div>
     <h2 class="dc-title">小動物圖鑑</h2>
-    <div class="dc-sub">遇到 <b>${st.met}</b>/${DEX_ORDER.length}・台詞 <b>${st.heard}</b>/${st.total}・小劇場 <b>${st.scenes}</b>/${SCENES.length}</div>
+    <div class="dc-sub">遇到 <b>${st.met}</b> 位・聽過 <b>${st.heard}</b> 句・小劇場 <b>${st.scenes}</b> 齣</div>
     <div class="dc-frame"><div class="dc-photo">${lineup}<div class="dc-ground"></div></div></div>
     <div class="dc-stamps">${achs.map((a) => `<button class="dc-stamp t-${a.tier} ${got.has(a.id) ? 'on' : ''}" data-desc="${esc(a.name)}：${esc(a.desc)}${a.tier === 'g' ? '（解鎖會掉限定券）' : ''}"><span>${a.mark}</span><small>${esc(a.name)}</small></button>`).join('')}</div>
     <div class="dc-hint">點牠們或往左滑翻頁 <i data-ic="chevron"></i></div>
@@ -5128,7 +5135,7 @@ function animalPage(k, i) {
     <div class="da-stage locked">${friendArt(k)}</div>
     <h2 class="da-name muted">？？？</h2>
     <p class="small muted center">還沒遇過。牠偶爾會路過首頁，或是哪天來當值日生。</p>
-    <div class="da-locked-hint">有 ${L.length} 句台詞${sp.length ? `、${sp.length} 句限定台詞` : ''}等你們收集</div>
+    <div class="da-locked-hint">牠有好多話想跟你們說</div>
   </section>`;
   return `<section class="db-page db-ani">
     <div class="da-top"><span class="da-no">${no}</span><span class="chip">${f.kind}</span></div>
@@ -5136,9 +5143,9 @@ function animalPage(k, i) {
     <h2 class="da-name">${esc(f.name)}</h2>
     <div class="da-met">${new Date(e.met).toLocaleDateString('zh-TW')} 第一次遇到${e.by ? `・${esc(nick(e.by))}` : ''}</div>
     <p class="da-intro">${esc(f.intro)}</p>
-    <h3 class="da-h">說過的話 <span>${heard}/${L.length}</span></h3>
+    <h3 class="da-h">說過的話 <span>${heard} 句</span></h3>
     ${L.map((t, j) => `<div class="dex-line ${got[j] ? '' : 'locked'}">${got[j] ? esc(t) : '？？？'}</div>`).join('')}
-    ${sp.length ? `<h3 class="da-h">限定台詞 <span>${sp.filter((_, j) => got['s' + j]).length}/${sp.length}</span></h3>
+    ${sp.length ? `<h3 class="da-h">限定台詞 <span>${sp.filter((_, j) => got['s' + j]).length} 句</span></h3>
       ${sp.map((x, j) => `<div class="dex-line sp ${got['s' + j] ? '' : 'locked'}"><span class="sp-tag">${FEST_NAMES[x.w]}</span>${got['s' + j] ? esc(x.t) : '？？？'}</div>`).join('')}` : ''}
     <h3 class="da-h">我們幫牠加的 <span>${cu.length}</span></h3>
     ${cu.map((c) => `<div class="dex-line cu">${esc(c.t)}<span class="cu-by">— ${esc(nick(c.by))}</span>${c.by === me() ? `<button class="cu-del" data-del="${c.id}" aria-label="刪除">✕</button>` : ''}</div>`).join('') || '<p class="small muted" style="margin:4px 0 0">你們最懂牠，幫牠多說幾句吧，路過時牠就會說出來。</p>'}
@@ -5149,7 +5156,7 @@ function scenesPage() {
   const seen = sceneSeen(), d = S.couple.dex || {};
   const mini = (k, on) => `<span class="ds-mini ${on ? '' : 'locked'}">${friendArt(k)}</span>`;
   return `<section class="db-page db-scenes">
-    <div class="da-top"><span class="da-no">小劇場</span><span class="chip">${Object.keys(seen).length}/${SCENES.length}</span></div>
+    <div class="da-top"><span class="da-no">小劇場</span><span class="chip">${Object.keys(seen).length} 齣</span></div>
     <p class="small muted" style="margin:2px 0 10px">有時候會兩隻一起路過，點牠們就會演一段。</p>
     ${SCENES.map((s) => {
       const on = !!seen[s.id];
@@ -5531,7 +5538,6 @@ const PET_DEFS = [
   { id: 'a-dex_full', ach: 'dex_full', title: '最懂牠的人', rarity: 'SR', desc: '換一個你最想要的小動物周邊' },
   { id: 'a-dex_scene3', ach: 'dex_scene3', title: '小劇場常客', rarity: 'SR', desc: '換一次一起演一段小劇場' },
   { id: 'a-dex_all', ach: 'dex_all', title: '大合照', rarity: 'SSR', desc: '換一張我們和小動物們的大合照' },
-  { id: 'a-dex_sceneall', ach: 'dex_sceneall', title: '全劇終', rarity: 'SSR', desc: '換一個你決定的獎勵' },
 ];
 function petEarned() {
   const P = petState(), pet = P.pet || {}, got = new Set();

@@ -1045,5 +1045,4 @@ export const ACHIEVEMENTS = [
   { id: 'dex_full', name: '最懂牠的人', desc: '收齊一隻小動物的所有台詞', m: 'dexFull', goal: 1, tier: 's', mark: '懂', cat: 'dex' },
   { id: 'dex_custom', name: '幫牠們說話', desc: '幫小動物加 5 句台詞', m: 'dexCustom', goal: 5, tier: 'b', mark: '言', cat: 'dex' },
   { id: 'dex_scene3', name: '小劇場常客', desc: '看過 3 齣小劇場', m: 'dexScenes', goal: 3, tier: 's', mark: '劇', cat: 'dex' },
-  { id: 'dex_sceneall', name: '全劇終', desc: '看過所有小劇場', m: 'dexScenes', goal: 10, tier: 'g', mark: '幕', cat: 'dex' },
 ];
