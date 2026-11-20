@@ -145,7 +145,8 @@ function sfx(name) {
   if (!sfxOn()) return;
   if (typeof bgmDuck === 'function') bgmDuck();
   try {
-    AC ||= new (window.AudioContext || window.webkitAudioContext)();
+    AC ||= (typeof BGM !== 'undefined' && BGM.ctx) || new (window.AudioContext || window.webkitAudioContext)();
+    if (AC.state !== 'running') AC.resume();
     if (AC.state === 'suspended') AC.resume();
     const t0 = AC.currentTime;
     const tone = (f, at, dur, type = 'sine', vol = .12) => {
@@ -3476,8 +3477,8 @@ async function checkFund() {
   const ok = await S.store.coupleTx(S.cid, (c) => (c.fund && !c.fund.rewarded ? { 'fund.rewarded': true, fundsDone: (c.fundsDone || 0) + 1 } : null));
   if (!ok) return;
   for (const u of S.couple.members) {
-    await col('cards').add(cardDoc({ ...D.TRAVEL_CARD, desc: `「${f.name}」存滿了，出發吧` }, u, 'sys'));
-    await col('events').add({ to: u, by: 'sys', type: 'fund', text: '旅行基金存滿了！掉落一張旅行限定券 ✈️', at: now(), read: false });
+    await col('cards').add(cardDoc({ ...D.TRAVEL_CARD, title: (f.name || D.TRAVEL_CARD.title).slice(0, 14), desc: `存滿 $${money(f.goal)} 了，出發吧！` }, u, 'sys', { fundDone: f.name || '旅行基金', fundGoal: f.goal }));
+    await col('events').add({ to: u, by: 'sys', type: 'fund', text: `「${f.name}」存滿了！掉落一張出發卡 ✈️`, at: now(), read: false });
   }
   confetti(140);
 }
@@ -4818,6 +4819,7 @@ function memDeep() {
       <div class="dh-season">${y}・${Sx.name}</div>
       <div class="small muted">${Sx.desc}。兩個人都寫完，答案才會同時打開。同一季的題目每年都會再出現，可以看看自己和對方的想法有沒有變。</div>
       <div class="pet-bar"><div style="width:${Math.round(P.both / P.total * 100)}%"></div></div>
+      <button class="btn sm ghost dh-yrs" data-act="deepYears" data-q="${q}"><i data-ic="clock"></i> 歷年回答</button>
       <div class="small muted">我寫了 ${P.mine}/${P.total}・一起揭曉 ${P.both}/${P.total}${done ? '・本季完成！' : '・全部完成兩人各 +20 點'}</div>
     </div>
     ${Sx.qs.map((qt, i) => {
@@ -4831,7 +4833,7 @@ function memDeep() {
         ${open ? `<div class="dq-a"><b>${avatar(me())} ${esc(nick(me()))}</b><p>${esc(mineA.text)}</p></div><div class="dq-a"><b>${avatar(p)} ${esc(nick(p))}</b><p>${esc(theirA.text)}</p></div>`
           : `<div class="dq-status small muted">${mineA ? `<i data-ic="lock"></i> 我寫好了，等 ${esc(nick(p) || '對方')}` : theirA ? `${esc(nick(p))} 寫好了，換你` : '兩個人都還沒寫'}</div>
              <button class="btn sm ${mineA ? 'ghost' : ''}" data-act="deepAnswer" data-i="${i}">${mineA ? '修改我的答案' : '寫答案'}</button>`}
-        ${past.length ? `<details class="dq-past"><summary>以前的答案（${past.map(([yy]) => yy).join('、')}）</summary>${past.map(([yy, a]) => `<div class="dq-py">${yy}</div>${(S.couple.members).map((u) => a[u] ? `<div class="dq-a"><b>${esc(nick(u))}</b><p>${esc(a[u].text)}</p></div>` : '').join('')}`).join('')}</details>` : ''}
+        ${past.length ? `<button class="link dq-yrs" data-act="deepYears" data-q="${q}" data-i="${i}"><i data-ic="clock"></i> 看歷年回答（${past.length + (open ? 1 : 0)} 年）</button>` : ''}
       </div>`;
     }).join('')}`;
 }
@@ -4859,6 +4861,33 @@ ACT.deepAnswer = async (el) => {
       if (ok) { for (const u of S.couple.members) await addPoints(u, 20, `季問答完成：${DEEP_SEASONS[q].name}`); confetti(90); toast('本季問答全部完成！兩人各 +20 點'); }
     }
   }, 600);
+};
+
+// ---------- 歷年回答：同一題，每一年兩個人並排 ----------
+function deepYearsOf(q, i) {
+  const ms = S.couple.members;
+  return list('deep').filter((x) => x.q === q && x.i === i && x.answers && ms.length > 1 && ms.every((u) => x.answers[u])).sort((a, b) => b.y - a.y);
+}
+ACT.deepYears = (el) => {
+  let q = el && el.dataset.q != null ? +el.dataset.q : deepQ();
+  const only = el && el.dataset.i != null && el.dataset.i !== '' ? +el.dataset.i : null;
+  const p = partner(), ms = [me(), p];
+  const m = openModal(`${mhead('<i data-ic="clock"></i> 歷年回答')}<div id="dy"></div>`);
+  const draw = () => {
+    const Sx = DEEP_SEASONS[q];
+    const qs = Sx.qs.map((t, i) => [t, i]).filter(([, i]) => only == null || i === only);
+    const any = qs.some(([, i]) => deepYearsOf(q, i).length);
+    $('#dy', m).innerHTML = `${only == null ? `<div class="seg dy-seg">${DEEP_SEASONS.map((x, k) => `<button data-q="${k}" class="${k === q ? 'on' : ''}">${x.name.split('・')[0]}</button>`).join('')}</div>` : ''}
+      <div class="dy-head emb-${['F-date', 'F-travel', 'F-anniv', 'F-xmas'][q]}"><b>${Sx.name}</b><span>${Sx.desc}</span></div>
+      ${any ? qs.map(([t, i]) => { const ys = deepYearsOf(q, i); return ys.length ? `<div class="dy-q">
+        <div class="dy-qt"><span>Q${i + 1}</span>${esc(t)}</div>
+        <div class="dy-cols"><span>${avatar(me())} ${esc(nick(me()))}</span><span>${avatar(p)} ${esc(nick(p))}</span></div>
+        ${ys.map((d) => `<div class="dy-row"><div class="dy-y"><b>${d.y}</b></div><div class="dy-a">${ms.map((u) => `<p>${esc(d.answers[u].text)}</p>`).join('')}</div></div>`).join('')}
+      </div>` : ''; }).join('')
+      : '<div class="empty">這一季還沒有兩個人都寫完的題目。<br>每年同一季會再問一次同樣的題目，寫過的答案會一年一年排在這裡。</div>'}`;
+    $$('.dy-seg button', m).forEach((b) => b.onclick = () => { q = +b.dataset.q; draw(); });
+  };
+  draw();
 };
 // ============================================================
 //  第一次打開的導覽：小小黑帶路，介紹五個分頁
@@ -5753,8 +5782,32 @@ function missCardArt(title) {
   festMotif = function (key, c) {
     if (key === 'pet' && c && c.title) { const a = petCardArt(c.title); if (a) return a; }
     if (key === 'miss' && c && c.title) { const a = missCardArt(c.title); if (a) return a; }
+    if (key === 'travel' && c && c.fundDone) return fundDoneArt();
     return _fm(key, c);
   };
+}
+
+// 旅行基金存滿的卡：郵票＋飛行航線＋郵戳
+function fundDoneArt() {
+  const perf = [];
+  for (let x = -22; x <= 22; x += 5.5) { perf.push([x, -30], [x, 12]); }
+  for (let y = -24.5; y <= 7; y += 5.5) { perf.push([-24, y], [24, y]); }
+  return `<g transform="rotate(-6 0 -9)">
+      <rect x="-24" y="-30" width="48" height="42" class="e-bg e-ink-s" stroke-width="1.2"/>
+      ${perf.map(([x, y]) => `<circle cx="${x}" cy="${y}" r="1.7" class="e-bg"/>`).join('')}
+      <rect x="-18.5" y="-24.5" width="37" height="31" class="e-ink-s" stroke-width="1" fill="none"/>
+      <circle cx="9" cy="-15" r="4.2" class="e-acc-f"/>
+      <path d="M-18.5 6.5 L-8 -8 L-2 -1 L5 -11 L18.5 6.5 Z" class="e-acc-f e-ink-s" stroke-width="1" stroke-linejoin="round" opacity=".9"/>
+      <path d="M-15 -19 h8 M-15 -16 h5" class="e-ink-s" stroke-width=".9" stroke-linecap="round"/>
+    </g>
+    <path d="M-2 36 Q26 36 30 12 Q32 -6 30 -24" fill="none" class="e-ink-s" stroke-width="1.3" stroke-dasharray="3 3.2" stroke-linecap="round"/>
+    <circle cx="-2" cy="36" r="2.2" class="e-ink-f"/>
+    <g transform="translate(30 -31) rotate(-4)"><path d="M0 -7 L1.6 -2 L7 1 L7 3 L1.6 1.6 L1 6 L3 7.6 L3 9 L0 8 L-3 9 L-3 7.6 L-1 6 L-1.6 1.6 L-7 3 L-7 1 L-1.6 -2 Z" class="e-acc-f e-ink-s" stroke-width=".9" stroke-linejoin="round"/></g>
+    <g transform="translate(-20 20) rotate(-14)" opacity=".9">
+      <circle r="12" class="e-bg e-ink-s" stroke-width="1.2"/><circle r="9" class="e-ink-s" stroke-width=".7" fill="none"/>
+      <path d="M-5 -1.5 h10 M-5 1.5 h10" class="e-ink-s" stroke-width=".9"/>
+      <path d="M-12 -5 q-5 -3 -10 0 t-10 0 M-12 0 q-5 -3 -10 0 t-10 0 M-12 5 q-5 -3 -10 0 t-10 0" class="e-ink-s" stroke-width=".8" fill="none"/>
+    </g>`;
 }
 // ============================================================
 //  罐罐（不扣點）：每天配給一個＋做事偶爾掉＋小動物送來
@@ -6281,9 +6334,9 @@ function bgmStart() {
   if (BGM.on || !bgmEnabled()) return;
   try {
     BGM.ctx ||= new (window.AudioContext || window.webkitAudioContext)();
-    if (BGM.ctx.state === 'suspended') BGM.ctx.resume();
+    if (BGM.ctx.state !== 'running') BGM.ctx.resume();
     const out = BGM.gain = BGM.ctx.createGain(); out.gain.value = 0; out.connect(BGM.ctx.destination);
-    out.gain.linearRampToValueAtTime(bgmVol() * .5, BGM.ctx.currentTime + 3);
+    out.gain.linearRampToValueAtTime(bgmVol() * 5, BGM.ctx.currentTime + 3);
     BGM.on = true; BGM.style = bgmStyleNow();
     let t = BGM.ctx.currentTime + .2, pass = 0;
     const loop = () => { if (!BGM.on || BGM.gain !== out) return; t += bgmSchedule(BGM.ctx, out, BGM.style, t, pass++); BGM.timer = setTimeout(loop, Math.max(1, t - BGM.ctx.currentTime - 4) * 1000); };
@@ -6296,18 +6349,36 @@ function bgmStop(fade = .8) {
   try { g.gain.cancelScheduledValues(c.currentTime); g.gain.setValueAtTime(g.gain.value, c.currentTime); g.gain.linearRampToValueAtTime(0, c.currentTime + fade); } catch (e) {}
   setTimeout(() => { try { g.disconnect(); } catch (e) {} }, fade * 1000 + 200);
 }
-const bgmSetVol = () => { if (BGM.on && BGM.gain) BGM.gain.gain.setTargetAtTime(bgmVol() * .5, BGM.ctx.currentTime, .2); };
+const bgmSetVol = () => { if (BGM.on && BGM.gain) BGM.gain.gain.setTargetAtTime(bgmVol() * 5, BGM.ctx.currentTime, .2); };
 // 音效響的時候，背景音樂先讓一下（不會蓋過刮刮樂、翻卡的聲音）
 function bgmDuck() {
   if (!BGM.on || !BGM.gain) return;
   const g = BGM.gain.gain, t = BGM.ctx.currentTime;
-  try { g.cancelScheduledValues(t); g.setTargetAtTime(bgmVol() * .5 * .35, t, .05); g.setTargetAtTime(bgmVol() * .5, t + .9, .4); } catch (e) {}
+  try { g.cancelScheduledValues(t); g.setTargetAtTime(bgmVol() * 5 * .35, t, .05); g.setTargetAtTime(bgmVol() * 5, t + .9, .4); } catch (e) {}
 }
 // 日夜切換時，音樂淡出再換另一首
 function bgmThemeCheck() { if (BGM.on && BGM.style !== bgmStyleNow()) { bgmStop(2); setTimeout(bgmStart, 2300); } }
-// iPhone 一定要等使用者碰一下畫面才能出聲
-['pointerdown', 'keydown'].forEach((ev) => document.addEventListener(ev, () => bgmStart(), { passive: true }));
-document.addEventListener('visibilitychange', () => { if (document.hidden) bgmStop(.3); });
+// iPhone：一定要在「點畫面」的當下解鎖聲音；另外 iPhone 開靜音模式時網頁聲音預設會被關掉，
+// 所以把聲音類型設成「播放音樂」（iOS 17 以上），舊版就用一段無聲的 <audio> 帶起來
+let bgmSilentEl = null;
+function audioUnlock() {
+  try { if (navigator.audioSession && navigator.audioSession.type !== 'playback') navigator.audioSession.type = 'playback'; } catch (e) {}
+  try {
+    BGM.ctx ||= (typeof AC !== 'undefined' && AC) || new (window.AudioContext || window.webkitAudioContext)();
+    if (typeof AC !== 'undefined' && !AC) AC = BGM.ctx; // 音效和音樂共用同一個
+    if (BGM.ctx.state !== 'running') BGM.ctx.resume();
+    const b = BGM.ctx.createBuffer(1, 1, 22050), src = BGM.ctx.createBufferSource(); src.buffer = b; src.connect(BGM.ctx.destination); src.start(0);
+  } catch (e) {}
+  if (!navigator.audioSession && bgmEnabled() && !bgmSilentEl) {
+    try {
+      bgmSilentEl = new Audio('data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQAAAAA=');
+      bgmSilentEl.loop = true; bgmSilentEl.setAttribute('playsinline', ''); bgmSilentEl.volume = 0.01; bgmSilentEl.play().catch(() => {});
+    } catch (e) {}
+  }
+  bgmStart();
+}
+['touchend', 'click', 'pointerdown', 'keydown'].forEach((ev) => document.addEventListener(ev, audioUnlock, { passive: true, capture: true }));
+document.addEventListener('visibilitychange', () => { if (document.hidden) { bgmStop(.3); if (bgmSilentEl) { bgmSilentEl.pause(); bgmSilentEl = null; } } });
 setInterval(bgmThemeCheck, 60000);
 // ============================================================
 //  設定 → 功能介紹（不暴雷：只講怎麼玩，不講還沒遇到的東西）
