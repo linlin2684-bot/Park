@@ -987,6 +987,7 @@ async function dexNote(k, idx) {
 }
 function sayLine(k, idx) {
   const L = friendLines(k);
+  if (idx === undefined && typeof maybeAnimalCan === 'function') maybeAnimalCan(k);
   if (idx === undefined) {
     // 節日／心情限定台詞優先；偶爾說你們幫牠加的台詞
     const sp = typeof specialNow === 'function' ? specialNow(k) : [];
@@ -1174,6 +1175,7 @@ async function holidayDrops() {
       await col('cards').add(cardDoc(tpl, u, 'sys'));
       await col('events').add({ to: u, by: 'sys', type: 'card', text: '今天有一張節日限定券送給你 🎁', detail: D.HOLIDAY_CARDS[r.key].title, at: now(), read: false });
     }
+    await ticketOnce(`fest-${k}`, r.to, '節日禮物');
   }
   if (typeof extraHolidayDrops === 'function') await extraHolidayDrops();
 }
@@ -1824,6 +1826,7 @@ ACT.dailyAnswer = async () => {
   if (doc) await col('daily').update(id, { [`answers.${me()}`]: v });
   else await col('daily').set(id, { qi: dayIndex() % D.DAILY_QUESTIONS.length, answers: { [me()]: v }, at: now() });
   await addPoints(me(), D.POINTS.daily, '每日一問'); petXP(2);
+  maybeCan(me(), '回答了每日一問', .35); setTimeout(dailyStreakTicket, 800);
   await notify(partner(), 'daily', `${nick(me())} 回答了今天的每日一問 💬`);
   toast('送出了 💬');
 };
@@ -3277,7 +3280,7 @@ ACT.giveStamp = () => {
     if (!r) { closeModal(m); r = await promptBox('蓋章的原因', { placeholder: '例如：幫我按摩' }); if (!r) return; }
     else closeModal(m);
     const before = stampCount(p);
-    await addPoints(p, D.POINTS.stamp, '蓋章：' + r, 'stamp'); petXP(3); sfx('stamp');
+    await addPoints(p, D.POINTS.stamp, '蓋章：' + r, 'stamp'); petXP(3); sfx('stamp'); maybeCan(p, '被蓋了章', .3);
     await notify(p, 'stamp', `${nick(me())} 幫你蓋了一個章 📮`, r);
     if ((before + 1) % D.POINTS.stampsPerSheet === 0) {
       await addTicket(p, 1);
@@ -3344,6 +3347,7 @@ ACT.taskDo = async (el) => {
   if (!(await confirmBox(`完成「${t}」了嗎？`, '完成！'))) return;
   await col('taskDone').set(`${wk}_${i}_${me()}`, { uid: me(), week: wk, i, task: t, at: now() });
   await addPoints(me(), D.POINTS.weeklyTask, '每週任務：' + t); petXP(3);
+  maybeCan(me(), '完成了每週任務', .5); setTimeout(weekTicketCheck, 800);
   confetti(30); toast(`+${D.POINTS.weeklyTask} 點`);
 };
 // ============================================================
@@ -4633,7 +4637,7 @@ ACT.petOpen = () => {
     <p class="center muted" style="margin:0 0 4px">${P.stage.name}・經驗 ${P.xp}・${PET_TIME_TEXT[petTimePose()] || PET_MOOD_TEXT[P.mood]}</p>
     <div class="btn-row" style="justify-content:center;margin-bottom:12px">
       <button class="btn sm" data-act="petPat">摸摸</button>
-      <button class="btn sm ghost" id="pt-feed">餵罐罐 <small>10點</small></button>
+      <button class="btn sm ghost" id="pt-feed">餵罐罐 <small>${canState().daily ? '今天的' : `剩 ${canState().stock} 個`}</small></button>
       <button class="btn sm ghost" id="pt-name">改名字</button>
     </div>
     <h3 style="font-size:15px">型態</h3>
@@ -4644,7 +4648,7 @@ ACT.petOpen = () => {
       ${PET_ACC.map((a) => { const ok = P.unlocked.some((x) => x.id === a.id); return `<button data-w="${a.id}" class="${P.wear === a.id ? 'on' : ''} ${ok ? '' : 'locked'}" ${ok ? '' : 'disabled'}><span class="pet-thumb">${petSVG(2, 'ok', a.id, { blink: false })}</span><span>${a.name}</span><small>${ok ? '' : a.anniv ? '週年紀念日' : a.gacha ? '扭蛋掉落' : a.month ? `${a.month} 月限定` : `經驗 ${a.xp}`}</small></button>`; }).join('')}
     </div>
     <h3 style="font-size:15px;margin-top:14px">怎麼養大牠</h3>
-    <p class="small muted" style="margin:0;line-height:1.8">每天摸摸 +3・按想你 +1・回答每日一問 +2・幫對方蓋章 +3・完成每週任務 +3・兌換票券 +3・季問答 +5<br>一個人一天最多 +30，兩個人一起養長得最快。扭蛋時偶爾會額外掉出限定配件。超過一天半沒人理牠，牠會開始想你們。</p>`);
+    <p class="small muted" style="margin:0;line-height:1.8">每天摸摸 +3・餵罐罐 +8・按想你 +1・回答每日一問 +2・幫對方蓋章 +3・完成每週任務 +3・兌換票券 +3・季問答 +5<br>罐罐每人每天配給一個，回答問題、做任務、被蓋章偶爾會掉，路過的小動物也會叼來<br>一個人一天最多 +30，兩個人一起養長得最快。扭蛋時偶爾會額外掉出限定配件。超過一天半沒人理牠，牠會開始想你們。</p>`);
   $$('.pet-forms button', m).forEach((b) => b.onclick = async () => {
     await S.store.updateCouple(S.cid, { 'pet.form': +b.dataset.form });
     closeModal(m); ACT.petOpen();
@@ -4654,9 +4658,7 @@ ACT.petOpen = () => {
     closeModal(m); ACT.petOpen();
   });
   $('#pt-feed', m).onclick = async () => {
-    const mine = sum(list('points').filter((x) => x.uid === me()), (x) => x.amt);
-    if (mine < 10) return toast('點數不夠 10 點');
-    await addPoints(me(), -10, `餵${P.name}罐罐`);
+    if (!(await feedCan())) return toast('今天的罐罐吃完了。回答問題、做任務，或等小動物送來');
     await petXP(8, 'feed');
     toast(`${P.name} 吃得好開心！經驗 +8`); closeModal(m); ACT.petOpen();
   };
@@ -5459,7 +5461,7 @@ async function extraHolidayDrops() {
   const y = new Date().getFullYear();
   for (const k of holidayMoreToday()) {
     const t = HOLIDAY_MORE[k];
-    await seriesDrop(`${y}-${k}`, t, '節日系列', t.fest, c.members, '今天有一張節日限定券送給你');
+    if (await seriesDrop(`${y}-${k}`, t, '節日系列', t.fest, c.members, '今天有一張節日限定券送給你')) await ticketOnce(`fest-${y}-${k}`, c.members, '節日禮物');
   }
 }
 
@@ -5541,7 +5543,7 @@ const PET_DEFS = [
 ];
 function petEarned() {
   const P = petState(), pet = P.pet || {}, got = new Set();
-  const feeds = list('points').filter((x) => x.amt < 0 && /罐罐/.test(x.reason || '')).length;
+  const feeds = (pet.feeds || 0) + list('points').filter((x) => x.amt < 0 && /罐罐/.test(x.reason || '')).length;
   if ((pet.pats || 0) >= 1) got.add('pat');
   if (feeds >= 1) got.add('feed');
   if (feeds >= 30) got.add('feed30');
@@ -5684,6 +5686,65 @@ function missCardArt(title) {
     if (key === 'miss' && c && c.title) { const a = missCardArt(c.title); if (a) return a; }
     return _fm(key, c);
   };
+}
+// ============================================================
+//  罐罐（不扣點）：每天配給一個＋做事偶爾掉＋小動物送來
+//  扭蛋券新拿法：每週任務全完成、連續 7 天每日一問、節日當天
+// ============================================================
+function canState(u = me()) {
+  const c = S.couple || {};
+  return { daily: ((c.canDay || {})[u] || '') !== dkey(), stock: (c.cans || {})[u] || 0 };
+}
+async function giveCan(u, why, quiet = false) {
+  if (!S.couple || (S.couple.members || []).length < 2) return;
+  await S.store.coupleTx(S.cid, (c) => ({ [`cans.${u}`]: ((c.cans || {})[u] || 0) + 1 }));
+  if (!quiet && u === me()) setTimeout(() => toast(`${why}，掉了一個罐罐`), 900);
+}
+// 回答每日一問、做每週任務、被蓋章時偶爾掉一個
+const maybeCan = (u, why, p) => { if (Math.random() < p) giveCan(u, why, u !== me()); };
+// 路過的小動物偶爾叼一個罐罐來（晽晽貓貓會自己吃掉）
+function maybeAnimalCan(k) {
+  if (Math.random() > .1 || !S.couple || (S.couple.members || []).length < 2) return;
+  const n = FRIENDS[k]?.name || '小動物';
+  if (k === 'orange') return setTimeout(() => toast('晽晽貓貓叼著一個罐罐路過……然後自己吃掉了'), 1400);
+  giveCan(me(), '', true);
+  setTimeout(() => toast(`${n}叼了一個罐罐送給小小黑`), 1400);
+}
+async function feedCan() {
+  const st = canState();
+  if (!st.daily && st.stock < 1) return false;
+  await S.store.coupleTx(S.cid, (c) => {
+    const daily = ((c.canDay || {})[me()] || '') !== dkey(), stock = (c.cans || {})[me()] || 0;
+    if (daily) return { [`canDay.${me()}`]: dkey(), 'pet.feeds': ((c.pet || {}).feeds || 0) + 1 };
+    if (stock > 0) return { [`cans.${me()}`]: stock - 1, 'pet.feeds': ((c.pet || {}).feeds || 0) + 1 };
+    return null;
+  });
+  return true;
+}
+
+// ---------- 扭蛋券 ----------
+async function ticketOnce(key, users, text) {
+  const k = `tk-${key}`;
+  const ok = await S.store.coupleTx(S.cid, (x) => (x.drops && x.drops[k] ? null : { [`drops.${k}`]: true }));
+  if (!ok) return;
+  for (const u of users) { await addTicket(u, 1); await col('events').add({ to: u, by: 'sys', type: 'card', text, detail: '扭蛋券 +1', at: now(), read: false }); }
+  if (users.includes(me())) setTimeout(() => toast(`${text}：扭蛋券 +1`), 600);
+}
+// 每週任務 3 項都做完
+async function weekTicketCheck() {
+  const wk = weekKey();
+  const n = list('taskDone').filter((d) => d.uid === me() && d.week === wk).length;
+  if (n >= weekTasks().length) await ticketOnce(`week-${wk}-${me()}`, [me()], '這週的任務全部完成');
+}
+// 連續 7 天回答每日一問（7、14、21…天各一張）
+async function dailyStreakTicket() {
+  let n = 0; const d = new Date();
+  for (; n < 400; n++) {
+    const doc = list('daily').find((x) => x.id === dkey(d));
+    if (!doc || !(doc.answers || {})[me()]) break;
+    d.setDate(d.getDate() - 1);
+  }
+  if (n > 0 && n % 7 === 0) await ticketOnce(`daily7-${me()}-${dkey()}`, [me()], `連續 ${n} 天回答每日一問`);
 }
 // ============================================================
 //  啟動
