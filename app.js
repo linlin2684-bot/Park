@@ -4670,7 +4670,6 @@ function petHomeCard() {
     <div class="grow">
       <div class="pet-name">${esc(P.name)} <span class="chip">${PET_STAGES[P.show].name}</span></div>
       <div class="small muted ${dv ? 'duty-say' : ''}">${dv ? dutyText() : PET_TIME_TEXT[petTimePose()] || PET_MOOD_TEXT[P.mood]}</div>
-      <div class="pet-bar"><div style="width:${pct}%"></div></div>
       <div class="small muted">${P.next ? (pct >= 80 ? '好像快要長大了' : '正在慢慢長大') : '已經長成最大隻了'}</div>
     </div>
     <button class="btn sm pet-pet" data-act="petPat">摸摸</button>
@@ -4856,7 +4855,6 @@ function memDeep() {
   return `<div class="card deep-head">
       <div class="dh-season">${y}・${Sx.name}</div>
       <div class="small muted">${Sx.desc}。兩個人都寫完，答案才會同時打開。同一季的題目每年都會再出現，可以看看自己和對方的想法有沒有變。</div>
-      <div class="pet-bar"><div style="width:${Math.round(P.both / P.total * 100)}%"></div></div>
       <button class="btn sm ghost dh-yrs" data-act="deepYears" data-q="${q}"><i data-ic="clock"></i> 歷年回答</button>
       <div class="small muted">我寫了 ${P.mine}/${P.total}・一起揭曉 ${P.both}/${P.total}${done ? '・本季完成！' : '・全部完成兩人各 +20 點'}</div>
     </div>
