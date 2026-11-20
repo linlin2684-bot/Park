@@ -5211,16 +5211,40 @@ async function dexResetOnce() {
     localStorage.setItem(fk, '1');
   }
   // 對方加入的那一刻：小小黑經驗、圖鑑、小劇場全部歸零，從兩個人一起開始
-  if ((S.couple.members || []).length >= 2 && !S.couple.togetherStart && !dexResetBusy) {
+  if ((S.couple.members || []).length >= 2 && !S.couple.togetherStart && !dexResetBusy && COLS.every((c) => S.d[c])) {
     dexResetBusy = true;
-    await S.store.coupleTx(S.cid, (x) => (x.togetherStart ? null : { togetherStart: now(), dex: {}, scenes: {}, dexReset: 2, 'pet.xp': 0, 'pet.pats': 0, 'pet.last': {}, 'pet.form': null }));
-    dexResetBusy = false;
+    try { await joinFreshStart(); } finally { dexResetBusy = false; }
     return;
   }
   if (S.couple.dexReset >= 1 || dexResetBusy) return;
   dexResetBusy = true;
   await S.store.coupleTx(S.cid, (x) => (x.dexReset >= 1 ? null : { dex: {}, scenes: {}, dexReset: 1 }));
   dexResetBusy = false;
+}
+
+// 對方加入的那一刻：先備份，再把測試期間的東西全部清掉，兩個人從零開始
+// 保留：暱稱、頭像、生日、紀念日、卡池、旅行基金的名稱和目標、對方的生日卡組
+async function joinFreshStart() {
+  const ok = await S.store.coupleTx(S.cid, (x) => (x.togetherStart ? null : { togetherStart: now() }));
+  if (!ok) return;
+  try { await saveCloudBackup('join'); } catch (e) { console.warn('加入前備份失敗', e); }
+  const c = S.couple, bSeries = D.BIRTHDAY_SERIES;
+  for (const name of COLS) {
+    if (name === 'pool') continue;
+    for (const d of list(name)) {
+      if (name === 'cards' && d.series === bSeries && d.owner !== c.creator) continue;   // 好寶的生日卡組
+      await col(name).remove(d.id);
+    }
+  }
+  await S.store.updateCouple(S.cid, {
+    dex: {}, scenes: {}, dexReset: 2, pet: { name: (c.pet && c.pet.name) || '小小黑' }, drops: {}, tickets: {}, cans: {}, canDay: {},
+    moods: {}, moodHist: {}, spins: {}, annivLetters: {}, opened: {}, taskOverride: {}, taskSwapReq: null, battleSwaps: {},
+    'fund.rewarded': false, fundsDone: 0,
+  });
+  // 這台手機記得的成就、紙條、提醒也清掉
+  Object.keys(localStorage).filter((k) => /^park-(ach|miss-seen|redeem-pop|duty|stroll-pat|carry|dexreset)/.test(k)).forEach((k) => localStorage.removeItem(k));
+  toast('歡迎加入！遊樂園從今天開始重新記錄');
+  setTimeout(() => { if (typeof holidayDrops === 'function') holidayDrops(); }, 2500);
 }
 // ============================================================
 //  想你：愛心雨、想你系列紀念卡
