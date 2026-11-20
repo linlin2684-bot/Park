@@ -983,7 +983,7 @@ async function dexNote(k, idx) {
   if (newLine) up[`dex.${k}.l.${idx}`] = true;
   if (first) { up[`dex.${k}.met`] = now(); up[`dex.${k}.by`] = me(); }
   await S.store.updateCouple(S.cid, up);
-  if (first) setTimeout(() => toast(`圖鑑新增：${FRIENDS[k].name}！`), 1600);
+  if (first) setTimeout(() => toast(`圖鑑新增：${FRIENDS[k].name}！也解鎖了牠的頭像`), 1600);
 }
 function sayLine(k, idx) {
   const L = friendLines(k);
@@ -1392,6 +1392,7 @@ function doRender() {
   if (a && a.closest && a.closest('#main') && /INPUT|TEXTAREA|SELECT/.test(a.tagName)) { S.deferRender = true; renderTop(); renderNav(); return; }
   setSection(S.tab);
   dexResetOnce();
+  if (typeof lookTick === 'function') lookTick();
   if (typeof missRain === 'function') missRain();
   if (typeof redeemPopup === 'function') redeemPopup();
   if (S.tab !== 'home') document.querySelectorAll('.cat-stroll').forEach((x) => x.remove());
@@ -1484,11 +1485,12 @@ ACT.settings = () => {
     <div class="card">
       <h3>我的資料</h3>
       <label>頭像</label>
-      <div class="av-grid" id="s-av">${Object.entries(AVATARS).map(([k, a]) => `<button data-av="${k}" class="${p.av === k ? 'on' : ''}" title="${a.name}"><span class="av">${avatarSVG(k)}</span></button>`).join('')}
+      <div class="av-grid" id="s-av">${avatarPickerHTML(p.av)}
         <button data-av="" class="av-emoji ${p.av && AVATARS[p.av] ? '' : 'on'}" title="用 Emoji"><span class="av"><input id="s-em" maxlength="2" value="${esc(p.emoji || '')}" aria-label="Emoji 頭像"></span></button></div>
       <p class="small muted" style="margin:2px 0 0">最後一格可以自己輸入任何 Emoji</p>
       <label>暱稱</label><input id="s-nk" maxlength="12" value="${esc(p.nick || '')}">
       <label>我的生日（月-日）</label><input id="s-bd" value="${esc(p.bday || '')}" placeholder="03-16">
+      <label>我們的黑貓叫什麼名字</label><input id="s-pn" maxlength="10" value="${esc((c.pet && c.pet.name) || '小小黑')}">
     </div>
     <div class="card">
       <h3>我們</h3>
@@ -1525,7 +1527,7 @@ ACT.settings = () => {
     $$('#s-pal button', m).forEach((x) => x.classList.toggle('on', x === b));
   });
   let av = p.av && AVATARS[p.av] ? p.av : '';
-  const avPick = (k) => { av = k; $$('#s-av button', m).forEach((x) => x.classList.toggle('on', x.dataset.av === k)); };
+  const avPick = (k) => { av = k; $$('#s-av button[data-av]', m).forEach((x) => x.classList.toggle('on', x.dataset.av === k)); };
   $$('#s-av button', m).forEach((b) => b.onclick = () => { avPick(b.dataset.av); if (!b.dataset.av) $('#s-em', m).focus(); });
   $('#s-em', m).oninput = () => avPick('');
   $$('#s-sp button', m).forEach((b) => b.onclick = () => { sp = +b.dataset.l; $$('#s-sp button', m).forEach((x) => x.classList.toggle('on', x === b)); });
@@ -1535,6 +1537,7 @@ ACT.settings = () => {
     await S.store.updateCouple(S.cid, {
       [`profiles.${me()}`]: { ...p, nick: $('#s-nk', m).value.trim() || p.nick, av, emoji: $('#s-em', m).value.trim() || p.emoji, bday: bd || p.bday, spice: sp },
       'dates.anniversary': $('#s-an', m).value || c.dates?.anniversary,
+      'pet.name': ($('#s-pn', m).value.trim() || '小小黑').slice(0, 10),
     });
     // 儲存後留在設定頁，按鈕短暫顯示「已儲存」
     const btn = $('#s-save', m);
@@ -4491,7 +4494,8 @@ function petState() {
   const unlocked = PET_ACC.filter((a) => (a.gacha || a.anniv) ? owned.includes(a.id) : a.month ? a.month === month : xp >= a.xp);
   // 長大之後可以自由切換成以前的型態
   const show = pet.form != null && pet.form <= st ? pet.form : st;
-  return { pet, xp, st, show, stage: PET_STAGES[st], next, mood, hrs, unlocked, name: pet.name || PET_DEFAULT_NAME, wear: pet.wear || '' };
+  const look = pet.look && typeof lookUnlocked === 'function' && lookUnlocked().has(pet.look) ? pet.look : '';
+  return { pet, xp, st, show, look, stage: PET_STAGES[st], next, mood, hrs, unlocked, name: pet.name || PET_DEFAULT_NAME, wear: pet.wear || '' };
 }
 
 // 互動加經驗（小事都會加一點；每人每天有上限，避免狂刷）
@@ -4536,7 +4540,7 @@ const PET_PROPS = [
   `<g><rect x="5" y="86" width="20" height="3" rx="1.2" fill="#b8916a"/><rect x="11" y="50" width="8" height="37" fill="#d9b88f"/><path d="M11 54 L19 57 M11 60 L19 63 M11 66 L19 69 M11 72 L19 75 M11 78 L19 81" stroke="#b08a60" stroke-width="1.1"/><rect x="7" y="46" width="16" height="5" rx="2" fill="#8f6aa0"/><path d="M19 52 Q23 56 22 60" fill="none" stroke="#f5c843" stroke-width=".9"/><circle cx="22" cy="61" r="1.8" fill="#f5c843"/></g>`,
   `<g><path d="M18 86 Q18 78 50 78 Q82 78 82 86 Q82 91 50 91 Q18 91 18 86 Z" fill="#b8344a"/><path d="M22 84 Q50 80 78 84" fill="none" stroke="#e8b04b" stroke-width="1"/><circle cx="19" cy="88" r="1.6" fill="#e8b04b"/><circle cx="81" cy="88" r="1.6" fill="#e8b04b"/><path d="M19 89.5 L18 92 M81 89.5 L82 92" stroke="#e8b04b" stroke-width="1"/></g>`,
 ];
-function petSVG(st, mood, wear, { blink = true } = {}) {
+function petSVG(st, mood, wear, { blink = true, look = '' } = {}) {
   const I = CAT_INK;
   const eyes = mood === 'happy'
     ? `<path d="M39.5 33 Q43 29 46.5 33 M53.5 33 Q57 29 60.5 33" fill="none" stroke="#ffd970" stroke-width="2.2" stroke-linecap="round"/>`
@@ -4565,8 +4569,9 @@ function petSVG(st, mood, wear, { blink = true } = {}) {
           <path d="M48.5 38.5 L51.5 38.5 L50 40 Z" fill="#ff9fb4"/>${mouth}
           <path d="M31 36 L39 37 M31 40 L39 39 M69 36 L61 37 M69 40 L61 39" stroke="#efe6f2" stroke-width=".8" stroke-linecap="round"/>
           <ellipse cx="39.5" cy="40" rx="2.4" ry="1.3" fill="#ff9fb4" opacity="${mood === 'happy' ? .8 : .45}"/><ellipse cx="60.5" cy="40" rx="2.4" ry="1.3" fill="#ff9fb4" opacity="${mood === 'happy' ? .8 : .45}"/>
-          ${acc}
+          ${look === 'ghost' ? '' : acc}
         </g>
+        ${look ? lookArt(look) : ''}
       </g>
     </g>
   </svg>`;
@@ -4575,9 +4580,9 @@ function petSVG(st, mood, wear, { blink = true } = {}) {
 // 依時間：晚上 10 點到早上 6 點睡覺、早上 6～9 點伸懶腰，其他時間坐著（可戴配件）
 function petTimePose() { const h = new Date().getHours(); return h >= 22 || h < 6 ? 'sleep' : h < 9 ? 'stretch' : ''; }
 function petArt(P, big) {
-  const tp = petTimePose();
+  const tp = P.look ? '' : petTimePose();
   if (tp) return `<div class="pet-pose" data-pose="${tp}">${catPose(tp, P.wear)}</div>`;
-  return petSVG(P.show, P.mood, P.wear);
+  return petSVG(P.show, P.mood, P.wear, { look: P.look });
 }
 const PET_TIME_TEXT = { sleep: '睡得正香，小聲一點', stretch: '剛睡醒，正在伸懶腰' };
 const PET_MOOD_TEXT = { happy: '心情超好，尾巴翹得高高的', ok: '在窩裡等你們來玩', miss: '好久沒人理牠了，有點想你們' };
@@ -4592,7 +4597,7 @@ function petHomeCard() {
       <div class="pet-name">${esc(P.name)} <span class="chip">${PET_STAGES[P.show].name}</span></div>
       <div class="small muted ${dv ? 'duty-say' : ''}">${dv ? dutyText() : PET_TIME_TEXT[petTimePose()] || PET_MOOD_TEXT[P.mood]}</div>
       <div class="pet-bar"><div style="width:${pct}%"></div></div>
-      <div class="small muted">${P.next ? `再 ${P.next.xp - P.xp} 點經驗長成${P.next.name}` : '已經是最大隻的貓老大了'}</div>
+      <div class="small muted">${P.next ? (pct >= 80 ? '好像快要長大了' : '正在慢慢長大') : '已經長成最大隻了'}</div>
     </div>
     <button class="btn sm pet-pet" data-act="petPat">摸摸</button>
   </div>`;
@@ -4610,6 +4615,7 @@ ACT.petPat = async (el, e) => {
   localStorage.setItem(k, '1');
   await petXP(3, 'pat');
   await S.store.coupleTx(S.cid, (c) => ({ 'pet.pats': (((c.pet || {}).pats) || 0) + 1 }));
+  lookNightPat();
   toast(`${petState().name} 很開心！經驗 +3`);
 };
 
@@ -4618,23 +4624,28 @@ ACT.petOpen = () => {
   const m = openModal(`${mhead(`<i data-ic="heart"></i> ${esc(P.name)}`)}
     <div class="pet-room big ${dutyVisitor() ? 'has-visitor' : ''}"><div class="pet-big">${petArt(P, true)}</div>${dutyVisitor()}</div>
     ${dutyVisitor() ? `<p class="center small duty-say" style="margin:0 0 4px;color:var(--accent)">${dutyText()}</p>` : ''}
-    <p class="center muted" style="margin:0 0 4px">${P.stage.name}・經驗 ${P.xp}・${PET_TIME_TEXT[petTimePose()] || PET_MOOD_TEXT[P.mood]}</p>
+    <p class="center muted" style="margin:0 0 4px">${PET_STAGES[P.show].name}・${PET_TIME_TEXT[petTimePose()] || PET_MOOD_TEXT[P.mood]}</p>
     <div class="btn-row" style="justify-content:center;margin-bottom:12px">
       <button class="btn sm" data-act="petPat">摸摸</button>
       <button class="btn sm ghost" id="pt-feed">餵罐罐 <small>${canState().daily ? '今天的' : `剩 ${canState().stock} 個`}</small></button>
-      <button class="btn sm ghost" id="pt-name">改名字</button>
     </div>
-    <h3 style="font-size:15px">型態</h3>
-    <div class="pet-forms">${PET_STAGES.map((s, i) => `<button data-form="${i}" class="${P.show === i ? 'on' : ''}" ${i > P.st ? 'disabled' : ''}>${s.name}<small>${i > P.st ? `經驗 ${s.xp}` : P.show === i ? '現在' : '切換'}</small></button>`).join('')}</div>
-    <h3 style="font-size:15px;margin-top:14px">配件</h3>
+    <h3 class="pet-h">長大</h3>
+    <div class="pet-forms">${PET_STAGES.map((s, i) => `<button data-form="${i}" class="${P.show === i ? 'on' : ''} ${i > P.st ? 'lk' : ''}" ${i > P.st ? 'disabled' : ''}>${i > P.st ? '<b class="q">？</b>' : `${petSVG(i, 'ok', '', { blink: false })}<span>${s.name}</span>`}</button>`).join('')}</div>
+    <h3 class="pet-h">裝扮</h3>
+    <div class="pet-forms looks">${(() => { const U = lookUnlocked(); return `<button data-look="" class="${!P.look ? 'on' : ''}"><span class="none">不換</span></button>` + PET_LOOKS.map((l) => U.has(l.id) ? `<button data-look="${l.id}" class="${P.look === l.id ? 'on' : ''}">${petSVG(P.show, 'ok', '', { blink: false, look: l.id })}<span>${l.name}</span></button>` : `<button class="lk" disabled><b class="q">？</b><small>${esc(l.hint)}</small></button>`).join(''); })()}</div>
+    <h3 class="pet-h">配件</h3>
     <div class="pet-acc">
       <button data-w="" class="${!P.wear ? 'on' : ''}"><span>不戴</span></button>
-      ${PET_ACC.map((a) => { const ok = P.unlocked.some((x) => x.id === a.id); return `<button data-w="${a.id}" class="${P.wear === a.id ? 'on' : ''} ${ok ? '' : 'locked'}" ${ok ? '' : 'disabled'}><span class="pet-thumb">${petSVG(2, 'ok', a.id, { blink: false })}</span><span>${a.name}</span><small>${ok ? '' : a.anniv ? '週年紀念日' : a.gacha ? '扭蛋掉落' : a.month ? `${a.month} 月限定` : `經驗 ${a.xp}`}</small></button>`; }).join('')}
-    </div>
-    <h3 style="font-size:15px;margin-top:14px">怎麼養大牠</h3>
-    <p class="small muted" style="margin:0;line-height:1.8">每天摸摸 +3・餵罐罐 +8・按想你 +1・回答每日一問 +2・幫對方蓋章 +3・完成每週任務 +3・兌換票券 +3・季問答 +5<br>罐罐每人每天配給一個，回答問題、做任務、被蓋章偶爾會掉，路過的小動物也會叼來<br>一個人一天最多 +30，兩個人一起養長得最快。扭蛋時偶爾會額外掉出限定配件。超過一天半沒人理牠，牠會開始想你們。</p>`);
-  $$('.pet-forms button', m).forEach((b) => b.onclick = async () => {
+      ${PET_ACC.map((a) => { const ok = P.unlocked.some((x) => x.id === a.id); return ok
+        ? `<button data-w="${a.id}" class="${P.wear === a.id ? 'on' : ''}"><span class="pet-thumb">${petSVG(2, 'ok', a.id, { blink: false })}</span>${a.name}</button>`
+        : `<button class="locked sil" disabled><span class="pet-thumb">${petSVG(2, 'ok', a.id, { blink: false })}</span>？？？<small>${a.gacha ? '扭蛋時偶爾會掉' : a.anniv ? '某個特別的日子' : a.month ? '某個冬天的節日' : '再長大一點'}</small></button>`; }).join('')}
+    </div>`);
+  $$('.pet-forms:not(.looks) button[data-form]', m).forEach((b) => b.onclick = async () => {
     await S.store.updateCouple(S.cid, { 'pet.form': +b.dataset.form });
+    closeModal(m); ACT.petOpen();
+  });
+  $$('.pet-forms.looks button[data-look]', m).forEach((b) => b.onclick = async () => {
+    await S.store.updateCouple(S.cid, { 'pet.look': b.dataset.look });
     closeModal(m); ACT.petOpen();
   });
   $$('.pet-acc button', m).forEach((b) => b.onclick = async () => {
@@ -4645,10 +4656,6 @@ ACT.petOpen = () => {
     if (!(await feedCan())) return toast('今天的罐罐吃完了。回答問題、做任務，或等小動物送來');
     await petXP(8, 'feed');
     toast(`${P.name} 吃得好開心！經驗 +8`); closeModal(m); ACT.petOpen();
-  };
-  $('#pt-name', m).onclick = async () => {
-    const v = await promptBox('幫黑貓取名字', { value: P.name, placeholder: '例如：小小黑' });
-    if (v && v.trim()) { await S.store.updateCouple(S.cid, { 'pet.name': v.trim().slice(0, 10) }); toast('改好了'); }
   };
 };
 // ============================================================
@@ -5951,6 +5958,112 @@ ACT.noteBox = (el, _e, tab = 'got') => {
     openModal(`<div class="letter note-paper ${paperCls(n)} nb-read" style="--ink:${noteInk(n)}">${esc(n.text)}${paperDeco(n)}</div>`, { center: true });
   });
 };
+// ============================================================
+//  小小黑的裝扮：服裝（睡衣、小天使、小幽靈、小廚師）＋季節（春夏秋冬）
+//  解鎖後自己選，沒解鎖顯示「？」
+// ============================================================
+const PET_LOOKS = [
+  { id: 'pajama', name: '睡衣', hint: '晚上常常來陪牠' },
+  { id: 'angel', name: '小天使', hint: '一起把心裡話說完' },
+  { id: 'ghost', name: '小幽靈', hint: '某個不給糖就搗蛋的夜晚' },
+  { id: 'chef', name: '小廚師', hint: '一起吃遍想吃的' },
+  { id: 'spring', name: '春天', hint: '等春天來' },
+  { id: 'summer', name: '夏天', hint: '等夏天來' },
+  { id: 'autumn', name: '秋天', hint: '等秋天來' },
+  { id: 'winter', name: '冬天', hint: '等冬天來' },
+];
+const seasonNow = (d = new Date()) => ['winter', 'winter', 'spring', 'spring', 'spring', 'summer', 'summer', 'summer', 'autumn', 'autumn', 'autumn', 'winter'][d.getMonth()];
+function lookUnlocked() {
+  const pet = S.couple?.pet || {}, got = new Set(Object.keys(pet.looks || {}));
+  // 睡衣：連續 7 天，晚上 9 點後都有人摸牠
+  const nights = Object.keys(pet.nights || {}).sort();
+  let run = 0, best = 0, prev = null;
+  nights.forEach((d) => { run = prev && (parseD(d) - parseD(prev)) / 86400000 === 1 ? run + 1 : 1; best = Math.max(best, run); prev = d; });
+  if (best >= 7) got.add('pajama');
+  if (list('points').some((x) => /^季問答完成/.test(x.reason || ''))) got.add('angel');
+  if (list('watch').filter((w) => w.kind === 'food' && w.done).length >= 10) got.add('chef');
+  return got;
+}
+// 打開 App 時：記下今天的季節、萬聖節；新解鎖的跳通知
+async function lookTick() {
+  if (!S.couple || (S.couple.members || []).length < 2 || !S.d.points || !S.d.watch) return;
+  const pet = S.couple.pet || {}, looks = pet.looks || {}, up = {};
+  const sn = seasonNow(); if (!looks[sn]) up[`pet.looks.${sn}`] = true;
+  const md = dkey().slice(5); if (md === '10-31' && !looks.ghost) up['pet.looks.ghost'] = true;
+  if (Object.keys(up).length) await S.store.updateCouple(S.cid, up);
+  const key = `park-looks-seen-${S.cid}-${me()}`;
+  let seen = null; try { seen = JSON.parse(localStorage.getItem(key) || 'null'); } catch (e) {}
+  const now1 = [...lookUnlocked()];
+  if (!seen) { localStorage.setItem(key, JSON.stringify(now1)); return; }
+  const fresh = now1.filter((x) => !seen.includes(x));
+  if (fresh.length) {
+    localStorage.setItem(key, JSON.stringify(now1));
+    const n = PET_LOOKS.find((l) => l.id === fresh[0]);
+    setTimeout(() => toast(`${petState().name}解鎖了新裝扮：${n ? n.name : ''}`), 1200);
+  }
+}
+// 晚上摸牠，記一筆
+function lookNightPat() {
+  const h = new Date().getHours();
+  if (h >= 21 || h < 3) {
+    const d = new Date(); if (h < 3) d.setDate(d.getDate() - 1);
+    S.store.updateCouple(S.cid, { [`pet.nights.${dkey(d)}`]: true });
+  }
+}
+// 畫在小小黑身上（坐姿 petSVG 的座標）
+function lookArt(id) {
+  if (id === 'pajama') return `<path d="M36 70 Q50 64 64 70 L66 86 L34 86 Z" fill="#9fb8e8" opacity=".95"/><path d="M38 74 H62 M37 79 H63" stroke="#fff" stroke-width="1.6" opacity=".7"/><circle cx="50" cy="76" r="1.3" fill="#fff"/>
+    <g transform="translate(0 4)"><path d="M34 22 Q44 6 62 12 Q72 16 74 30 Q66 24 56 22 Z" fill="#9fb8e8"/><path d="M34 22 Q50 18 60 23" stroke="#fff" stroke-width="2.4" fill="none" stroke-linecap="round"/><circle cx="75" cy="31" r="3.2" fill="#fff"/></g>`;
+  if (id === 'angel') return `<path d="M34 62 Q18 52 16 64 Q20 66 22 70 Q18 72 22 76 Q30 74 36 70 Z M66 62 Q82 52 84 64 Q80 66 78 70 Q82 72 78 76 Q70 74 64 70 Z" fill="#fffaf0" stroke="#e8dcc6" stroke-width=".8"/>
+    <ellipse cx="50" cy="10" rx="11" ry="3.2" fill="none" stroke="#f5c843" stroke-width="2.2"/>`;
+  if (id === 'ghost') return `<path d="M30 88 L30 52 Q30 28 50 26 Q70 28 70 52 L70 88 L64 83 L58 88 L52 83 L46 88 L40 83 L34 88 Z" fill="#f6f2f8" opacity=".93" stroke="#d9cfe0" stroke-width=".8" transform="translate(0 -6)"/>
+    <ellipse cx="44" cy="38" rx="3" ry="4" fill="#2b2633"/><ellipse cx="56" cy="38" rx="3" ry="4" fill="#2b2633"/><ellipse cx="50" cy="48" rx="2.4" ry="2" fill="#2b2633"/>`;
+  if (id === 'chef') return `<path d="M42 70 L50 76 L58 70 L58 86 L42 86 Z" fill="#fffaf0"/><path d="M42 70 L50 76 L58 70" stroke="#d9cfbe" stroke-width=".8" fill="none"/><circle cx="50" cy="80" r="1.2" fill="#d9cfbe"/>
+    <g transform="translate(0 4)"><rect x="40" y="12" width="20" height="9" rx="2" fill="#fffaf0" stroke="#e1d6c4" stroke-width=".8"/><circle cx="43" cy="8" r="6" fill="#fffaf0"/><circle cx="50" cy="5" r="7" fill="#fffaf0"/><circle cx="57" cy="8" r="6" fill="#fffaf0"/></g>`;
+  if (id === 'spring') return `<g transform="translate(0 4)">${[[38, 18, '#f7b6c8'], [44, 14, '#fff3c4'], [50, 13, '#f7b6c8'], [56, 14, '#c9e8d8'], [62, 18, '#f7b6c8']].map(([x, y, c]) => `<g transform="translate(${x} ${y})">${[0, 72, 144, 216, 288].map((a) => `<ellipse cx="0" cy="-2.4" rx="1.7" ry="2.6" fill="${c}" transform="rotate(${a})"/>`).join('')}<circle r="1.2" fill="#f5c843"/></g>`).join('')}</g>
+    <path d="M14 30 q2 -2 4 0 M84 44 q2 -2 4 0" stroke="#f7b6c8" stroke-width="2" stroke-linecap="round" fill="none"/>`;
+  if (id === 'summer') return `<g transform="translate(78 78) rotate(-12)"><path d="M-12 0 A12 12 0 0 0 12 0 Z" fill="#5fae6f"/><path d="M-10 0 A10 10 0 0 0 10 0 Z" fill="#f2f2e8"/><path d="M-9 0 A9 9 0 0 0 9 0 Z" fill="#ef5f6c"/><circle cx="-3" cy="3" r=".9" fill="#2b2633"/><circle cx="2" cy="5" r=".9" fill="#2b2633"/><circle cx="5" cy="2" r=".9" fill="#2b2633"/></g>
+    <g transform="translate(0 4)"><path d="M30 24 Q50 10 70 24 L66 26 Q50 16 34 26 Z" fill="#f2d48a"/><path d="M34 24 Q50 15 66 24" stroke="#e98a6a" stroke-width="2.2" fill="none"/></g>`;
+  if (id === 'autumn') return `${[[18, 70, '#e98a3a', -20], [80, 60, '#c9532f', 30], [24, 84, '#e8b04b', 50], [84, 84, '#e98a3a', -40]].map(([x, y, c, r]) => `<path transform="translate(${x} ${y}) rotate(${r})" d="M0 -6 L1.6 -2 L5 -3 L3 1 L5 3 L1 3 L0 6 L-1 3 L-5 3 L-3 1 L-5 -3 L-1.6 -2 Z" fill="${c}"/>`).join('')}
+    <path transform="translate(60 18) rotate(20)" d="M0 -5 L1.4 -1.6 L4.4 -2.6 L2.6 1 L4.4 2.6 L.8 2.6 L0 5 L-.8 2.6 L-4.4 2.6 L-2.6 1 L-4.4 -2.6 L-1.4 -1.6 Z" fill="#e98a3a"/>`;
+  if (id === 'winter') return `<path d="M35 52 Q50 60 65 52 L66 58 Q50 66 34 58 Z" fill="#d9434f"/><path d="M56 58 L60 74 L55 74 L52 60 Z" fill="#d9434f"/><path d="M37 55 H63 M55 66 H59" stroke="#fbf7f0" stroke-width="1.4" stroke-dasharray="2 2"/>
+    <g transform="translate(0 4)"><circle cx="31" cy="33" r="5" fill="#fbf7f0" stroke="#e6dccb" stroke-width=".8"/><circle cx="69" cy="33" r="5" fill="#fbf7f0" stroke="#e6dccb" stroke-width=".8"/><path d="M31 28 Q50 6 69 28" stroke="#d9434f" stroke-width="2" fill="none"/></g>`;
+  return '';
+}
+// ============================================================
+//  頭像：拿掉男孩、女孩、黃金獵犬；補上所有小動物（遇過才解鎖）
+// ============================================================
+const AV_HIDDEN = new Set(['girl', 'boy', 'golden']);
+const FR_AV = [['fr_haohao', 'haohao', '還好', '#fff1d6', '0 6 62 62'], ['fr_doggy', 'doggy', '狗狗', '#fbf1e2', '6 24 48 48'], ['fr_abian', 'abian', '阿扁', '#f3ece4', '6 24 48 48'],
+  ['fr_gungun', 'gungun', '小棍棍', '#fde6dc', '3 15 50 50'], ['fr_shark', 'shark', '鯊魚', '#e0eef8', '-4 -18 138 104']];
+FR_AV.forEach(([id, k, name, bg, vb]) => { AVATARS[id] = { name, bg, fr: k, vb }; });
+// 每個小動物頭像對應圖鑑裡的哪一隻
+const AV_DEX = { mx_black: 'black', mx_white: 'white', mx_orange: 'orange', mx_calico: 'calico', mx_tuxedo: 'tuxedo', fr_haohao: 'haohao', fr_doggy: 'doggy', fr_abian: 'abian', fr_gungun: 'gungun', fr_shark: 'shark' };
+const avLocked = (id) => AV_DEX[id] && !(((S.couple || {}).dex || {})[AV_DEX[id]] || {}).met;
+{
+  const _av0 = avatarSVG;
+  avatarSVG = function (id) {
+    const a = AVATARS[id];
+    if (a && a.fr) {
+      const art = friendArt(a.fr).replace(/viewBox="[^"]*"/, `viewBox="${a.vb}" x="6" y="6" width="52" height="52"`).replace('class="cat-svg', 'class="av-fr');
+      return `<svg viewBox="0 0 64 64" class="av-svg" xmlns="http://www.w3.org/2000/svg"><circle cx="32" cy="32" r="31" fill="${a.bg}"/><g transform="${a.fr === 'shark' ? '' : 'translate(64 0) scale(-1 1)'}">${art}</g><circle cx="32" cy="32" r="30.5" fill="none" stroke="rgba(74,46,42,.18)"/></svg>`;
+    }
+    return _av0(id);
+  };
+}
+// 還沒解鎖：徽章式的問號
+function avQuestionSVG() {
+  let dots = '';
+  for (let i = 0; i < 16; i++) { const t = i * 22.5 * Math.PI / 180; dots += `<circle cx="${(32 + Math.sin(t) * 27).toFixed(1)}" cy="${(32 - Math.cos(t) * 27).toFixed(1)}" r="${i % 4 ? .55 : 1}" class="e-ink-f"/>`; }
+  return `<svg viewBox="0 0 64 64" class="av-svg emb-C av-q" xmlns="http://www.w3.org/2000/svg"><circle cx="32" cy="32" r="31" class="e-bg"/><circle cx="32" cy="32" r="30" class="e-ink-s" stroke-width="1.2" fill="none" opacity=".5"/><circle cx="32" cy="32" r="22" class="e-acc-s" stroke-width=".8" fill="none" stroke-dasharray="2 2.5"/>${dots}
+    <path d="M26.5 26 Q26.5 20.5 32 20.5 Q37.5 20.5 37.5 25.5 Q37.5 29 33.5 30.5 Q32 31.2 32 34 V35.5" class="e-ink-s" stroke-width="2.2" fill="none" stroke-linecap="round"/><circle cx="32" cy="41" r="1.6" class="e-ink-f"/>
+    <path d="M44 17 l1 2.4 l2.4 1 l-2.4 1 l-1 2.4 l-1 -2.4 l-2.4 -1 l2.4 -1 z" class="e-acc-f"/></svg>`;
+}
+function avatarPickerHTML(cur) {
+  return Object.keys(AVATARS).filter((k) => !AV_HIDDEN.has(k)).map((k) => avLocked(k)
+    ? `<button class="av-lock" disabled title="還沒遇到"><span class="av">${avQuestionSVG()}</span></button>`
+    : `<button data-av="${k}" class="${cur === k ? 'on' : ''}" title="${AVATARS[k].name}"><span class="av">${avatarSVG(k)}</span></button>`).join('');
+}
 // ============================================================
 //  啟動
 // ============================================================
