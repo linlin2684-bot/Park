@@ -814,6 +814,38 @@ const DOGS = {
   doggy: { base: '#efd9ac', line: '#c7a66a', ear: '#e0bf85', muzzle: '#fbf0d8', belly: '#fbf0d8', dark: '#2b2226', ears: 'flop', eyes: 'sleepy', mouth: 'smile', curls: true },
   abian: { base: '#d9bd8c', line: '#a98a58', ear: '#f0e2c4', muzzle: '#ecdcbc', belly: '#ecdcbc', dark: '#2b2226', ears: 'flop', eyes: 'up', mouth: 'small', bigNose: true, pads: true, vest: true },
 };
+const PUPS2 = {
+  doggy: { base: '#f0d9a6', line: '#c9a868', ear: '#e3c185', muzzle: '#f9ecd0', dark: '#2b2226', eyes: 'sleepy' },
+  abian: { base: '#dcc093', line: '#ad8e5a', ear: '#cdae7c', muzzle: '#efe0c2', dark: '#2b2226', eyes: 'dot', vest: true },
+};
+function pupArt(key) {
+  const c = PUPS2[key];
+  const leg = (x1, x2) => `<path d="M${x1} 78 L${x2} 85" stroke="${c.line}" stroke-width="10.4" stroke-linecap="round"/><path d="M${x1} 78 L${x2} 85" stroke="${c.base}" stroke-width="8.4" stroke-linecap="round"/><ellipse cx="${x2}" cy="86.3" rx="3.6" ry="1.9" fill="${c.dark}"/>`;
+  const eyes = c.eyes === 'sleepy'
+    ? `<path d="M-8.5 -3 Q-6 -1 -3.5 -3 M3.5 -3 Q6 -1 8.5 -3" fill="none" stroke="${c.dark}" stroke-width="1.5" stroke-linecap="round"/>`
+    : `<circle cx="-6" cy="-3.5" r="2.1" fill="${c.dark}"/><circle cx="6" cy="-3.5" r="2.1" fill="${c.dark}"/><circle cx="-5.4" cy="-4.2" r=".7" fill="#fff"/><circle cx="6.6" cy="-4.2" r=".7" fill="#fff"/>`;
+  return `<svg viewBox="0 0 100 92" class="cat-svg pup-walk pup-${key}" xmlns="http://www.w3.org/2000/svg">
+    ${shadow(54, 26)}
+    <g class="dog-tail"><path d="M76 62 Q88 56 88 44 Q88 40 85 42 Q83 52 74 56 Z" fill="${c.base}" stroke="${c.line}" stroke-width="1" stroke-linejoin="round"/></g>
+    <g class="cat-legs-a">${leg(40, 39.5)}${leg(70, 70.5)}</g>
+    <g class="cat-legs-b">${leg(48, 49)}${leg(62, 61)}</g>
+    <path d="M28 66 Q28 55 42 54 L70 55 Q80 56 79 67 Q78 79 68 79 L38 79 Q28 79 28 71 Z" fill="${c.base}" stroke="${c.line}" stroke-width="1"/>
+    ${c.vest ? `<path d="M30 60 Q32 54 42 54 L54 54.5 Q60 66 56 79 L38 79 Q29 79 28.5 71 Z" fill="#f8f4ec" stroke="#d6ccbb" stroke-width=".9"/>
+      <path d="M38 79 L56 79" stroke="#2f4a6e" stroke-width="2.2" stroke-linecap="round"/>
+      <path d="M39 76.2 l2.5 2.2 2.5 -2.2 2.5 2.2 2.5 -2.2 2.5 2.2 2.5 -2.2 2.5 2.2" fill="none" stroke="#2f4a6e" stroke-width="1.1" stroke-linejoin="round"/>
+` : ''}
+    <g class="dog-head" transform="translate(30 50)">
+      <path d="M-15 -2 Q-16 -18 0 -18.5 Q16 -18 15 -2 Q15 12 0 13 Q-15 12 -15 -2 Z" fill="${c.base}" stroke="${c.line}" stroke-width="1"/>
+      <path d="M-11 -14 Q-21 -13 -20 2 Q-19.5 11 -13 10 Q-11 2 -9.5 -8 Z" fill="${c.ear}" stroke="${c.line}" stroke-width="1" stroke-linejoin="round"/>
+      <path d="M11 -14 Q21 -13 20 2 Q19.5 11 13 10 Q11 2 9.5 -8 Z" fill="${c.ear}" stroke="${c.line}" stroke-width="1" stroke-linejoin="round"/>
+      <ellipse cx="0" cy="5" rx="7.5" ry="5.8" fill="${c.muzzle}"/>
+      ${eyes}
+      <ellipse cx="0" cy="2.6" rx="3.8" ry="2.9" fill="${c.dark}"/><ellipse cx="-1" cy="1.6" rx="1.2" ry=".7" fill="#fff" opacity=".45"/>
+      <path d="M0 5.5 L0 7 M-2.8 7.6 Q0 9.6 2.8 7.6" fill="none" stroke="${c.dark}" stroke-width="1" stroke-linecap="round"/>
+      <ellipse cx="-9.5" cy="5" rx="2.2" ry="1.2" fill="#ff9fb4" opacity=".55"/><ellipse cx="9.5" cy="5" rx="2.2" ry="1.2" fill="#ff9fb4" opacity=".55"/>
+    </g>
+  </svg>`;
+}
 function dogArt(key, { off = false } = {}) {
   const c = DOGS[key], sw = 1.2, ly = 80;
   const leg = (x1, x2) => `<path d="M${x1} ${ly} L${x2} 87" stroke="${c.line}" stroke-width="${11 + sw * 2}" stroke-linecap="round"/><path d="M${x1} ${ly} L${x2} 87" stroke="${c.base}" stroke-width="11" stroke-linecap="round"/>${key !== 'doggy' ? `<ellipse cx="${x2}" cy="88" rx="5" ry="2.6" fill="${c.dark}"/>` : ''}`;
@@ -874,8 +906,9 @@ function pandaArt() {
     </g>
     <g class="cat-legs-a">${leg(44, 43)}${leg(92, 93)}</g>
     <g class="cat-legs-b">${leg(54, 55)}${leg(82, 81)}</g>
-    <path d="M30 60 Q30 44 48 43 L94 44 Q106 46 105 58 Q104 72 92 72 L44 72 Q30 72 30 64 Z" fill="${R}" stroke="${RL}" stroke-width="1"/>
-    <path d="M30 60 Q31 70 40 72 L50 72 Q46 62 38 56 Z" fill="${D}"/>
+    <path d="M30 56 Q31 74 44 74 L92 74 Q104 72 105 56 Q96 62 70 60 Q46 60 30 56 Z" fill="${D}"/>
+    <path d="M30 60 Q30 44 48 43 L94 44 Q106 46 105 58 Q98 64 70 62 Q46 62 30 60 Z" fill="${R}" stroke="${RL}" stroke-width="1" stroke-linejoin="round"/>
+    <path d="M30 58 Q34 70 46 72 Q42 62 40 56 Z" fill="${D}"/>
     <path d="M58 46 q4 -2 8 0 M74 46 q4 -2 8 0" fill="none" stroke="${RL}" stroke-width=".9" stroke-linecap="round" opacity=".6"/>
     <g class="dog-head" transform="translate(28 40)">
       <path d="M-14 -11 L-17 -25 L-4 -19 Z M14 -11 L17 -25 L4 -19 Z" fill="${R}" stroke="${RL}" stroke-width="1" stroke-linejoin="round"/>
@@ -900,8 +933,8 @@ function sharkArt({ off = false } = {}) {
   return `<svg viewBox="0 0 130 70" class="cat-svg shark-swim ${off ? 'off' : ''}" xmlns="http://www.w3.org/2000/svg">
     <g class="shark-tail"><path d="M104 36 L126 18 Q122 34 128 52 Z" fill="${B}" stroke="${BL}" stroke-width="1.2" stroke-linejoin="round"/></g>
     <path d="M56 18 L70 2 Q72 14 76 20 Z" fill="${B}" stroke="${BL}" stroke-width="1.2" stroke-linejoin="round"/>
-    <path d="M10 38 Q12 18 44 16 Q80 14 106 34 Q82 56 46 58 Q14 58 10 38 Z" fill="${B}" stroke="${BL}" stroke-width="1.2"/>
-    <path d="M12 40 Q24 54 48 56 Q80 54 102 38 Q80 46 48 46 Q24 46 12 40 Z" fill="${W}"/>
+    <path d="M10 38 Q24 58 46 58 Q82 56 106 34 Q80 44 48 44 Q22 44 10 38 Z" fill="${W}" stroke="#d6cfc2" stroke-width="1.2"/>
+    <path d="M10 38 Q12 18 44 16 Q80 14 106 34 Q80 44 48 44 Q22 44 10 38 Z" fill="${B}" stroke="${BL}" stroke-width="1.2" stroke-linejoin="round"/>
     <path d="M14 42 Q22 50 34 48 Q28 44 26 40 Q20 42 14 42 Z" fill="#f2a3a8"/>
     <path d="M14 42 L17 44.5 L19 42.5 L21.5 45 L23.5 43 L26 45.5 L27 41" fill="none" stroke="#fff" stroke-width="1" stroke-linejoin="round"/>
     ${off ? `<path d="M23 29 L29 29" stroke="#2b2633" stroke-width="1.8" stroke-linecap="round"/><text x="36" y="20" font-size="9" font-weight="800" fill="#9fb7d9" font-family="sans-serif">z</text>`
@@ -921,9 +954,9 @@ const FRIENDS = {
   tuxedo: { name: '吵吵貓', kind: '賓士貓', intro: '喜歡送別人一朵花，行為常常有點好笑。', w: 78, lines: () => COAT_TRAITS.tuxedo.lines },
   haohao: { name: '還好', kind: '黃金獵犬', intro: '樂天又有點無厘頭的大狗狗，堅持自己是女生。', w: 112,
     lines: ['還好：我是女生～', '還好：嗷把拔貓咪好可愛喔～', '還好：我是女生～（男朋友：你明明就是男生）', '還好追著自己的尾巴轉了三圈，然後忘記自己在幹嘛', '還好：今天也是很好的一天耶～', '還好躺下來翻肚子：我是女生～摸我～', '還好把球叼過來，結果是一顆橘子', '還好：嗷！（不知道在嗷什麼）', '還好跟陷阱貓打招呼，被無視了，但還是很開心', '還好：把拔～小小黑呢？小小黑呢？'] },
-  doggy: { name: '狗狗', kind: '小狗', intro: '家裡最年長的小動物，大家都喜歡牠。愛捉弄小小黑，喜歡自己香香的。', w: 92,
+  doggy: { name: '狗狗', kind: '小狗', intro: '家裡最年長的小動物，大家都喜歡牠。愛捉弄小小黑，喜歡自己香香的。', w: 78,
     lines: ['狗狗偷偷拍了一下小小黑的尾巴，然後裝作什麼都沒發生', '狗狗把阿扁的玩具藏起來了', '狗狗聞了聞你：汪，去洗澡', '狗狗：汪去洗澡！（但說到牠自己洗澡就跑掉了）', '狗狗香香的，因為牠很在意自己香不香', '狗狗趁小小黑睡覺，偷偷趴在牠旁邊', '狗狗被小棍棍踩了一腳，一臉無奈'] },
-  abian: { name: '阿扁', kind: '小狗', intro: '愛思考的小狗，怕被捏鼻子，聽到諧音梗會拍拍手。和狗狗是好朋友。', w: 92,
+  abian: { name: '阿扁', kind: '小狗', intro: '愛思考的小狗，怕被捏鼻子，聽到諧音梗會拍拍手。和狗狗是好朋友。', w: 78,
     lines: ['阿扁趕快摀住鼻子：不要捏我的鼻子！', '阿扁在思考……為什麼貓咪叫貓咪？', '阿扁在思考……今天的晚餐是什麼', '阿扁聽到一個諧音梗：「狗狗去餐廳點了『汪』子麵」，笑到拍拍手', '阿扁：「你知道小小黑最喜歡什麼運動嗎？『喵』準！」，說完自己拍拍手', '阿扁和狗狗是最好的朋友', '阿扁：讓我想一下……嗯……想完了，忘記剛剛在想什麼'] },
   gungun: { name: '小棍棍', kind: '小熊貓', intro: '會「棍～」地叫，講話幾乎只講最後一個字。最愛蘋果，喜歡踩狗狗，但狗狗不喜歡。', w: 104,
     lines: ['小棍棍：棍～', '小棍棍：蛋（荷包蛋的蛋）', '小棍棍：狗狗❤️', '小棍棍：狗狗～（踩）', '小棍棍：蘋果～', '小棍棍被打了一下：一袋～（跑掉）', '小棍棍：……果（想說蘋果）'] },
@@ -932,6 +965,7 @@ const FRIENDS = {
 };
 const friendLines = (k) => { const L = FRIENDS[k].lines; return typeof L === 'function' ? L() : L; };
 function friendArt(k, opts) {
+  if (PUPS2[k]) return pupArt(k);
   if (DOGS[k]) return dogArt(k, opts);
   if (k === 'gungun') return pandaArt();
   if (k === 'shark') return sharkArt(opts);
