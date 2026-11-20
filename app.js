@@ -1012,7 +1012,8 @@ function walker(k, cls = '') {
   return el;
 }
 function catStroll(force) {
-  if (S.tab !== 'home' || document.querySelector('.cat-stroll')) return;
+  // 週年動畫、回顧故事、新手導覽進行中不打擾
+  if (S.tab !== 'home' || document.querySelector('.cat-stroll, .anniv-intro, .story, .tour, .modal-back')) return;
   const key = 'park-stroll-at';
   if (!force && (now() - +(localStorage.getItem(key) || 0) < 8 * 60000 || Math.random() > .45)) return;
   localStorage.setItem(key, now());
@@ -1387,8 +1388,9 @@ function doRender() {
   if (S.tab !== 'home') document.querySelectorAll('.cat-stroll').forEach((x) => x.remove());
   const A = annivInfo(); document.documentElement.dataset.anniv = A.is ? '1' : '';
   renderTop(); renderNav(); renderMain();
+  setTimeout(catStroll, 2500 + Math.random() * 4000);
   if (A.is) { annivIntro(); annivRibbon(); }
-  else { setTimeout(catStroll, 2500 + Math.random() * 4000); if (tourNeeded()) setTimeout(() => startTour(), 1200); }
+  else if (tourNeeded()) setTimeout(() => startTour(), 1200);
 }
 document.addEventListener('focusout', () => setTimeout(() => {
   const a = document.activeElement;
@@ -4891,7 +4893,9 @@ function dutyToday() {
   const pv = localStorage.getItem('park-duty-preview');
   // 只有遇過的小動物才會來當值日生
   const d = S.couple.dex || {};
-  const pool = DEX_ORDER.filter((k) => k !== 'black' && (d[k] || {}).met);
+  // 只算昨天以前遇過的，避免今天新遇到一隻，值日生就中途換人
+  const t0 = parseD(dkey()).getTime();
+  const pool = DEX_ORDER.filter((k) => k !== 'black' && (d[k] || {}).met && d[k].met < t0);
   if (pv) return pool.includes(pv) ? pv : pool[0] || null;
   if (!pool.length) return null;
   const h = hash('duty' + dkey() + (S.cid || ''));
@@ -5057,7 +5061,14 @@ ACT.dex = () => { const m = openModal(bookHTML(), { center: true, cls: 'dex-book
 // 一次性：圖鑑歸零（值日生可以一直刷台詞的時候收集得太快了）
 let dexResetBusy = false;
 async function dexResetOnce() {
-  if (!S.couple || !S.cid || S.couple.dexReset >= 1 || dexResetBusy) return;
+  if (!S.couple || !S.cid) return;
+  // 歸零後，這台手機記得的圖鑑成就也清掉，重新解鎖時才會再跳通知
+  const fk = `park-dexreset-ach-${S.cid}-${me()}`, ak = 'park-ach-' + S.cid + '-' + me();
+  if (S.couple.dexReset >= 1 && !localStorage.getItem(fk)) {
+    try { const seen = JSON.parse(localStorage.getItem(ak) || 'null'); if (seen) localStorage.setItem(ak, JSON.stringify(seen.filter((x) => !String(x).startsWith('dex_')))); } catch {}
+    localStorage.setItem(fk, '1');
+  }
+  if (S.couple.dexReset >= 1 || dexResetBusy) return;
   dexResetBusy = true;
   await S.store.coupleTx(S.cid, (x) => (x.dexReset >= 1 ? null : { dex: {}, scenes: {}, dexReset: 1 }));
   dexResetBusy = false;
