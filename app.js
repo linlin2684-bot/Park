@@ -2813,7 +2813,7 @@ ACT.bookOpen = (el) => {
   for (let i = 0; i < items.length; i += ALBUM_PER) pages.push(items.slice(i, i + ALBUM_PER));
   const cell = (it, n) => {
     if (it.x) return `<div class="alb-slot"><span class="alb-no">No.${String(n).padStart(2, '0')}</span><b>？</b><small>${esc(D.RARITY[it.x.rarity]?.label || '')}</small></div>`;
-    const c = it.c, dim = !(seriesCollected(c) || B.wish), used = c.kind !== 'collect' && remaining(c) === 0;
+    const c = it.c, dim = false, used = c.kind !== 'collect' && remaining(c) === 0;
     return `<button class="alb-card emb-${embPalette(c)} ${dim ? 'dim' : ''}" data-id="${c.id}">${emblemSVG(c, c.mystery && remaining(c) > 0)}${used ? '<span class="alb-used">已兌換</span>' : ''}</button>`;
   };
   const m = openModal(`<button class="m-close db-close" data-act="close">✕</button>
@@ -5319,9 +5319,13 @@ festMotif = function (key, c) {
     <rect x="-8" y="17" width="16" height="5" rx="1" class="e-ink-f"/>${S1('M-4 22 V32 M0 22 V34 M4 22 V32', 1.2)}`;
   if (key === 'date') return `<rect x="-26" y="-20" width="52" height="44" rx="5" class="e-bg e-ink-s" stroke-width="1.6"/><rect x="-26" y="-20" width="52" height="11" rx="5" class="e-acc-f"/>${S1('M-26 -9 H26', 1.2)}
     ${S1('M-14 -26 V-15 M14 -26 V-15', 2.2)}${heart(1, 8)}`;
-  if (key === 'pet') return `<path d="M-22 -2 L-20 -26 L-6 -14 Z M22 -2 L20 -26 L6 -14 Z" class="e-ink-f"/><path d="M-17 -6 L-16 -20 L-9 -14 Z M17 -6 L16 -20 L9 -14 Z" class="e-acc-f"/>
-    <ellipse cx="0" cy="4" rx="25" ry="21" class="e-ink-f"/><ellipse cx="-9" cy="2" rx="4.4" ry="5.4" class="e-bg"/><ellipse cx="9" cy="2" rx="4.4" ry="5.4" class="e-bg"/>
-    <ellipse cx="-9" cy="2.5" rx="1.4" ry="4" class="e-ink-f"/><ellipse cx="9" cy="2.5" rx="1.4" ry="4" class="e-ink-f"/><path d="M-2 11 L2 11 L0 13 Z" class="e-acc-f"/>`;
+  if (key === 'pet') return `<g stroke-linejoin="round"><path d="M-22 -2 L-20 -26 L-6 -14 Z M22 -2 L20 -26 L6 -14 Z" fill="#2b2633" class="e-ink-s" stroke-width="1.2"/>
+    <ellipse cx="0" cy="4" rx="25" ry="21" fill="#2b2633" class="e-ink-s" stroke-width="1.2"/></g>
+    <path d="M-17 -6 L-16 -20 L-9 -14 Z M17 -6 L16 -20 L9 -14 Z" fill="#e9a3b8"/>
+    <ellipse cx="-9" cy="2" rx="4.4" ry="5.4" fill="#f5c843"/><ellipse cx="9" cy="2" rx="4.4" ry="5.4" fill="#f5c843"/>
+    <ellipse cx="-9" cy="2.5" rx="1.4" ry="4" fill="#2b2633"/><ellipse cx="9" cy="2.5" rx="1.4" ry="4" fill="#2b2633"/>
+    <circle cx="-7.8" cy="0" r="1" fill="#fff"/><circle cx="10.2" cy="0" r="1" fill="#fff"/><path d="M-2 11 L2 11 L0 13 Z" fill="#e9a3b8"/>
+    <ellipse cx="-16" cy="11" rx="3" ry="1.6" fill="#e9a3b8" opacity=".6"/><ellipse cx="16" cy="11" rx="3" ry="1.6" fill="#e9a3b8" opacity=".6"/>`;
   return _festMotif0(key, c);
 };
 const _bookMotif0 = bookMotif;
