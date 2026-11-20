@@ -1444,3 +1444,14 @@ html[data-theme="night"] .emb-F-pet { --e-bg: #18141c; --e-ink: #ece4ef; --e-acc
 .idea-slip2 .is-top { font-size: 10px; letter-spacing: .3em; font-family: var(--serif); font-weight: 700; }
 .idea-slip2 b { font-family: var(--serif); font-size: 22px; line-height: 1.4; }
 .idea-slip2 .is-by { font-size: 12px; opacity: .7; }
+/* 紙條：跟著字長大，不要信的留白 */
+#nw-paper { min-height: 0 !important; padding: 12px 14px !important; }
+#nw-paper textarea { min-height: 58px !important; overflow: hidden; }
+.paper-cat#nw-paper, .nt-letter.paper-cat, .nb-read.paper-cat { padding-right: 46px !important; }
+.nt-stage.s4 .nt-letter { min-height: 0 !important; padding: 12px 14px !important; width: fit-content; max-width: min(320px, 82vw); margin: 0 auto; }
+.nt-stage.s4 .nt-env { width: auto; }
+.nt-text { min-height: 0 !important; }
+.nb-read { min-height: 0 !important; padding: 12px 14px !important; }
+.nb-note { min-height: 0 !important; padding: 10px 12px !important; }
+.paper-catmark { width: 26px; right: 8px; bottom: 6px; }
+.nb-grid { align-items: start; }

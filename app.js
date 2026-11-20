@@ -5761,8 +5761,11 @@ ACT.writeNote = () => {
   const m = openModal(`${mhead('寫一張小紙條')}
     <div class="np-pick">${NOTE_PAPERS.map((x) => `<button data-p="${x.id}" class="${x.id === paper ? 'on' : ''}"><span class="np-sw paper-${x.id}"></span>${x.name}</button>`).join('')}</div>
     <div class="np-ink">${NOTE_INKS.map((x) => `<button data-i="${x.id}" class="${x.id === ink ? 'on' : ''}" title="${x.name}"><span style="background:${x.id || 'conic-gradient(#4a3520,#24406b,#8c2340,#2f5b47,#4a3520)'}"></span><small>${x.name}</small></button>`).join('')}</div>
-    <div class="letter note-paper ${paperCls({ paper })}" id="nw-paper" style="--ink:${noteInk({ paper, ink })}"><textarea id="nw-t" maxlength="300" placeholder="想對 ${esc(nick(partner()))} 說的話…"></textarea><div class="nw-from">—— ${esc(nick(me()))}</div>${paperDeco({ paper })}</div>
+    <div class="letter note-paper ${paperCls({ paper })}" id="nw-paper" style="--ink:${noteInk({ paper, ink })}"><textarea id="nw-t" maxlength="300" placeholder="想對 ${esc(nick(partner()))} 說的話…"></textarea>${paperDeco({ paper })}</div>
     <button class="btn block mt" id="nw-ok"><i data-ic="letter"></i> 折起來，藏好</button>`, { center: true, cls: 'note-write' });
+  // 紙條跟著字變大
+  const ta = $('#nw-t', m), grow = () => { ta.style.height = 'auto'; ta.style.height = Math.max(58, ta.scrollHeight) + 'px'; };
+  ta.addEventListener('input', grow); grow();
   $$('.np-pick button', m).forEach((b) => b.onclick = () => {
     paper = b.dataset.p;
     $$('.np-pick button', m).forEach((x) => x.classList.toggle('on', x === b));
@@ -5835,7 +5838,7 @@ ACT.findNote = async (el) => {
   vibrate(40);
   const m = openModal(`<div class="nt-stage" id="nt-st">
       <div class="nt-title">你找到一張小紙條！</div>
-      <div class="nt-env"><div class="nt-back"></div><div class="nt-letter letter note-paper ${paperCls(n)}" style="--ink:${noteInk(n)}"><div class="nt-text"></div><div class="nw-from nt-from">—— ${esc(nick(n.by))}・${fmtFull(n.at)}</div>${paperDeco(n)}</div><div class="nt-front"></div><div class="nt-flap"></div><div class="nt-seal"><svg viewBox="-12 -12 24 24"><circle r="11" fill="#c8283c"/><circle r="8.5" fill="none" stroke="#9e1d2e" stroke-width="1"/><path d="M0 -1.6 C-1 -3.6 -4.4 -3.4 -4.4 -.6 C-4.4 1.8 -1.6 3.6 0 5 C1.6 3.6 4.4 1.8 4.4 -.6 C4.4 -3.4 1 -3.6 0 -1.6 Z" fill="#f6c3cc"/></svg></div></div>
+      <div class="nt-env"><div class="nt-back"></div><div class="nt-letter letter note-paper ${paperCls(n)}" style="--ink:${noteInk(n)}"><div class="nt-text"></div>${paperDeco(n)}</div><div class="nt-front"></div><div class="nt-flap"></div><div class="nt-seal"><svg viewBox="-12 -12 24 24"><circle r="11" fill="#c8283c"/><circle r="8.5" fill="none" stroke="#9e1d2e" stroke-width="1"/><path d="M0 -1.6 C-1 -3.6 -4.4 -3.4 -4.4 -.6 C-4.4 1.8 -1.6 3.6 0 5 C1.6 3.6 4.4 1.8 4.4 -.6 C4.4 -3.4 1 -3.6 0 -1.6 Z" fill="#f6c3cc"/></svg></div></div>
       <div class="nt-hint small muted">點一下拆開</div>
     </div>`, { center: true, cls: 'note-open' });
   const st = $('#nt-st', m);
@@ -5875,13 +5878,13 @@ ACT.noteBox = (el, _e, tab = 'got') => {
     <div class="seg" id="nb-seg"><button data-t="got" class="${tab === 'got' ? 'on' : ''}">收到的 ${got.length}</button><button data-t="mine" class="${tab === 'mine' ? 'on' : ''}">我藏的 ${mine.length}</button></div>
     ${tab === 'got' ? `
       ${hidden ? `<p class="small center nb-tease">${esc(nick(partner()))} 還藏了 ${hidden} 張紙條給你，還沒找到</p>` : ''}
-      <div class="nb-grid">${got.map((n, i) => `<button class="nb-note letter note-paper ${paperCls(n)}" data-id="${n.id}" style="--r:${((i % 5) - 2) * 1.4}deg;--ink:${noteInk(n)}"><span class="nb-txt">${esc(n.text)}</span><span class="nb-meta">${esc(nick(n.by))}・${new Date(n.foundAt || n.at).toLocaleDateString('zh-TW')}</span>${paperDeco(n)}</button>`).join('') || '<p class="small muted center" style="grid-column:1/-1">還沒有找到紙條，四處看看吧</p>'}</div>`
+      <div class="nb-grid">${got.map((n, i) => `<button class="nb-note letter note-paper ${paperCls(n)}" data-id="${n.id}" style="--r:${((i % 5) - 2) * 1.4}deg;--ink:${noteInk(n)}"><span class="nb-txt">${esc(n.text)}</span><span class="nb-meta">${new Date(n.foundAt || n.at).toLocaleDateString('zh-TW')}</span>${paperDeco(n)}</button>`).join('') || '<p class="small muted center" style="grid-column:1/-1">還沒有找到紙條，四處看看吧</p>'}</div>`
     : `<div class="nb-list">${mine.map((n) => `<div class="nb-row"><span class="nb-fold">${foldedNoteSVG(n.paper)}</span><span class="grow"><span class="nb-rt">${esc(n.text)}</span><small class="muted">${new Date(n.at).toLocaleDateString('zh-TW')}・${where(n)}</small></span><span class="chip ${n.found ? 'ok' : ''}">${n.found ? `已被找到 ${new Date(n.foundAt).toLocaleDateString('zh-TW', { month: 'numeric', day: 'numeric' })}` : '還藏著'}</span></div>`).join('') || '<p class="small muted center">還沒藏過紙條</p>'}</div>`}`,
   { center: true, cls: 'note-box' });
   $$('#nb-seg button', m).forEach((b) => b.onclick = () => { closeModal(m); ACT.noteBox(null, null, b.dataset.t); });
   $$('.nb-note', m).forEach((b) => b.onclick = () => {
     const n = list('notes').find((x) => x.id === b.dataset.id);
-    openModal(`<div class="letter note-paper ${paperCls(n)} nb-read" style="--ink:${noteInk(n)}">${esc(n.text)}<div class="nw-from">—— ${esc(nick(n.by))}・${fmtFull(n.at)}</div>${paperDeco(n)}</div>`, { center: true });
+    openModal(`<div class="letter note-paper ${paperCls(n)} nb-read" style="--ink:${noteInk(n)}">${esc(n.text)}${paperDeco(n)}</div>`, { center: true });
   });
 };
 // ============================================================
