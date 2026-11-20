@@ -1710,7 +1710,6 @@ PAGES.home = {
       <div class="small muted">我們在一起</div>
       <div class="days">第 ${money(daysTogether())} <small>天</small></div>
       <div class="couple"><span>${avatar(me())} ${esc(nick(me()))}</span><span class="heart"><i data-ic="heart" class="ic-fill"></i></span><span>${p ? `${avatar(p)} ${esc(nick(p))}` : '<span class="muted">等待對方加入…</span>'}</span></div>
-      ${p ? `<div class="miss-line">今天我想了你 <b>${myToday}</b> 次・你想了我 <b>${theirToday}</b> 次${missStreak(me()) > 1 ? `・連續 ${missStreak(me())} 天` : ''}</div>` : ''}
       <div class="countdowns">${cds.map((x) => `<div class="cd ${x.days === 0 ? 'today' : ''}">${x.icon} ${esc(x.name)}<b>${x.days === 0 ? '就是今天！' : x.days + ' 天'}</b></div>`).join('')}</div>
     </div>
 
@@ -3734,8 +3733,8 @@ PAGES.memory = {
     const achN = computeAch().size;
     const back = (to, label) => `<button class="link back-link" data-act="sub" data-page="memory" data-sub="${to}">‹ ${label}</button>`;
     return `<div class="page-title"><h2><i data-ic="book"></i> 回憶</h2><button class="ach-chip ${sub === 'ach' ? 'on' : ''}" data-act="sub" data-page="memory" data-sub="ach"><i data-ic="trophy"></i> 成就 ${achN}/${D.ACHIEVEMENTS.length}</button></div>
-      <button class="card review-banner" data-act="review">
-        <span class="review-ic"><i data-ic="film"></i></span><span class="grow"><b style="font-family:var(--serif);font-size:17px">${new Date().getFullYear()} 年度回顧</b><br><span class="small" style="opacity:.9">看看我們這一年一起做了什麼</span></span><span style="font-size:22px">›</span></button>
+      ${reviewYear() ? `      <button class="card review-banner" data-act="review">
+        <span class="review-ic"><i data-ic="film"></i></span><span class="grow"><b style="font-family:var(--serif);font-size:17px">${reviewYear()} 年度回顧</b><br><span class="small" style="opacity:.9">看看我們這一年一起做了什麼</span></span><span style="font-size:22px">›</span></button>` : ''}
       <div class="seg seg-fit">${tabs.map(([k, n]) => `<button class="${onTab === k ? 'on' : ''}" data-act="sub" data-page="memory" data-sub="${k}">${n}</button>`).join('')}</div>
       ${sub === 'capsule' ? back('timeline', '回到時間軸') : sub === 'ach' ? back('goals', '回到回憶') : ''}
       ${({ goals: memGoals, timeline: memTimeline, album: memAlbum, deep: memDeep, capsule: memCapsule, ach: memAch }[sub] || memGoals)()}`;
@@ -3780,15 +3779,19 @@ ACT.goalToggle = async (el) => {
 ACT.goalDel = async (el) => { if (await confirmBox('刪掉這個目標？')) await col('goals').remove(el.dataset.id); };
 
 // ---------- 時間軸 ----------
+// 年度回顧只在年底年初出現：12/20～隔年 1/10
+function reviewYear(d = new Date()) {
+  if (localStorage.getItem('park-review-preview')) return d.getFullYear();
+  const m = d.getMonth() + 1, day = d.getDate();
+  if (m === 12 && day >= 20) return d.getFullYear();
+  if (m === 1 && day <= 10) return d.getFullYear() - 1;
+  return 0;
+}
 function timelineItems() {
   const it = [];
   const ann = S.couple.dates?.anniversary || D.DEFAULT_DATES.anniversary;
   it.push({ at: parseD(ann).getTime(), icon: '<i data-ic="heart"></i>', text: '我們在一起了' });
   for (const t of list('trips')) it.push({ at: t.date ? parseD(t.date).getTime() : t.at, icon: '<i data-ic="map"></i>', text: `一起去了 ${t.name}`, sub: t.note });
-  for (const c of list('cards')) for (const l of c.log || []) {
-    if (l.how === 'craft') continue;
-    it.push({ at: l.at, icon: l.how === 'birthday' ? '<i data-ic="cake"></i>' : '<i data-ic="ticket"></i>', text: `${nick(c.owner)} 用了「${c.mystery ? '神秘盲盒：' + c.secret : c.title}」` });
-  }
   for (const g of list('goals')) if (g.done) it.push({ at: g.doneAt, icon: '<i data-ic="target"></i>', text: `完成目標「${g.title}」` });
   for (const b of list('battles')) if (b.status === 'done') it.push({ at: b.doneAt || b.at, icon: '<i data-ic="swords"></i>', text: `${nick(b.winner)} 贏了挑戰「${b.task}」` });
   for (const g of list('gacha')) if (g.rarity === 'SSR') it.push({ at: g.at, icon: '<i data-ic="star"></i>', text: `${nick(g.uid)} ${g.how === 'craft' ? '合成' : '扭'}到 SSR「${g.title}」` });
@@ -3820,7 +3823,7 @@ function memTimeline() {
   const caps = list('capsules'), canOpen = caps.filter((c) => c.openAt && c.openAt <= now() && !c.firstOpenAt).length;
   return `<button class="btn block" data-act="editMemory" style="margin-bottom:10px">＋ 新增一段回憶</button>
     <button class="card note-row" data-act="sub" data-page="memory" data-sub="capsule" style="margin-bottom:10px"><span class="lr-i"><i data-ic="hourglass"></i></span><span class="grow"><b>時光膠囊</b><div class="small muted">${caps.length ? `${caps.length} 封${canOpen ? `・<b style="color:var(--accent)">${canOpen} 封可以打開了</b>` : '・寫給未來的信'}` : '寫一封信，指定未來某天才能打開'}</div></span><span style="color:var(--muted);font-size:20px">›</span></button>
-    <p class="small muted center" style="margin:0 0 6px">旅行、兌換、目標這些會自動記錄；以前的重要時刻可以自己補上</p>
+    <p class="small muted center" style="margin:0 0 6px">旅行、目標、願望實現這些會自動記錄；以前的重要時刻可以自己補上</p>
     <div class="timeline">${out}</div>`;
 }
 ACT.editMemory = (el) => {
@@ -4034,7 +4037,7 @@ function memAch() {
 
 // ---------- 年度回顧 ----------
 ACT.review = () => {
-  const Y = new Date().getFullYear();
+  const Y = reviewYear() || new Date().getFullYear();
   const inY = (ts) => ts && new Date(ts).getFullYear() === Y;
   const ms = S.couple.members, p = partner();
   const redeems = list('cards').flatMap((c) => (c.log || []).filter((l) => l.how === 'redeem' && inY(l.at)).map(() => c));
