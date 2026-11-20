@@ -5882,7 +5882,9 @@ ACT.noteBox = (el, _e, tab = 'got') => {
   const tabName = { home: '首頁', wallet: '票夾', play: '遊樂區', travel: '約會', memory: '回憶' };
   const where = (n) => (n.spot?.kind === 'carry' ? `交給${FRIENDS[n.spot.who]?.name || '小動物'}叼著` : n.spot?.kind === 'pet' ? '藏在小小黑底下' : `藏在「${tabName[n.spot?.tab] || '某個'}」分頁`);
   const m = openModal(`${mhead('紙條盒')}
-    <div class="nb-search"><i data-ic="search"></i><input id="nb-q" type="text" enterkeyhint="search" placeholder="搜尋關鍵字或日期，例如：火鍋、11/20、2026/12" autocomplete="off"><button id="nb-x" class="hidden" aria-label="清除">✕</button></div>
+    <div class="nb-search"><i data-ic="search"></i><input id="nb-q" type="text" enterkeyhint="search" placeholder="搜尋紙條裡的字" autocomplete="off"><button id="nb-x" class="hidden" aria-label="清除">✕</button><button id="nb-cal" class="nb-calbtn" aria-label="用日曆找"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="3.5" y="5" width="17" height="15" rx="2.5"/><path d="M3.5 10 H20.5 M8 3 V7 M16 3 V7"/><circle cx="12" cy="15" r="1.3" fill="currentColor" stroke="none"/></svg></button></div>
+    <div id="nb-calbox" class="nb-calbox hidden"></div>
+    <div id="nb-day" class="nb-day hidden"></div>
     <div class="seg" id="nb-seg"><button data-t="got" class="${tab === 'got' ? 'on' : ''}">收到的 ${got.length}</button><button data-t="mine" class="${tab === 'mine' ? 'on' : ''}">我藏的 ${mine.length}</button></div>
     ${tab === 'got' ? `
       ${hidden ? `<p class="small center nb-tease">${esc(nick(partner()))} 還藏了 ${hidden} 張紙條給你，還沒找到</p>` : ''}
@@ -5890,13 +5892,32 @@ ACT.noteBox = (el, _e, tab = 'got') => {
     : `<div class="nb-list">${mine.map((n) => `<div class="nb-row" data-k="${esc(noteKey(n))}"><span class="nb-fold">${foldedNoteSVG(n.paper)}</span><span class="grow"><span class="nb-rt">${esc(n.text)}</span><small class="muted">${new Date(n.at).toLocaleDateString('zh-TW')}・${where(n)}</small></span><span class="chip ${n.found ? 'ok' : ''}">${n.found ? `已被找到 ${new Date(n.foundAt).toLocaleDateString('zh-TW', { month: 'numeric', day: 'numeric' })}` : '還藏著'}</span></div>`).join('') || '<p class="small muted center">還沒藏過紙條</p>'}</div>`}`,
   { center: true, cls: 'note-box' });
   $$('#nb-seg button', m).forEach((b) => b.onclick = () => { const q = $('#nb-q', m).value; closeModal(m); ACT.noteBox(null, null, b.dataset.t); const nm = [...document.querySelectorAll('.note-box')].pop(); if (nm && q) { const i = nm.querySelector('#nb-q'); i.value = q; i.dispatchEvent(new Event('input')); } });
+  // 日曆：有紙條的日子會有小點，點一下只看那天的
+  const pool = tab === 'got' ? got : mine;
+  const dayOf = (t) => dkey(new Date(t));
+  const days = new Set(pool.flatMap((n) => [n.at, n.foundAt].filter(Boolean).map(dayOf)));
+  let pickDay = '', cur = new Date(); cur.setDate(1);
+  const drawCal = () => {
+    const y = cur.getFullYear(), mo = cur.getMonth(), first = new Date(y, mo, 1).getDay(), dim = new Date(y, mo + 1, 0).getDate();
+    let cells = '';
+    for (let i = 0; i < first; i++) cells += '<span></span>';
+    for (let d = 1; d <= dim; d++) { const k = `${y}-${pad(mo + 1)}-${pad(d)}`; cells += `<button data-d="${k}" class="${days.has(k) ? 'has' : ''} ${k === pickDay ? 'on' : ''} ${k === dkey() ? 'today' : ''}">${d}</button>`; }
+    $('#nb-calbox', m).innerHTML = `<div class="nc-head"><button data-mv="-1">‹</button><b>${y} 年 ${mo + 1} 月</b><button data-mv="1">›</button></div>
+      <div class="nc-week">${'日一二三四五六'.split('').map((w) => `<span>${w}</span>`).join('')}</div><div class="nc-grid">${cells}</div>`;
+    $$('#nb-calbox [data-mv]', m).forEach((b) => b.onclick = () => { cur.setMonth(cur.getMonth() + +b.dataset.mv); drawCal(); });
+    $$('#nb-calbox [data-d]', m).forEach((b) => b.onclick = () => { pickDay = pickDay === b.dataset.d ? '' : b.dataset.d; $('#nb-calbox', m).classList.add('hidden'); filter(); });
+  };
+  $('#nb-cal', m).onclick = () => { const box = $('#nb-calbox', m); box.classList.toggle('hidden'); if (!box.classList.contains('hidden')) drawCal(); };
   const filter = () => {
-    const q = $('#nb-q', m).value.trim().toLowerCase(), ws = q.split(/\s+/).filter(Boolean);
+    const q = $('#nb-q', m).value.trim().toLowerCase(), ws = q.split(/\s+/).filter(Boolean).concat(pickDay ? [pickDay] : []);
+    const dd = $('#nb-day', m);
+    dd.classList.toggle('hidden', !pickDay); $('#nb-cal', m).classList.toggle('on', !!pickDay);
+    if (pickDay) { const [yy, mm, d2] = pickDay.split('-').map(Number); dd.innerHTML = `${yy} 年 ${mm} 月 ${d2} 日的紙條 <button aria-label="取消日期">✕</button>`; dd.querySelector('button').onclick = () => { pickDay = ''; filter(); }; }
     let shown = 0;
     $$('[data-k]', m).forEach((x) => { const ok = ws.every((w) => x.dataset.k.includes(w)); x.style.display = ok ? '' : 'none'; if (ok) shown++; });
     $('#nb-x', m).classList.toggle('hidden', !q);
     let em = $('#nb-empty', m);
-    if (q && !shown) { if (!em) { em = document.createElement('p'); em.id = 'nb-empty'; em.className = 'small muted center'; $('.nb-grid, .nb-list', m).after(em); } em.textContent = `找不到「${q}」的紙條`; }
+    if ((q || pickDay) && !shown) { if (!em) { em = document.createElement('p'); em.id = 'nb-empty'; em.className = 'small muted center'; $('.nb-grid, .nb-list', m).after(em); } em.textContent = q ? `找不到「${q}」的紙條` : '那天沒有紙條'; }
     else if (em) em.remove();
   };
   $('#nb-q', m).addEventListener('input', filter);
