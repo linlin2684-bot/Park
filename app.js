@@ -2760,7 +2760,7 @@ function seriesCollected(c) {
   return c.kind === 'collect' || (c.log || []).some((l) => l.how !== 'craft');
 }
 function walletBook() {
-  S.bookShut ||= {};
+  S.bookShut ||= {}; S.bookData = {};
   const ms = S.couple.members || [me()];
   // 節日、旅行卡兩人各一張，只看自己那份
   const all = list('cards').filter((c) => c.series && !((c.series === '節日系列' || c.series === '旅行系列' || SERIES_SLOTS[c.series]) && c.owner !== me()));
@@ -2792,14 +2792,46 @@ function walletBook() {
       title: b.title, sub: meta.sub, got, total: allSlots ? allSlots.length : cs.length, empty: empty && !slots.length,
       slogan: isB ? `「${D.BIRTHDAY_SLOGAN}」` : '', sloganOn: isB && cs.length && got === cs.length,
     });
+    // 拿到的照稀有度排前面，沒拿到的空卡套照稀有度排後面
+    const rk = (x) => (x.kind === 'collect' ? 99 : rarityRank(x.rarity));
+    S.bookData[b.key] = { title: b.title, pal: meta.pal, isB, wish: b.series === WISH_SERIES,
+      cards: [...cs].sort((a, c) => rk(a) - rk(c) || a.at - c.at), slots: [...slots].sort((a, c) => rk(a) - rk(c)) };
+    const canOpen = !(empty && !slots.length);
     return `<div class="book emb-${meta.pal}">
-      <button class="book-cover2" ${empty && !slots.length ? '' : `data-act="bookToggle" data-k="${esc(b.key)}"`}>${svg}</button>
-      <div class="book-note">${empty && !slots.length ? esc(meta.how) : slots.length && !shut ? `還有 ${slots.length} 張沒拿到` : isB && got < cs.length ? `每張生日卡至少兌換一次，就會解鎖封面標語${shut ? ' · 點封面展開' : ''}` : shut ? `${cs.length} 張 · 點封面展開` : '點封面可以收起'}</div>
-      ${empty || shut ? '' : cs.map((c) => `<div style="${seriesCollected(c) || b.series === WISH_SERIES ? '' : 'filter:grayscale(.85);opacity:.55'}">${ticketHTML(c, { showFrom: false, showOwner: c.owner !== me() && b.series !== WISH_SERIES })}</div>`).join('')}
-      ${shut ? '' : slots.map((x) => `<div class="ticket slot-locked"><div class="stub"><span class="rk">？</span><span class="rl">${D.RARITY[x.rarity]?.label || ''}</span></div><div class="perf"></div><div class="body"><div class="t-title">？？？</div></div></div>`).join('')}
+      <button class="book-cover2" ${canOpen ? `data-act="bookOpen" data-k="${esc(b.key)}"` : ''}>${svg}</button>
+      <div class="book-note">${!canOpen ? esc(meta.how) : isB && got < cs.length ? '每張生日卡至少兌換一次，就會解鎖封面標語・點封面翻開' : `${got} / ${allSlots ? allSlots.length : cs.length} 張・點封面翻開`}</div>
     </div>`;
   }).join('');
 }
+// 翻頁的卡冊：每頁 3×3 個卡套
+const ALBUM_PER = 9;
+ACT.bookOpen = (el) => {
+  const B = S.bookData[el.dataset.k];
+  if (!B) return;
+  const items = [...B.cards.map((c) => ({ c })), ...B.slots.map((x) => ({ x }))];
+  const pages = [];
+  for (let i = 0; i < items.length; i += ALBUM_PER) pages.push(items.slice(i, i + ALBUM_PER));
+  const cell = (it, n) => {
+    if (it.x) return `<div class="alb-slot"><span class="alb-no">No.${String(n).padStart(2, '0')}</span><b>？</b><small>${esc(D.RARITY[it.x.rarity]?.label || '')}</small></div>`;
+    const c = it.c, dim = !(seriesCollected(c) || B.wish), used = c.kind !== 'collect' && remaining(c) === 0;
+    return `<button class="alb-card emb-${embPalette(c)} ${dim ? 'dim' : ''}" data-id="${c.id}">${emblemSVG(c, c.mystery && remaining(c) > 0)}${used ? '<span class="alb-used">已兌換</span>' : ''}</button>`;
+  };
+  const m = openModal(`<button class="m-close db-close" data-act="close">✕</button>
+    <div class="db-track">${pages.map((pg, pi) => `<section class="db-page alb-page">
+      <div class="alb-head"><b>${esc(B.title)}</b><span>${pi + 1} / ${pages.length}</span></div>
+      <div class="alb-grid">${pg.map((it, i) => cell(it, pi * ALBUM_PER + i + 1)).join('')}${Array.from({ length: ALBUM_PER - pg.length }, () => '<div class="alb-blank"></div>').join('')}</div>
+    </section>`).join('')}</div>
+    ${pages.length > 1 ? `<div class="db-nav"><button class="db-prev" aria-label="上一頁"><i data-ic="chevron"></i></button><div class="db-dots">${pages.map((_, i) => `<i data-p="${i}"></i>`).join('')}</div><button class="db-next" aria-label="下一頁"><i data-ic="chevron"></i></button></div>` : ''}`,
+  { center: true, cls: `dex-book album emb-${B.pal}` });
+  const tr = $('.db-track', m), n = pages.length;
+  const cur = () => Math.round(tr.scrollLeft / tr.clientWidth);
+  const go = (p) => tr.scrollTo({ left: Math.max(0, Math.min(n - 1, p)) * tr.clientWidth, behavior: 'smooth' });
+  const dots = () => { if (n < 2) return; const c = cur(); $$('.db-dots i', m).forEach((d, i) => d.classList.toggle('on', i === c)); $('.db-prev', m).disabled = c === 0; $('.db-next', m).disabled = c === n - 1; };
+  tr.addEventListener('scroll', () => { clearTimeout(tr._t); tr._t = setTimeout(dots, 60); }, { passive: true });
+  if (n > 1) { $('.db-prev', m).onclick = () => { sfx('flip'); go(cur() - 1); }; $('.db-next', m).onclick = () => { sfx('flip'); go(cur() + 1); }; $$('.db-dots i', m).forEach((d) => d.onclick = () => go(+d.dataset.p)); }
+  $$('.alb-card', m).forEach((b) => b.onclick = () => ACT.openCard(b));
+  dots();
+};
 ACT.bookToggle = (el) => { const k = el.dataset.k; S.bookShut[k] = !S.bookShut[k]; render(); };
 // ============================================================
 //  🎰 遊樂區：扭蛋、命運轉盤、吃什麼、真心話大冒險、默契問答、對戰、集點章、每週任務
@@ -5479,6 +5511,7 @@ Object.assign(SERIES_SLOTS, {
     ...Object.values(TRAVEL_MORE),
   ].map((x) => (x.title === D.TRAVEL_DROPS.revisit?.title ? { ...x, match: (c) => c.title === x.title || /舊地重遊/.test(c.title) } : x)),
   '約會系列': () => DATE_DEFS,
+  '成就系列': () => D.ACHIEVEMENTS.filter((a) => a.tier === 'g').map((a) => ({ title: `${a.name}紀念券`, rarity: 'SR' })),
   '小小黑系列': () => PET_DEFS,
 });
 

@@ -1294,3 +1294,24 @@ html[data-theme="night"] .emb-F-pet { --e-bg: #18141c; --e-ink: #ece4ef; --e-acc
 .redeem-pop .rp-who { color: var(--accent); }
 .redeem-pop .rp-title { text-align: center; font-size: 18px; font-weight: 800; padding: 20px; }
 .redeem-pop #rp-ok { margin-top: 8px; }
+
+/* 翻頁卡冊 */
+.modal-back.album .db-page { padding: 18px 16px 14px; }
+.alb-head { display: flex; align-items: baseline; justify-content: space-between; padding-right: 44px; margin-bottom: 12px; }
+.alb-head b { font-family: var(--serif); font-size: 19px; letter-spacing: .06em; }
+.alb-head span { font-size: 12px; color: var(--muted); }
+.alb-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px 9px; }
+.alb-card, .alb-slot, .alb-blank { aspect-ratio: 200 / 240; border-radius: 9px; position: relative; }
+.alb-card { padding: 0; border: 0; background: none; overflow: hidden; box-shadow: 0 3px 10px rgba(0, 0, 0, .22), 0 0 0 3px color-mix(in srgb, var(--ink) 7%, transparent); transition: transform .15s; }
+.alb-card:active { transform: scale(.96); }
+.alb-card .emb-svg { width: 100%; height: 100%; display: block; }
+.alb-card::after { content: ''; position: absolute; inset: 0; background: linear-gradient(125deg, rgba(255, 255, 255, .22), transparent 38%, transparent 70%, rgba(255, 255, 255, .08)); pointer-events: none; }
+.alb-card.dim { filter: grayscale(.85); opacity: .55; }
+.alb-used { position: absolute; right: 4px; bottom: 6px; font-size: 9px; font-weight: 800; color: #fff; background: rgba(200, 40, 70, .85); padding: 1px 5px; border-radius: 4px; transform: rotate(-8deg); }
+.alb-slot { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; background: color-mix(in srgb, var(--ink) 6%, transparent);
+  border: 1.5px dashed color-mix(in srgb, var(--ink) 16%, transparent); box-shadow: inset 0 2px 8px rgba(0, 0, 0, .18); color: color-mix(in srgb, var(--ink) 30%, transparent); }
+.alb-slot b { font-family: var(--serif); font-size: 26px; line-height: 1; }
+.alb-slot small { font-size: 9px; letter-spacing: .1em; }
+.alb-no { position: absolute; top: 6px; left: 7px; font-family: var(--serif); font-size: 9px; font-weight: 700; letter-spacing: .05em; }
+.alb-blank { background: color-mix(in srgb, var(--ink) 3%, transparent); border-radius: 9px; }
+.modal-back.album .modal { height: auto; max-height: 88dvh; }
