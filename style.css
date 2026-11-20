@@ -1550,3 +1550,38 @@ html[data-theme="night"] .emb-F-pet { --e-bg: #18141c; --e-ink: #ece4ef; --e-acc
 .pm-hidden { display: flex; align-items: center; gap: 10px; margin-top: 12px; padding: 10px 12px; border-radius: 14px; background: var(--card2); font-size: 13.5px; color: var(--muted); }
 .pm-hidden b { color: var(--ink); }
 .pm-q, .pm-q svg { width: 36px; height: 36px; flex: none; display: block; }
+/* 一年前的今天 */
+.otd { border: 1.4px solid var(--e-ink); background: linear-gradient(160deg, color-mix(in srgb, var(--e-acc) 16%, var(--card)), var(--card)); }
+.otd-h { display: flex; gap: 12px; align-items: center; margin-bottom: 10px; }
+.otd-y { width: 52px; height: 52px; border-radius: 50%; display: grid; place-content: center; text-align: center; border: 1.4px solid var(--e-ink); color: var(--e-ink); font-family: var(--serif); font-weight: 900; font-size: 20px; line-height: 1; box-shadow: inset 0 0 0 3px var(--card), inset 0 0 0 4px var(--e-acc); flex: none; }
+.otd-y small { font-size: 9px; font-weight: 700; margin-top: 2px; }
+.otd-i { display: flex; gap: 10px; align-items: center; padding: 8px 0; border-top: 1px dashed color-mix(in srgb, var(--ink) 14%, transparent); font-size: 14px; }
+.otd-i img { width: 46px; height: 46px; object-fit: cover; border-radius: 10px; flex: none; }
+.otd-k { font-size: 11px; color: var(--e-ink); border: 1px solid var(--e-ink); border-radius: 99px; padding: 1px 8px; flex: none; }
+.otd .link { margin-top: 6px; }
+/* 心情關心 */
+.care-row { display: flex; align-items: center; gap: 10px; margin-top: 12px; padding: 8px 10px; border-radius: 16px; background: color-mix(in srgb, var(--accent) 10%, var(--card2)); }
+.care-cat { width: 54px; height: 46px; flex: none; }
+.care-cat svg { width: 100%; height: 100%; }
+/* 對方也在 */
+.online-dot { display: inline-flex; align-items: center; gap: 4px; margin-left: 6px; font-size: 10.5px; font-weight: 700; color: #3fae7a; background: color-mix(in srgb, #3fae7a 14%, transparent); border: 0; border-radius: 99px; padding: 2px 8px 2px 6px; vertical-align: middle; }
+.online-dot i { width: 7px; height: 7px; border-radius: 50%; background: #3fae7a; box-shadow: 0 0 0 0 #3fae7a; animation: onl 1.8s infinite; }
+@keyframes onl { 0% { box-shadow: 0 0 0 0 color-mix(in srgb, #3fae7a 60%, transparent); } 100% { box-shadow: 0 0 0 7px transparent; } }
+.poke-pop { position: fixed; left: 50%; top: 22%; transform: translateX(-50%); z-index: 400; display: flex; align-items: center; gap: 10px; padding: 12px 18px; border-radius: 99px; background: var(--card); box-shadow: 0 10px 30px rgba(0,0,0,.25); animation: pokeIn .5s cubic-bezier(.2,1.6,.4,1) both; }
+.poke-pop.out { opacity: 0; transition: opacity .4s; }
+@keyframes pokeIn { 0% { transform: translateX(-50%) scale(.4) rotate(-8deg); opacity: 0; } 60% { transform: translateX(-50%) scale(1.05) rotate(3deg); } }
+/* 撞答案 */
+.collide { margin-top: 8px; padding: 8px 12px; border-radius: 12px; background: color-mix(in srgb, #f6d365 22%, var(--card2)); font-size: 13.5px; font-weight: 700; display: flex; gap: 6px; align-items: center; }
+.collide svg { width: 16px; height: 16px; }
+/* 預約送卡 */
+#ce-when button small { display: block; font-size: 10px; opacity: .7; }
+.sched-list { background: var(--card2); border-radius: 14px; padding: 10px 12px; margin: -4px 0 14px; }
+.sched-i { display: flex; justify-content: space-between; font-size: 13.5px; padding: 5px 0; border-top: 1px dashed color-mix(in srgb, var(--ink) 12%, transparent); }
+.sched-i:first-of-type { border-top: 0; }
+.sched-i span { color: var(--muted); }
+/* 重複卡 */
+.dup-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 8px 12px; border-radius: 12px; background: var(--card2); margin: 6px 0 10px; }
+/* 旅行照片 */
+.trip-ph { margin: 10px 0; }
+.trip-ph-g { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; margin-top: 6px; }
+.trip-ph-g img { width: 100%; aspect-ratio: 1; object-fit: cover; border-radius: 8px; }
