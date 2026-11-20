@@ -1260,3 +1260,7 @@ html[data-theme="night"] .pet-visitor.locked .cat-svg { filter: brightness(0) in
 .hero-miss.cool { filter: saturate(.35) brightness(.85); opacity: .75; }
 .hero-miss.nope { animation: missNope .4s ease-in-out; }
 @keyframes missNope { 20%, 60% { transform: translateX(-4px) rotate(-6deg); } 40%, 80% { transform: translateX(4px) rotate(6deg); } }
+
+.ticket.slot-locked { opacity: .5; filter: grayscale(1); border: 1px dashed var(--line); background: transparent; }
+.ticket.slot-locked .stub { background: var(--card2); }
+.ticket.slot-locked .t-title { letter-spacing: .2em; }
