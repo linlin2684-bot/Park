@@ -1720,7 +1720,6 @@ PAGES.home = {
     </div>
 
     ${petHomeCard()}
-    ${dutyHomeCard()}
 
     ${dailyCardHTML()}
 
@@ -4447,11 +4446,12 @@ const PET_MOOD_TEXT = { happy: '心情超好，尾巴翹得高高的', ok: '在�
 function petHomeCard() {
   const P = petState();
   const pct = P.next ? Math.round((P.xp - P.stage.xp) / (P.next.xp - P.stage.xp) * 100) : 100;
-  return `<div class="card pet-card" data-act="petOpen">
-    <div class="pet-stage">${petArt(P)}</div>
+  const dv = dutyVisitor();
+  return `<div class="card pet-card ${dv ? 'has-visitor' : ''}" data-act="petOpen">
+    <div class="pet-room"><div class="pet-stage">${petArt(P)}</div>${dv}</div>
     <div class="grow">
       <div class="pet-name">${esc(P.name)} <span class="chip">${P.stage.name}</span></div>
-      <div class="small muted">${PET_TIME_TEXT[petTimePose()] || PET_MOOD_TEXT[P.mood]}</div>
+      <div class="small muted ${dv ? 'duty-say' : ''}">${dv ? dutyText() : PET_TIME_TEXT[petTimePose()] || PET_MOOD_TEXT[P.mood]}</div>
       <div class="pet-bar"><div style="width:${pct}%"></div></div>
       <div class="small muted">${P.next ? `再 ${P.next.xp - P.xp} 點經驗長成${P.next.name}` : '已經是最大隻的貓老大了'}</div>
     </div>
@@ -4476,7 +4476,8 @@ ACT.petPat = async (el, e) => {
 ACT.petOpen = () => {
   const P = petState();
   const m = openModal(`${mhead(`<i data-ic="heart"></i> ${esc(P.name)}`)}
-    <div class="pet-big">${petArt(P, true)}</div>
+    <div class="pet-room big ${dutyVisitor() ? 'has-visitor' : ''}"><div class="pet-big">${petArt(P, true)}</div>${dutyVisitor()}</div>
+    ${dutyVisitor() ? `<p class="center small duty-say" style="margin:0 0 4px;color:var(--accent)">${dutyText()}</p>` : ''}
     <p class="center muted" style="margin:0 0 4px">${P.stage.name}・經驗 ${P.xp}・${PET_TIME_TEXT[petTimePose()] || PET_MOOD_TEXT[P.mood]}</p>
     <div class="btn-row" style="justify-content:center;margin-bottom:12px">
       <button class="btn sm" data-act="petPat">摸摸</button>
@@ -4894,25 +4895,31 @@ function dutyToday() {
   if (h % 100 >= 25) return null;   // 大約四天一次
   return pool[(h >>> 8) % pool.length];
 }
-function dutyHomeCard() {
+// 值日生住進小小黑的房間：坐在小小黑旁邊，點牠打招呼
+function dutyVisitor() {
   const k = dutyToday();
   if (!k) return '';
-  const f = FRIENDS[k], met = !!((S.couple.dex || {})[k] || {}).met;
+  const met = !!((S.couple.dex || {})[k] || {}).met;
   const said = localStorage.getItem(`park-duty2-${dkey()}-${me()}`);
-  return `<button class="card duty-card" data-act="dutyHi" data-k="${k}">
-    <span class="duty-art ${met ? '' : 'locked'}">${withHat(k, friendArt(k))}</span>
-    <span class="grow"><span class="duty-tag">今日值日生</span><b>${met ? esc(f.name) : '？？？'}</b>
-      <span class="small muted duty-say">${said ? esc(said) : met ? '今天輪到牠來值日，跟牠打聲招呼' : '一位還沒見過的朋友來值日了'}</span></span>
-    <span class="duty-hi ${said ? 'done' : ''}">${said ? '明天見' : '打招呼'}</span></button>`;
+  return `<button class="pet-visitor fr-v-${k} ${met ? '' : 'locked'} ${said ? 'said' : ''}" data-act="dutyHi" data-k="${k}" aria-label="今日值日生">
+    <span class="pv-tag">值日生</span>${withHat(k, friendArt(k))}</button>`;
+}
+function dutyText() {
+  const k = dutyToday();
+  if (!k) return '';
+  const met = !!((S.couple.dex || {})[k] || {}).met;
+  const said = localStorage.getItem(`park-duty2-${dkey()}-${me()}`);
+  return said || (met ? `今天 ${FRIENDS[k].name} 來陪${esc(petState().name)}值日，點牠打招呼` : '有位沒見過的朋友來值日，點牠看看');
 }
 ACT.dutyHi = (el) => {
   // 值日生一天只打一次招呼，台詞要慢慢收集
   if (localStorage.getItem(`park-duty2-${dkey()}-${me()}`)) return toast('今天已經打過招呼了，明天見');
-  const k = el.dataset.k, r = el.querySelector('.duty-art').getBoundingClientRect();
+  const k = el.dataset.k, r = el.getBoundingClientRect();
   sfx('heart'); floaty(r.left + r.width / 2, r.top, ['#ff9fb4', '#ffd45c']);
   const t = sayLine(k);
   localStorage.setItem(`park-duty2-${dkey()}-${me()}`, t);
-  setTimeout(() => { const n = document.querySelector('.duty-card'); if (n) n.outerHTML = dutyHomeCard(); }, 50);
+  el.classList.add('said', 'hop'); setTimeout(() => el.classList.remove('hop'), 700);
+  document.querySelectorAll('.duty-say').forEach((x) => { x.textContent = t; });
 };
 
 // ---------- 圖鑑書 ----------
