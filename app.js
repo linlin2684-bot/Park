@@ -1275,6 +1275,8 @@ function authErr(err) {
 }
 
 // ---------- 第一次設定（建立或加入空間） ----------
+// 掃 QR code 進來的網址會帶 ?join=邀請碼，加入時自動填好
+function joinFromUrl() { const c = (new URLSearchParams(location.search).get('join') || '').trim().toUpperCase(); return /^[A-Z0-9]{6}$/.test(c) ? c : ''; }
 function renderOnboard() {
   const p = { nick: '', role: 'her', av: 'girl', emoji: '👧', bday: D.DEFAULT_DATES.herBirthday, spice: 1 };
   const draw = () => {
@@ -1297,7 +1299,7 @@ function renderOnboard() {
       </div>
       <div class="card">
         <h3><i data-ic="key"></i> 我有邀請碼</h3>
-        <input id="cd" placeholder="輸入 6 碼邀請碼" maxlength="6" style="text-transform:uppercase;letter-spacing:.2em;font-weight:800">
+        <input id="cd" placeholder="輸入 6 碼邀請碼" maxlength="6" value="${esc(joinFromUrl())}" style="text-transform:uppercase;letter-spacing:.2em;font-weight:800">${joinFromUrl() ? '<p class="small" style="margin:6px 0 0;color:var(--accent)">已經幫你填好對方的邀請碼了，註冊好按「加入」就可以</p>' : ''}
         <button class="btn ghost block mt" id="jn">加入</button>
       </div>
       <button class="link center" id="so" style="margin-top:4px">登出</button>
