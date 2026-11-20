@@ -1332,3 +1332,13 @@ html[data-theme="night"] .emb-F-pet { --e-bg: #18141c; --e-ink: #ece4ef; --e-acc
 .ce-sw button.on span { outline: 2px solid var(--accent); outline-offset: 2px; }
 .ce-sw button.on small { color: var(--accent); font-weight: 700; }
 .ce-sw button:not(:first-child) span { background: var(--e-acc); border: 3px solid var(--e-bg); box-shadow: 0 0 0 1.5px var(--e-ink); }
+
+/* 收藏冊目錄 */
+.book-toc { display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; margin: 0 -16px 12px; padding: 2px 16px 6px; scroll-snap-type: x proximity; }
+.book-toc::-webkit-scrollbar { display: none; }
+.bt-item { flex: none; width: 62px; background: none; border: 0; padding: 0; display: flex; flex-direction: column; align-items: center; gap: 3px; color: var(--ink); scroll-snap-align: start; }
+.bt-medal { width: 50px; height: 50px; filter: drop-shadow(0 2px 5px rgba(0, 0, 0, .18)); }
+.bt-item b { font-size: 11px; font-weight: 700; white-space: nowrap; max-width: 62px; overflow: hidden; text-overflow: ellipsis; }
+.bt-item small { font-size: 10px; color: var(--muted); margin-top: -2px; }
+.bt-item:active .bt-medal { transform: scale(.92); }
+.e-date { font-weight: 300 !important; font-family: 'Helvetica Neue', 'Noto Sans TC', sans-serif !important; }

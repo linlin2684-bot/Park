@@ -780,8 +780,8 @@ const COAT_PROPS = {
 // 每隻貓的個性：道具、點牠會說的話
 const COAT_TRAITS = {
   orange: { prop: 'drumstick', lines: ['晽晽貓貓叼著雞腿跑過去，完全不想分你', '晽晽貓貓：嗝～（剛吃飽又在找下一餐）', '晽晽貓貓聞到你身上的零食味，賴著不走了', '晽晽貓貓把你的宵夜當成牠的宵夜', '晽晽貓貓肚子圓滾滾，跳不起來，只好滾過去'] },
-  tuxedo: { prop: 'flower', lines: ['吵吵貓送你一朵花，然後大叫三聲就跑了', '吵吵貓送你一朵花……是從隔壁盆栽偷摘的', '吵吵貓想送你花，結果被自己的尾巴絆倒', '吵吵貓把花放下，倒退著走掉了', '吵吵貓：喵！喵喵！喵！（翻譯：這朵給你）', '吵吵貓送完花，對著空氣罵了一分鐘'] },
-  white: { prop: 'tiara', lines: ['陷阱貓：哼，本公主准許你看一眼', '陷阱貓翻肚子給你摸……然後輕輕咬了你一口', '陷阱貓優雅地走過去，連頭都沒回', '陷阱貓：今天的罐罐準備好了嗎？', '陷阱貓假裝要讓你摸，又跳開了，這就是陷阱'] },
+  tuxedo: { prop: 'flower', lines: ['吵吵貓送你一朵花，然後大叫三聲就跑了', '吵吵貓送你一朵花……是從隔壁盆栽偷摘的', '吵吵貓想送你花，結果被自己的尾巴絆倒', '吵吵貓把花放下，倒退著走掉了', '吵吵貓：喵！喵喵！喵！（翻譯：這朵給你）', '吵吵貓送完花，對著空氣跳了一段舞'] },
+  white: { prop: 'tiara', lines: ['陷阱貓：哼，本公主准許你看一眼', '陷阱貓翻肚子給你看……你一摸，牠就生氣炸毛了', '陷阱貓優雅地走過去，連頭都沒回', '陷阱貓：今天的罐罐準備好了嗎？', '陷阱貓假裝要讓你摸，又跳開了，這就是陷阱'] },
   calico: { prop: 'fish', lines: ['小魚乾叼著小魚乾蹭了蹭你', '小魚乾：再給一條小魚乾，我就讓你抱', '小魚乾在你腳邊滾了兩圈撒嬌', '小魚乾把小魚乾分你一半……又叼回去了', '小魚乾喵～的一聲，要你摸摸頭'] },
 };
 let coatSeq = 0;
@@ -948,19 +948,19 @@ function sharkArt({ off = false } = {}) {
 // ---------- 角色資料 ----------
 const FRIENDS = {
   black: { name: '小小黑', kind: '黑貓', intro: '我們一起養的黑貓，黃眼睛、粉紅耳朵，最喜歡被摸摸。', w: 78,
-    lines: ['小小黑：喵～', '小小黑被抓到，假裝自己是一團影子', '小小黑：今天有罐罐嗎？', '小小黑又被狗狗捉弄了，跑來找你告狀', '小小黑把頭塞進你手裡，要你摸摸'] },
+    lines: ['小小黑：喵～', '小小黑被抓到，假裝自己是一團影子', '小小黑：今天有罐罐嗎？', '小小黑被狗狗捉弄了，轉身抱住狗狗', '小小黑把頭塞進你手裡，要你摸摸', '小小黑幫狗狗按摩', '小小黑：還好，好煩'] },
   orange: { name: '晽晽貓貓', kind: '橘白胖貓', intro: '貪吃的橘白胖貓，嘴裡永遠叼著吃的。', w: 80, lines: () => COAT_TRAITS.orange.lines },
   white: { name: '陷阱貓', kind: '白貓', intro: '一隻小公主貓，戴著小皇冠，讓你摸之前要先看牠心情。', w: 78, lines: () => COAT_TRAITS.white.lines },
   calico: { name: '小魚乾', kind: '三花貓', intro: '最愛小魚乾的三花，很會撒嬌。', w: 78, lines: () => COAT_TRAITS.calico.lines },
   tuxedo: { name: '吵吵貓', kind: '賓士貓', intro: '喜歡送別人一朵花，行為常常有點好笑。', w: 78, lines: () => COAT_TRAITS.tuxedo.lines },
   haohao: { name: '還好', kind: '黃金獵犬', intro: '樂天又有點無厘頭的大狗狗，堅持自己是女生。', w: 112,
-    lines: ['還好：我是女生～', '還好：嗷把拔貓咪好可愛喔～', '還好：我是女生～（男朋友：你明明就是男生）', '還好追著自己的尾巴轉了三圈，然後忘記自己在幹嘛', '還好：今天也是很好的一天耶～', '還好躺下來翻肚子：我是女生～摸我～', '還好把球叼過來，結果是一顆橘子', '還好：嗷！（不知道在嗷什麼）', '還好跟陷阱貓打招呼，被無視了，但還是很開心', '還好：把拔～小小黑呢？小小黑呢？'] },
+    lines: ['還好：我是女生～', '還好：嗷把拔貓咪好可愛喔～', '還好追著自己的尾巴轉了三圈，然後忘記自己在幹嘛', '還好：今天也是很好的一天耶～', '還好躺下來翻肚子：我是女生～摸我～', '還好把球叼過來，結果是一顆橘子', '還好：嗷！（不知道在嗷什麼）', '還好跟陷阱貓打招呼，被無視了，但還是很開心', '還好：把拔～把拔貓咪呢？把拔貓咪呢？', '還好：嗷～把拔貓咪～', '還好：我比較喜歡把拔', '還好：哈哈～'] },
   doggy: { name: '狗狗', kind: '小狗', intro: '家裡最年長的小動物，大家都喜歡牠。愛捉弄小小黑，喜歡自己香香的。', w: 78,
     lines: ['狗狗偷偷拍了一下小小黑的尾巴，然後裝作什麼都沒發生', '狗狗把阿扁的玩具藏起來了', '狗狗聞了聞你：汪，去洗澡', '狗狗：汪去洗澡！（但說到牠自己洗澡就跑掉了）', '狗狗香香的，因為牠很在意自己香不香', '狗狗趁小小黑睡覺，偷偷趴在牠旁邊', '狗狗被小棍棍踩了一腳，一臉無奈'] },
   abian: { name: '阿扁', kind: '小狗', intro: '愛思考的小狗，怕被捏鼻子，聽到諧音梗會拍拍手。和狗狗是好朋友。', w: 78,
     lines: ['阿扁趕快摀住鼻子：不要捏我的鼻子！', '阿扁在思考……為什麼貓咪叫貓咪？', '阿扁在思考……今天的晚餐是什麼', '阿扁聽到一個諧音梗：「狗狗去餐廳點了『汪』子麵」，笑到拍拍手', '阿扁：「你知道小小黑最喜歡什麼運動嗎？『喵』準！」，說完自己拍拍手', '阿扁和狗狗是最好的朋友', '阿扁：讓我想一下……嗯……想完了，忘記剛剛在想什麼'] },
   gungun: { name: '小棍棍', kind: '小熊貓', intro: '會「棍～」地叫，講話幾乎只講最後一個字。最愛蘋果，喜歡踩狗狗，但狗狗不喜歡。', w: 104,
-    lines: ['小棍棍：棍～', '小棍棍：蛋（荷包蛋的蛋）', '小棍棍：狗狗❤️', '小棍棍：狗狗～（踩）', '小棍棍：蘋果～', '小棍棍被打了一下：一袋～（跑掉）', '小棍棍：……果（想說蘋果）'] },
+    lines: ['小棍棍：棍～', '小棍棍：蛋', '小棍棍：狗狗❤️', '小棍棍：狗狗～（踩）', '小棍棍：蘋果～', '小棍棍被打了一下：一袋～（跑掉）', '小棍棍：……果（想說蘋果）'] },
   shark: { name: '鯊魚', kind: '鯊魚', intro: '男朋友最喜歡的小動物。鼻子被碰到就會關機，再碰一下會倒吸一口氣醒來。', w: 110, swim: true,
     lines: ['鯊魚被碰到鼻子，關機了', '鯊魚：河！（倒吸一口氣，開機了）', '鯊魚：河！河！（嚇一跳游走了）', '鯊魚在空氣裡游泳，看起來很認真'] },
 };
@@ -1986,7 +1986,9 @@ function emblemSVG(c, hide = false) {
     <line x1="30" y1="182" x2="170" y2="182" class="e-ink-s" stroke-width=".7"/><line x1="30" y1="216" x2="170" y2="216" class="e-ink-s" stroke-width=".7"/>
     <circle cx="26" cy="182" r="1.5" class="e-ink-f"/><circle cx="174" cy="182" r="1.5" class="e-ink-f"/><circle cx="26" cy="216" r="1.5" class="e-ink-f"/><circle cx="174" cy="216" r="1.5" class="e-ink-f"/>
     <text x="100" y="${199 + tfs * 0.36}" text-anchor="middle" font-size="${tfs}" class="e-ink-f e-title">${esc(title)}</text>
-    <text x="100" y="226" text-anchor="middle" font-size="6.5" letter-spacing="1.8" class="e-ink-f e-small">${F ? `${F.foot} · ${R.name} · ${new Date(c.at || now()).getFullYear()}` : `${c.kind === 'collect' ? '珍藏' : R.name + ' · ' + R.label} · ${EMB_NAMES[seed.kind]} · No.${seed.no}`}</text>
+    ${!hide && c.series && c.at ? `<text x="30" y="226" font-size="6.2" letter-spacing="1.4" class="e-ink-f e-small">${F ? F.foot : esc(String(c.series).startsWith('wish:') ? '許願卡' : c.series)} · ${c.kind === 'collect' ? '珍藏' : R.name}</text>
+    <text x="170" y="226.2" text-anchor="end" font-size="6.6" letter-spacing="1.1" font-weight="300" font-family="'Helvetica Neue', 'Noto Sans TC', sans-serif" class="e-ink-f e-date">${(() => { const d = new Date(c.at); return `${d.getFullYear()}.${String(d.getMonth() + 1).padStart(2, '0')}.${String(d.getDate()).padStart(2, '0')}`; })()}</text>`
+    : `<text x="100" y="226" text-anchor="middle" font-size="6.5" letter-spacing="1.8" class="e-ink-f e-small">${F ? `${F.foot} · ${R.name} · ${new Date(c.at || now()).getFullYear()}` : `${c.kind === 'collect' ? '珍藏' : R.name + ' · ' + R.label} · ${EMB_NAMES[seed.kind]} · No.${seed.no}`}</text>`}
   </svg>`;
 }
 
@@ -2797,7 +2799,8 @@ function walletBook() {
     { key: '成就系列', series: '成就系列', title: '成就系列' },
     ...Object.keys(groups).filter((k) => !k.startsWith('wish:') && !BOOK_META[k]).map((k) => ({ key: k, series: k, title: k })),
   ];
-  return books.map((b) => {
+  const toc = [];
+  const html = books.map((b, bi) => {
     const meta = BOOK_META[b.series] || BOOK_META['節日系列'];
     const cs = (groups[b.key] || []).sort((a, c) => (a.kind === 'collect' ? 1 : 0) - (c.kind === 'collect' ? 1 : 0) || rarityRank(a.rarity) - rarityRank(c.rarity) || a.at - c.at);
     const allSlots = SERIES_SLOTS[b.series] ? SERIES_SLOTS[b.series]() : null;
@@ -2815,12 +2818,22 @@ function walletBook() {
     S.bookData[b.key] = { title: b.title, pal: meta.pal, isB, wish: b.series === WISH_SERIES,
       cards: [...cs].sort((a, c) => rk(a) - rk(c) || a.at - c.at), slots: [...slots].sort((a, c) => rk(a) - rk(c)) };
     const canOpen = !(empty && !slots.length);
-    return `<div class="book emb-${meta.pal}">
+    toc.push({ bi, pal: meta.pal, motif: meta.motif, name: b.title.replace('系列', '').replace('的許願卡', ' 許願'), got, total: allSlots ? allSlots.length : cs.length });
+    return `<div class="book emb-${meta.pal}" id="bk-${bi}">
       <button class="book-cover2" ${canOpen ? `data-act="bookOpen" data-k="${esc(b.key)}"` : ''}>${svg}</button>
       <div class="book-note">${!canOpen ? esc(meta.how) : isB && got < cs.length ? '每張生日卡至少兌換一次，就會解鎖封面標語・點封面翻開' : `${got} / ${allSlots ? allSlots.length : cs.length} 張・點封面翻開`}</div>
     </div>`;
   }).join('');
+  // 最上面的目錄：一排小徽章，點了跳到那一本
+  const tocHTML = `<div class="book-toc">${toc.map((t) => `<button class="bt-item emb-${t.pal}" data-act="bookJump" data-i="${t.bi}">
+      <svg viewBox="-44 -44 88 88" class="bt-medal"><circle r="41" class="e-bg e-ink-s" stroke-width="2"/><circle r="36" class="e-acc-s" stroke-width="1" fill="none"/><g transform="scale(.82)">${bookMotif(t.motif)}</g></svg>
+      <b>${esc(t.name)}</b><small>${t.got}/${t.total}</small></button>`).join('')}</div>`;
+  return tocHTML + html;
 }
+ACT.bookJump = (el) => {
+  const b = document.getElementById('bk-' + el.dataset.i);
+  if (b) window.scrollTo({ top: b.getBoundingClientRect().top + window.scrollY - 70, behavior: 'smooth' });
+};
 // 翻頁的卡冊：每頁 3×3 個卡套
 const ALBUM_PER = 9;
 ACT.bookOpen = (el) => {
@@ -4864,9 +4877,9 @@ ACT.tourReplay = () => { closeAll(); startTour(true); };
 // who：a / b 是兩位演員，n 是旁白
 const SCENES = [
   { id: 'tail', a: 'doggy', b: 'black', lead: 'black', title: '尾巴事件',
-    lines: [['n', '狗狗偷偷拍了一下小小黑的尾巴'], ['b', '喵！？'], ['a', '（看天花板）'], ['b', '（跑去找你告狀）']] },
+    lines: [['n', '狗狗偷偷拍了一下小小黑的尾巴'], ['b', '喵？'], ['n', '小小黑轉身抱住狗狗'], ['a', '（愣住）……汪']] },
   { id: 'chase', a: 'haohao', b: 'black', lead: 'black', title: '把拔貓咪',
-    lines: [['a', '嗷把拔貓咪好可愛喔～'], ['b', '……（加速）'], ['a', '小小黑等等我～我是女生～']] },
+    lines: [['a', '嗷～把拔貓咪好可愛喔～'], ['b', '還好，好煩'], ['a', '把拔貓咪等等我～你好可愛喔～']] },
   { id: 'step', a: 'gungun', b: 'doggy', lead: 'doggy', title: '踩踩',
     lines: [['a', '狗狗～'], ['n', '小棍棍踩了狗狗一腳'], ['b', '……'], ['a', '❤️']] },
   { id: 'bath', a: 'doggy', b: 'abian', lead: 'abian', title: '那你呢',
@@ -4986,7 +4999,7 @@ const SPECIAL_LINES = {
   haohao: [{ w: 'xmas', t: '還好：嗷！聖誕老公公是女生～' }, { w: 'anniv', t: '還好：嗷！週年快樂～我是女生～' }, { w: 'halloween', t: '還好扮成貓咪：嗷把拔，我也是貓咪～' }],
   doggy: [{ w: 'rain', t: '狗狗走過來，把頭靠在你腳邊' }, { w: 'rain', t: '狗狗：汪（今天先不用洗澡，抱抱）' }, { w: 'rain', t: '狗狗香香的，借你聞一下' }, { w: 'xmas', t: '狗狗：汪，聖誕節也要去洗澡' }],
   abian: [{ w: 'newyear', t: '阿扁在思考……新的一年要想什麼' }, { w: 'anniv', t: '阿扁：五週年，「無」週年？（自己拍拍手）' }],
-  gungun: [{ w: 'xmas', t: '小棍棍：……誕（聖誕快樂的誕）' }, { w: 'valentine', t: '小棍棍：狗狗❤️❤️❤️' }],
+  gungun: [{ w: 'xmas', t: '小棍棍：誕' }, { w: 'valentine', t: '小棍棍：狗狗❤️❤️❤️' }],
   shark: [{ w: 'newyear', t: '鯊魚：河！（新年快樂）' }, { w: 'halloween', t: '鯊魚戴著巫婆帽關機了，看起來很像在裝死' }],
 };
 function specialNow(k) {
@@ -5517,7 +5530,7 @@ const PET_DEFS = [
   { id: 'a-dex_5', ach: 'dex_5', title: '朋友越來越多', rarity: 'SR', desc: '換一次逛動物園或水族館' },
   { id: 'a-dex_full', ach: 'dex_full', title: '最懂牠的人', rarity: 'SR', desc: '換一個你最想要的小動物周邊' },
   { id: 'a-dex_scene3', ach: 'dex_scene3', title: '小劇場常客', rarity: 'SR', desc: '換一次一起演一段小劇場' },
-  { id: 'a-dex_all', ach: 'dex_all', title: '大合照', rarity: 'SSR', desc: '換一張我們和小動物的合照（娃娃也算）' },
+  { id: 'a-dex_all', ach: 'dex_all', title: '大合照', rarity: 'SSR', desc: '換一張我們和小動物們的大合照' },
   { id: 'a-dex_sceneall', ach: 'dex_sceneall', title: '全劇終', rarity: 'SSR', desc: '換一個你決定的獎勵' },
 ];
 function petEarned() {
@@ -5601,6 +5614,70 @@ function redeemPopup() {
   if (c && typeof attachCardFX === 'function') attachCardFX(m);
   sfx('chime'); confetti(c && (c.rarity === 'SSR' || c.rarity === 'SR') ? 90 : 45);
   $('#rp-ok', m).onclick = async () => { closeModal(m); await col('events').update(e.id, { read: true }); setTimeout(redeemPopup, 400); };
+}
+
+// ---------- 小小黑系列、想你系列：每張卡自己的圖 ----------
+const nestSVG = (svg, x, y, w, h, flip = false) => {
+  const inner = svg.replace('<svg ', `<svg x="${flip ? -w / 2 : x}" y="${y}" width="${w}" height="${h}" `);
+  return flip ? `<g transform="translate(${x + w / 2} 0) scale(-1 1)">${inner}</g>` : inner;
+};
+function petCardArt(title) {
+  const soft = '<circle r="41" fill="#f6efe9"/><circle r="41" class="e-acc-s" stroke-width="1.2" fill="none" opacity=".6"/>';
+  const can = (x, y) => `<g transform="translate(${x} ${y})"><rect x="-7" y="-6" width="14" height="9" rx="1.5" fill="#e8b04b" stroke="#7a5420" stroke-width=".8"/><ellipse cy="-6" rx="7" ry="2" fill="#f3d48a" stroke="#7a5420" stroke-width=".8"/><path d="M-4 -1 H4" stroke="#7a5420" stroke-width=".8"/></g>`;
+  const heart = (x, y, s = 1, fill = '#e2445f') => `<path transform="translate(${x} ${y}) scale(${s})" d="M0 5 C-1.5 3.5 -6 .5 -6 -2.5 C-6 -4.8 -4.2 -6 -2.5 -6 C-1.2 -6 -.5 -5.2 0 -4.2 C.5 -5.2 1.2 -6 2.5 -6 C4.2 -6 6 -4.8 6 -2.5 C6 .5 1.5 3.5 0 5 Z" fill="${fill}"/>`;
+  const cat = (pose, wear) => nestSVG(catPose(pose, wear), -36, -38, 72, 66);
+  const pet = (st, wear) => nestSVG(petSVG(st, 'happy', wear, { blink: false }), -36, -38, 72, 66);
+  const fr = (k, x, y, w, h, flip) => nestSVG(friendArt(k), x, y, w, h, flip);
+  const M = {
+    初次見面: () => cat('wave') + heart(24, -24, 1),
+    第一個罐罐: () => cat('sit') + can(24, 22),
+    少年貓: () => pet(1, ''),
+    大貓咪: () => pet(2, 'scarf'),
+    貓老大: () => pet(3, 'crown'),
+    罐罐達人: () => cat('belly') + can(-26, 22) + can(26, 22),
+    稀有配件: () => cat('sit', 'glasses') + '<path d="M24 -26 l2 5 l5 2 l-5 2 l-2 5 l-2 -5 l-5 -2 l5 -2 z" fill="#f5c843"/>',
+    全身行頭: () => cat('jump', 'cape'),
+    小小黑週年: () => cat('sit', 'ribbon') + heart(-26, -22, .9) + heart(26, -22, .9),
+    第一位朋友: () => fr('black', -40, -14, 42, 38) + fr('calico', -2, -14, 42, 38, true) + heart(0, -22, .9),
+    幫牠們說話: () => fr('haohao', -38, -6, 66, 50) + '<path d="M8 -34 h26 a5 5 0 0 1 5 5 v10 a5 5 0 0 1 -5 5 h-16 l-6 6 v-6 h-4 a5 5 0 0 1 -5 -5 v-10 a5 5 0 0 1 5 -5 z" class="e-bg e-ink-s" stroke-width="1.2"/><circle cx="16" cy="-24" r="1.6" class="e-ink-f"/><circle cx="22" cy="-24" r="1.6" class="e-ink-f"/><circle cx="28" cy="-24" r="1.6" class="e-ink-f"/>',
+    朋友越來越多: () => fr('doggy', -40, -12, 42, 40) + fr('abian', -2, -12, 42, 40, true) + fr('orange', -18, -40, 36, 32),
+    最懂牠的人: () => fr('haohao', -36, -12, 72, 54) + heart(20, -26, 1.3),
+    小劇場常客: () => fr('tuxedo', -40, -14, 42, 38) + fr('white', -2, -14, 42, 38, true) + '<path d="M-38 -36 Q-20 -26 0 -34 Q20 -26 38 -36" class="e-acc-s" stroke-width="2" fill="none"/>',
+    大合照: () => fr('haohao', -40, -26, 46, 36) + fr('gungun', 2, -26, 40, 32, true) + fr('black', -36, 4, 26, 24) + fr('orange', -12, 4, 26, 24) + fr('white', 12, 4, 26, 24, true),
+    全劇終: () => '<path d="M-38 -36 Q-30 0 -36 30 L-24 30 Q-20 0 -14 -36 Z M38 -36 Q30 0 36 30 L24 30 Q20 0 14 -36 Z" class="e-acc-f e-ink-s" stroke-width="1"/>' + fr('shark', -22, -14, 44, 28) + '<text y="26" text-anchor="middle" font-size="8" font-weight="800" letter-spacing="2" fill="#3a2a3a">FIN</text>',
+  };
+  return M[title] ? soft + M[title]() : '';
+}
+function missCardArt(title) {
+  const S1 = (d, w = 1.5, cls = 'e-ink-s') => `<path d="${d}" class="${cls}" stroke-width="${w}" fill="none" stroke-linecap="round" stroke-linejoin="round"/>`;
+  const H = (x, y, s, cls = 'e-acc-f e-ink-s', sw = 1.2) => `<path transform="translate(${x} ${y}) scale(${s})" d="M0 10 C-3 7 -12 1 -12 -5 C-12 -9.5 -8.5 -12 -5 -12 C-2.5 -12 -1 -10.5 0 -8.5 C1 -10.5 2.5 -12 5 -12 C8.5 -12 12 -9.5 12 -5 C12 1 3 7 0 10 Z" class="${cls}" stroke-width="${sw / s}"/>`;
+  const T = (t, y, fs = 13) => `<text y="${y}" text-anchor="middle" font-size="${fs}" font-weight="900" font-family="serif" class="e-ink-f">${t}</text>`;
+  const cal = (dots) => `<rect x="-26" y="-22" width="52" height="46" rx="5" class="e-bg e-ink-s" stroke-width="1.5"/><rect x="-26" y="-22" width="52" height="11" rx="5" class="e-acc-f"/>${S1('M-16 -28 V-17 M16 -28 V-17', 2.2)}${dots}`;
+  const M = {
+    想你一百次: () => H(0, -2, 2.6, 'e-bg e-ink-s', 1.8) + T('100', 4, 15),
+    '520 我愛你': () => H(0, -2, 2.6, 'e-acc-f e-ink-s', 1.8) + T('520', 4, 15),
+    一生一世: () => `<circle cx="-9" cy="-6" r="15" class="e-ink-s" stroke-width="2.4" fill="none"/><circle cx="9" cy="-6" r="15" class="e-acc-s" stroke-width="2.4" fill="none"/>${T('1314', 28, 11)}`,
+    心有靈犀: () => H(-10, -4, 1.4) + H(12, 0, 1.4, 'e-bg e-ink-s') + S1('M-28 22 Q0 34 28 22', 1, 'e-acc-s') + '<path d="M0 -30 l2 6 l6 2 l-6 2 l-2 6 l-2 -6 l-6 -2 l6 -2 z" class="e-ink-f"/>',
+    一週都想你: () => cal(Array.from({ length: 7 }, (_, i) => H(-18 + i * 6, 6, .32)).join('')),
+    一個月都想你: () => cal(Array.from({ length: 30 }, (_, i) => `<circle cx="${-20 + (i % 6) * 8}" cy="${-4 + Math.floor(i / 6) * 6}" r="1.6" class="e-ink-f"/>`).join('') + H(18, 18, .55)),
+    百日相思: () => Array.from({ length: 12 }, (_, i) => { const a = i * 30 * Math.PI / 180; return i === 6 ? '' : H(Math.sin(a) * 30, -Math.cos(a) * 30, .38); }).join('') + H(0, -2, 1.5) + T('100', 34, 8),
+    第一次想你: () => S1('M0 30 V-4', 2) + H(-9, -10, .9) + `<path d="M0 6 Q12 -2 18 6 Q10 12 0 6 Z" class="e-acc-f e-ink-s" stroke-width="1"/>` + S1('M-16 30 H16', 1.4),
+    失眠想你: () => `<path d="M6 -28 A26 26 0 1 0 28 8 A20 20 0 1 1 6 -28 Z" class="e-acc-f e-ink-s" stroke-width="1.5"/>` + H(6, 4, .9, 'e-bg e-ink-s') + '<path d="M-26 -22 l1.5 4 l4 1.5 l-4 1.5 l-1.5 4 l-1.5 -4 l-4 -1.5 l4 -1.5 z M24 -26 l1 3 l3 1 l-3 1 l-1 3 l-1 -3 l-3 -1 l3 -1 z" class="e-ink-f"/>' + `<text x="18" y="-6" font-size="7" font-weight="800" class="e-ink-f">Z z</text>`,
+    壽星最想的人: () => `<rect x="-24" y="2" width="48" height="24" rx="4" class="e-bg e-ink-s" stroke-width="1.5"/><rect x="-28" y="24" width="56" height="5" rx="2.5" class="e-ink-f"/>${S1('M-24 12 Q-12 18 0 12 Q12 6 24 12', 1.2, 'e-acc-s')}${S1('M0 2 V-10', 2)}` + H(0, -20, .75),
+    想來想去: () => H(0, 0, 1.3) + S1('M-26 -10 A28 28 0 0 1 22 -18', 1.8) + '<path d="M22 -18 l-7 -1 l4 6 z" class="e-ink-f"/>' + S1('M26 10 A28 28 0 0 1 -22 18', 1.8) + '<path d="M-22 18 l7 1 l-4 -6 z" class="e-ink-f"/>',
+    撐傘券: () => `<path d="M-30 -6 A30 30 0 0 1 30 -6 Q22 -12 15 -6 Q8 -12 0 -6 Q-8 -12 -15 -6 Q-22 -12 -30 -6 Z" class="e-acc-f e-ink-s" stroke-width="1.5"/>${S1('M0 -6 V20 Q0 25 -5 25', 1.8)}` + H(12, 14, .7) + S1('M-30 6 l-3 6 M-22 14 l-3 6 M30 8 l-3 6', 1.2, 'e-acc-s'),
+    早安想你: () => H(0, -4, 1.4) + Array.from({ length: 9 }, (_, i) => { const a = (-80 + i * 20) * Math.PI / 180; return S1(`M${(Math.sin(a) * 22).toFixed(1)} ${(-4 - Math.cos(a) * 22).toFixed(1)} L${(Math.sin(a) * 30).toFixed(1)} ${(-4 - Math.cos(a) * 30).toFixed(1)}`, 1.6); }).join('') + S1('M-34 22 H34', 1.6) + S1('M-24 28 H24', 1, 'e-acc-s'),
+    週年想你: () => H(0, -4, 1.5) + Array.from({ length: 7 }, (_, i) => { const a = (200 + i * 22) * Math.PI / 180, b = (-20 - i * 22) * Math.PI / 180; return `<ellipse cx="${(Math.cos(a) * 28).toFixed(1)}" cy="${(-Math.sin(a) * 28).toFixed(1)}" rx="5" ry="2.4" transform="rotate(${(i * 22 - 60).toFixed(0)} ${(Math.cos(a) * 28).toFixed(1)} ${(-Math.sin(a) * 28).toFixed(1)})" class="e-acc-f e-ink-s" stroke-width=".6"/><ellipse cx="${(Math.cos(b) * 28).toFixed(1)}" cy="${(-Math.sin(b) * 28).toFixed(1)}" rx="5" ry="2.4" transform="rotate(${(-i * 22 + 60).toFixed(0)} ${(Math.cos(b) * 28).toFixed(1)} ${(-Math.sin(b) * 28).toFixed(1)})" class="e-acc-f e-ink-s" stroke-width=".6"/>`; }).join(''),
+  };
+  return M[title] ? M[title]() : '';
+}
+{
+  const _fm = festMotif;
+  festMotif = function (key, c) {
+    if (key === 'pet' && c && c.title) { const a = petCardArt(c.title); if (a) return a; }
+    if (key === 'miss' && c && c.title) { const a = missCardArt(c.title); if (a) return a; }
+    return _fm(key, c);
+  };
 }
 // ============================================================
 //  啟動
