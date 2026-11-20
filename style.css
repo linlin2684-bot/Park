@@ -1315,3 +1315,20 @@ html[data-theme="night"] .emb-F-pet { --e-bg: #18141c; --e-ink: #ece4ef; --e-acc
 .alb-no { position: absolute; top: 6px; left: 7px; font-family: var(--serif); font-size: 9px; font-weight: 700; letter-spacing: .05em; }
 .alb-blank { background: color-mix(in srgb, var(--ink) 3%, transparent); border-radius: 9px; }
 .modal-back.album .modal { height: auto; max-height: 88dvh; }
+
+/* 發卡：選卡面 */
+.ce-face { display: flex; gap: 12px; align-items: flex-start; }
+.ce-face-pv { width: 112px; flex: none; border-radius: 10px; overflow: hidden; box-shadow: 0 4px 14px rgba(0, 0, 0, .2); position: sticky; top: 0; }
+.ce-face-pv .emb-svg { width: 100%; height: auto; display: block; }
+.ce-face-opts { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px; }
+.ce-chips { display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 4px; }
+.ce-chips button { font-size: 12px; padding: 4px 9px; border-radius: 99px; background: var(--card2); color: var(--ink); border: 1.5px solid transparent; }
+.ce-chips button.on { border-color: var(--accent); color: var(--accent); font-weight: 700; }
+.ce-sw { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px 4px; }
+.ce-sw button { background: none; border: 0; padding: 0; display: flex; flex-direction: column; align-items: center; gap: 2px; color: var(--muted); }
+.ce-sw button span { width: 26px; height: 26px; border-radius: 50%; background: var(--e-bg, var(--card2)); border: 3px solid var(--e-acc, var(--line)); box-shadow: inset 0 0 0 2px var(--e-ink, transparent); }
+.ce-sw button:first-child span { background: conic-gradient(#9fcbb4, #9db9e0, #c3a6e4, #dfb663, #9fcbb4); border-color: var(--line); box-shadow: none; }
+.ce-sw button small { font-size: 9.5px; }
+.ce-sw button.on span { outline: 2px solid var(--accent); outline-offset: 2px; }
+.ce-sw button.on small { color: var(--accent); font-weight: 700; }
+.ce-sw button:not(:first-child) span { background: var(--e-acc); border: 3px solid var(--e-bg); box-shadow: 0 0 0 1.5px var(--e-ink); }

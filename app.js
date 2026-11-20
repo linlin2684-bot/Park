@@ -85,6 +85,7 @@ function cardDoc(tpl, owner, from, extra = {}) {
     owner, from, qty: tpl.qty || 1, used,
     series: tpl.series || '', kind: tpl.kind || 'card',
     mystery: !!tpl.mystery, secret: tpl.secret || '', spice: tpl.spice || 1, mark: tpl.mark || '', fest: tpl.fest || '',
+    ...(tpl.frame != null ? { frame: tpl.frame } : {}), ...(tpl.pat ? { pat: tpl.pat } : {}), ...(tpl.pal ? { pal: tpl.pal } : {}),
     expiresAt: tpl.expiresAt || 0, weekendOnly: !!tpl.weekendOnly,
     scratched: false, at: now(),
     log: Array.from({ length: used }, () => ({ at: now(), how: 'birthday' })),
@@ -1570,6 +1571,8 @@ ACT.poolManager = () => {
 };
 
 // 共用：卡片編輯器
+// 發卡時可以選的配色
+const CARD_PALS = [['', '自動'], ['N', '薄荷'], ['R', '天藍'], ['SR', '紫藤'], ['SSR', '金'], ['C', '櫻粉'], ['F-valentine', '玫瑰'], ['F-confess', '桃紅'], ['F-qixi', '夜空'], ['F-moon', '月光'], ['F-halloween', '南瓜'], ['F-eve', '朱紅'], ['F-xmas', '聖誕'], ['F-pet', '小小黑']];
 function cardEditor({ title, pool = false, give = false, preset = {}, onDelete = null }, onSave) {
   const t = { title: '', desc: '', rarity: 'N', spice: 1, qty: 1, mystery: false, secret: '', limit: 'none', mark: '', ...preset };
   const m = openModal(`${mhead(esc(title))}
@@ -1577,12 +1580,18 @@ function cardEditor({ title, pool = false, give = false, preset = {}, onDelete =
     <label>說明（可以不寫）</label><input id="ce-d" maxlength="60" value="${esc(t.desc)}" placeholder="一句話補充">
     <div class="row" style="align-items:flex-end">
       <div class="grow"><label>代表字（可不填，不填會自動挑）</label><input id="ce-k" maxlength="4" value="${esc(t.mark)}" placeholder="一個字，例如：擁" style="font-family:var(--serif);font-size:18px;font-weight:800"></div>
-      <div class="emb-${t.rarity}" id="ce-pv" style="width:60px;height:60px;flex:none">${emblemMini(t)}</div>
+      ${give ? '' : `<div class="emb-${t.rarity}" id="ce-pv" style="width:60px;height:60px;flex:none">${emblemMini(t)}</div>`}
     </div>
     <label>稀有度</label>
     <div class="rarity-pick" id="ce-r">${D.RARITY_ORDER.map((r) => `<button data-r="${r}" style="--rc:var(--r-${r.toLowerCase()})" class="${t.rarity === r ? 'on' : ''}">${r}</button>`).join('')}</div>
     <label>尺度</label>
     <div class="seg" id="ce-s">${[1, 2, 3].map((l) => `<button data-l="${l}" class="${t.spice === l ? 'on' : ''}">${spiceIc(l)} ${D.SPICE[l].label}</button>`).join('')}</div>
+    ${give ? `<label>卡面</label>
+    <div class="ce-face"><div class="ce-face-pv" id="ce-fpv"></div><div class="ce-face-opts">
+      <div class="small muted">外框</div><div class="ce-chips" id="ce-fr">${[['', '自動'], [0, '光輪'], [1, '八角'], [2, '花窗'], [3, '雙方']].map(([v, n]) => `<button data-v="${v}" class="${v === '' ? 'on' : ''}">${n}</button>`).join('')}</div>
+      <div class="small muted">底紋</div><div class="ce-chips" id="ce-pt">${[['', '自動'], ...EMB_KINDS.map((k) => [k, EMB_NAMES[k]])].map(([v, n]) => `<button data-v="${v}" class="${v === '' ? 'on' : ''}">${n}</button>`).join('')}</div>
+      <div class="small muted">配色</div><div class="ce-sw" id="ce-pl">${CARD_PALS.map(([v, n]) => `<button data-v="${v}" class="${v === '' ? 'on' : ''} ${v ? 'emb-' + v : ''}" title="${n}"><span></span><small>${n}</small></button>`).join('')}</div>
+    </div></div>` : ''}
     ${pool ? `<label>誰來兌現</label><select id="ce-g"><option value="">兩個人都可以</option><option value="him">只有男生能兌現（只有女生扭得到）</option><option value="her">只有女生能兌現（只有男生扭得到）</option></select>` : ''}
     ${give ? `<div class="row"><div class="grow"><label>張數</label><input id="ce-q" type="number" min="1" max="20" value="${t.qty}"></div>
       <div class="grow"><label>限時</label><select id="ce-l"><option value="none">不限時</option><option value="7d">7 天內有效</option><option value="weekend">週末限定</option><option value="today">今天限定</option></select></div></div>` : ''}
@@ -1591,7 +1600,10 @@ function cardEditor({ title, pool = false, give = false, preset = {}, onDelete =
     <button class="btn block mt" id="ce-ok">${give ? '<i data-ic="letter"></i> 送出' : '儲存'}</button>
     ${onDelete ? '<button class="btn ghost block mt" id="ce-del" style="color:#d4405f">從卡池刪除</button>' : ''}`);
   if (onDelete) $('#ce-del', m).onclick = async () => { if (await confirmBox('確定要從卡池刪掉這張？')) { closeModal(m); await onDelete(); } };
+  const face = { frame: null, pat: '', pal: '' };
   const preview = () => {
+    const fp = $('#ce-fpv', m);
+    if (fp) { const c = { title: $('#ce-t', m).value.trim() || '新卡', rarity: t.rarity, mark: $('#ce-k', m).value.trim(), spice: t.spice, ...face }; fp.className = 'ce-face-pv emb-' + embPalette(c); fp.innerHTML = emblemSVG(c, false); }
     const pv = $('#ce-pv', m); if (!pv) return;
     pv.className = 'emb-' + t.rarity;
     pv.innerHTML = emblemMini({ title: $('#ce-t', m).value.trim() || '新卡', rarity: t.rarity, mark: $('#ce-k', m).value.trim() });
@@ -1600,6 +1612,9 @@ function cardEditor({ title, pool = false, give = false, preset = {}, onDelete =
   $('#ce-k', m).addEventListener('input', preview);
   $$('#ce-r button', m).forEach((b) => b.onclick = () => { t.rarity = b.dataset.r; $$('#ce-r button', m).forEach((x) => x.classList.toggle('on', x === b)); preview(); });
   $$('#ce-s button', m).forEach((b) => b.onclick = () => { t.spice = +b.dataset.l; $$('#ce-s button', m).forEach((x) => x.classList.toggle('on', x === b)); });
+  const pick = (id, key, conv) => $$(`#${id} button`, m).forEach((b) => b.onclick = () => { face[key] = conv(b.dataset.v); $$(`#${id} button`, m).forEach((x) => x.classList.toggle('on', x === b)); preview(); });
+  pick('ce-fr', 'frame', (v) => (v === '' ? null : +v)); pick('ce-pt', 'pat', (v) => v); pick('ce-pl', 'pal', (v) => v);
+  preview();
   $('#ce-m', m).onchange = (e) => { if (give) $('#ce-sw', m).classList.toggle('hidden', !e.target.checked); };
   if (give && preset.limit) $('#ce-l', m).value = preset.limit;
   if (pool && $('#ce-g', m)) $('#ce-g', m).value = preset.giver || '';
@@ -1608,6 +1623,9 @@ function cardEditor({ title, pool = false, give = false, preset = {}, onDelete =
     if (!t.title) return toast('卡片要有名稱');
     if (pool && $('#ce-g', m)) t.giver = $('#ce-g', m).value;
     if (give) {
+      if (face.frame != null) t.frame = face.frame;
+      if (face.pat) t.pat = face.pat;
+      if (face.pal) t.pal = face.pal;
       t.qty = Math.max(1, Math.min(20, +$('#ce-q', m).value || 1));
       t.secret = t.mystery ? $('#ce-sec', m).value.trim() : '';
       if (t.mystery && !t.secret) return toast('寫一下盲盒裡的內容');
@@ -1740,7 +1758,7 @@ ACT.mood = () => {
     <div class="mood-pick">${D.MOODS.map((x, i) => `<button data-i="${i}" class="${cur && cur.icon === x.icon ? 'on' : ''}"><span><i data-ic="${x.ic}"></i></span>${x.label}<small class="muted">${x.hint}</small></button>`).join('')}</div>`, { center: true });
   $$('[data-i]', m).forEach((b) => b.onclick = async () => {
     const x = D.MOODS[+b.dataset.i];
-    await S.store.updateCouple(S.cid, { [`moods.${me()}`]: { icon: x.icon, label: x.label, at: now() } });
+    await S.store.updateCouple(S.cid, { [`moods.${me()}`]: { icon: x.icon, label: x.label, at: now() }, [`moodHist.${me()}.${dkey()}`]: x.icon });
     await notify(partner(), 'mood', `${nick(me())} 更新了心情 ${x.icon}`);
     closeModal(m); toast(`心情：${x.icon} ${x.label}`);
   });
@@ -1883,12 +1901,13 @@ function embChar(title) {
   return cs.find((x) => !EMB_SKIP.has(x)) || cs[0] || Array.from(title.replace(/\s/g, ''))[0] || '?';
 }
 
-function embPalette(c) { const fk = festKey(c); return fk ? 'F-' + fk : c.kind === 'collect' ? 'C' : (c.rarity || 'N'); }
+function embPalette(c) { if (c.pal) return c.pal; const fk = festKey(c); return fk ? 'F-' + fk : c.kind === 'collect' ? 'C' : (c.rarity || 'N'); }
 function embSeed(c, hide) {
   const title = hide ? '神秘盲盒' : (c.title || '?');
   const h = hash(title);
   const ch = hide ? '?' : (c.mark || embChar(title));
-  return { h, ch, kind: hide ? 'lattice' : EMB_KINDS[h % EMB_KINDS.length], shape: (h >>> 4) % 4, no: (h % 89) + 10 };
+  // 送卡的人可以自己選外框（shape）和底紋（pat），沒選就依卡名自動挑
+  return { h, ch, kind: hide ? 'lattice' : (c.pat && EMB_KINDS.includes(c.pat) ? c.pat : EMB_KINDS[h % EMB_KINDS.length]), shape: c.frame != null && c.frame >= 0 ? c.frame % 4 : (h >>> 4) % 4, no: (h % 89) + 10 };
 }
 
 // 底紋（stroke 用強調色）
@@ -3780,6 +3799,37 @@ ACT.goalDel = async (el) => { if (await confirmBox('刪掉這個目標？')) awa
 
 // ---------- 時間軸 ----------
 // 年度回顧只在年底年初出現：12/20～隔年 1/10
+// 年度回顧多的幾頁：約會、一起看的、小小黑和小動物、照片、心情、每日一問
+function reviewMore(Y, inY) {
+  const out = [], ms = S.couple.members || [];
+  const dates = list('dates').filter((d) => d.done && (d.date || '').startsWith(String(Y)));
+  if (dates.length) out.push({ i: ic('dining'), n: dates.length, t: '次約會', s: dates.slice(-6).map((d) => esc(d.title)).join('・') });
+  const watched = list('watch').filter((w) => w.done && inY(w.doneAt || w.at) && (w.kind === 'movie' || w.kind === 'drama'));
+  if (watched.length) out.push({ i: ic('film'), n: watched.length, t: '部一起看完的片', s: watched.slice(-6).map((w) => esc(w.title)).join('・') });
+  const P = petState(), dex = S.couple.dex || {};
+  const met = DEX_ORDER.filter((k) => dex[k]?.met && inY(dex[k].met));
+  out.push({ i: ic('heart'), n: PET_STAGES[P.st].name, t: `${esc(P.name)}長到這裡了`, s: `經驗 ${money(P.xp)}${met.length ? `<br>今年遇到 ${met.length} 位小動物朋友<br>${met.map((k) => esc(FRIENDS[k].name)).join('・')}` : ''}` });
+  const photos = list('photos').filter((p) => (p.date || '').startsWith(String(Y)) && p.img);
+  if (photos.length) {
+    const pick = photos[Math.floor(Math.random() * photos.length)];
+    out.push({ bg: `linear-gradient(rgba(20,8,14,.25), rgba(20,8,14,.72)), url(${pick.img}) center/cover`, i: ic('camera'), n: photos.length, t: '張今年的合照', s: pick.caption ? `「${esc(pick.caption)}」` : esc(pick.date || '') });
+  }
+  const hist = S.couple.moodHist || {};
+  const fav = ms.map((u) => {
+    const c = {}; Object.entries(hist[u] || {}).forEach(([d, icon]) => { if (d.startsWith(String(Y))) c[icon] = (c[icon] || 0) + 1; });
+    const top = Object.entries(c).sort((a, b) => b[1] - a[1])[0];
+    if (!top) return '';
+    const md = D.MOODS.find((x) => x.icon === top[0]);
+    return `${esc(nick(u))} 最常是「${md ? md.label : top[0]}」`;
+  }).filter(Boolean);
+  if (fav.length) out.push({ i: ic('sun'), n: '心情', t: '今年的天氣', s: fav.join('<br>') });
+  const daily = list('daily').filter((d) => d.id.startsWith(String(Y)) && d.answers && ms.every((u) => d.answers[u]));
+  if (daily.length) {
+    const d = daily[Math.floor(Math.random() * daily.length)];
+    out.push({ i: ic('chat'), n: '還記得嗎', t: esc(D.DAILY_QUESTIONS[d.qi] || ''), s: ms.map((u) => `${esc(nick(u))}：${esc(String(d.answers[u]).slice(0, 40))}`).join('<br>') });
+  }
+  return out;
+}
 function reviewYear(d = new Date()) {
   if (localStorage.getItem('park-review-preview')) return d.getFullYear();
   const m = d.getMonth() + 1, day = d.getDate();
@@ -4062,6 +4112,7 @@ ACT.review = () => {
     { i: ic('target'), n: `${goals.filter((g) => g.done).length}/${goals.length}`, t: '個年度目標完成', s: goals.filter((g) => g.done).slice(0, 6).map((g) => '✓ ' + esc(g.title)).join('<br>') || '寫下明年的目標吧' },
     { i: ic('heart'), n: money(misses.length), t: '次「想你」', s: ms.map((u) => `${esc(nick(u))} 想了 ${misses.filter((x) => x.by === u).length} 次`).join('<br>') },
     { i: ic('minds'), n: qrate + '%', t: '默契度', s: `一起答了 ${quiz.length} 題默契問答<br>${daily.length} 題每日一問<br>互相蓋了 ${stamps.length} 個章` },
+    ...reviewMore(Y, inY),
     { bg: finaleBg(), i: ic('house'), n: `第 ${money(daysAtEnd)} 天`, t: D.BIRTHDAY_SLOGAN, s: `${Y + 1} 年也請多多指教` },
   ];
   // 數字是 0 的頁面就跳過（第一頁和最後一頁一定保留）
@@ -5460,6 +5511,14 @@ const PET_DEFS = [
   { id: 'gacha', title: '稀有配件', rarity: 'SR', desc: '換一個小驚喜', how: '第一次扭到扭蛋限定配件' },
   { id: 'allacc', title: '全身行頭', rarity: 'SSR', desc: '換一次拍貼', how: '收集全部配件' },
   { id: 'bday', title: '小小黑週年', rarity: 'SR', desc: '換一個蛋糕一起吃', how: '小小黑來家裡滿一年（每年）' },
+  // 小動物圖鑑的成就也收進小小黑系列
+  { id: 'a-dex_1', ach: 'dex_1', title: '第一位朋友', rarity: 'R', desc: '換一杯手搖飲' },
+  { id: 'a-dex_custom', ach: 'dex_custom', title: '幫牠們說話', rarity: 'R', desc: '換對方模仿一隻小動物說一句話' },
+  { id: 'a-dex_5', ach: 'dex_5', title: '朋友越來越多', rarity: 'SR', desc: '換一次逛動物園或水族館' },
+  { id: 'a-dex_full', ach: 'dex_full', title: '最懂牠的人', rarity: 'SR', desc: '換一個你最想要的小動物周邊' },
+  { id: 'a-dex_scene3', ach: 'dex_scene3', title: '小劇場常客', rarity: 'SR', desc: '換一次一起演一段小劇場' },
+  { id: 'a-dex_all', ach: 'dex_all', title: '大合照', rarity: 'SSR', desc: '換一張我們和小動物的合照（娃娃也算）' },
+  { id: 'a-dex_sceneall', ach: 'dex_sceneall', title: '全劇終', rarity: 'SSR', desc: '換一個你決定的獎勵' },
 ];
 function petEarned() {
   const P = petState(), pet = P.pet || {}, got = new Set();
@@ -5472,6 +5531,8 @@ function petEarned() {
   if (P.st >= 3) got.add('boss');
   const owned = pet.owned || [];
   if (PET_ACC.some((a) => a.gacha && owned.includes(a.id))) got.add('gacha');
+  const ach = typeof computeAch === 'function' ? computeAch() : new Set();
+  PET_DEFS.filter((d) => d.ach && ach.has(d.ach)).forEach((d) => got.add(d.id));
   if (PET_ACC.every((a) => a.month || (a.gacha || a.anniv ? owned.includes(a.id) : P.xp >= a.xp))) got.add('allacc');
   return got;
 }
