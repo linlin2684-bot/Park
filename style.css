@@ -1455,3 +1455,7 @@ html[data-theme="night"] .emb-F-pet { --e-bg: #18141c; --e-ink: #ece4ef; --e-acc
 .nb-note { min-height: 0 !important; padding: 10px 12px !important; }
 .paper-catmark { width: 26px; right: 8px; bottom: 6px; }
 .nb-grid { align-items: start; }
+.nb-search { display: flex; align-items: center; gap: 8px; background: var(--card2); border-radius: 12px; padding: 0 10px; margin-bottom: 10px; }
+.nb-search svg { width: 17px; height: 17px; color: var(--muted); flex: none; }
+.nb-search input { flex: 1; min-width: 0; border: 0 !important; background: transparent !important; box-shadow: none !important; padding: 10px 0 !important; font-size: 14px; margin: 0 !important; }
+.nb-search button { background: none; border: 0; color: var(--muted); font-size: 12px; }

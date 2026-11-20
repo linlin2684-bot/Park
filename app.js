@@ -5868,6 +5868,13 @@ ACT.findNote = async (el) => {
 };
 
 // ---------- 紙條盒 ----------
+// 搜尋：關鍵字或日期（2026/11/20、11/20、11月、2026-11、2026 都可以）
+function noteKey(n) {
+  const ds = [n.at, n.foundAt].filter(Boolean).map((t) => { const d = new Date(t), y = d.getFullYear(), m = d.getMonth() + 1, dd = d.getDate();
+    return `${y}/${m}/${dd} ${y}/${pad(m)}/${pad(dd)} ${y}-${pad(m)}-${pad(dd)} ${y}.${pad(m)}.${pad(dd)} ${m}/${dd} ${pad(m)}/${pad(dd)} ${y}年${m}月${dd}日 ${m}月${dd}日 ${y}-${pad(m)} ${y}/${m}`; }).join(' ');
+  return (n.text + ' ' + ds).toLowerCase();
+}
+function noteMatch(n, q) { return q.trim().toLowerCase().split(/\s+/).filter(Boolean).every((w) => noteKey(n).includes(w)); }
 ACT.noteBox = (el, _e, tab = 'got') => {
   const got = list('notes').filter((n) => n.to === me() && n.found).sort((a, b) => (b.foundAt || b.at) - (a.foundAt || a.at));
   const hidden = list('notes').filter((n) => n.to === me() && !n.found).length;
@@ -5875,13 +5882,25 @@ ACT.noteBox = (el, _e, tab = 'got') => {
   const tabName = { home: '首頁', wallet: '票夾', play: '遊樂區', travel: '約會', memory: '回憶' };
   const where = (n) => (n.spot?.kind === 'carry' ? `交給${FRIENDS[n.spot.who]?.name || '小動物'}叼著` : n.spot?.kind === 'pet' ? '藏在小小黑底下' : `藏在「${tabName[n.spot?.tab] || '某個'}」分頁`);
   const m = openModal(`${mhead('紙條盒')}
+    <div class="nb-search"><i data-ic="search"></i><input id="nb-q" type="text" enterkeyhint="search" placeholder="搜尋關鍵字或日期，例如：火鍋、11/20、2026/12" autocomplete="off"><button id="nb-x" class="hidden" aria-label="清除">✕</button></div>
     <div class="seg" id="nb-seg"><button data-t="got" class="${tab === 'got' ? 'on' : ''}">收到的 ${got.length}</button><button data-t="mine" class="${tab === 'mine' ? 'on' : ''}">我藏的 ${mine.length}</button></div>
     ${tab === 'got' ? `
       ${hidden ? `<p class="small center nb-tease">${esc(nick(partner()))} 還藏了 ${hidden} 張紙條給你，還沒找到</p>` : ''}
-      <div class="nb-grid">${got.map((n, i) => `<button class="nb-note letter note-paper ${paperCls(n)}" data-id="${n.id}" style="--r:${((i % 5) - 2) * 1.4}deg;--ink:${noteInk(n)}"><span class="nb-txt">${esc(n.text)}</span><span class="nb-meta">${new Date(n.foundAt || n.at).toLocaleDateString('zh-TW')}</span>${paperDeco(n)}</button>`).join('') || '<p class="small muted center" style="grid-column:1/-1">還沒有找到紙條，四處看看吧</p>'}</div>`
-    : `<div class="nb-list">${mine.map((n) => `<div class="nb-row"><span class="nb-fold">${foldedNoteSVG(n.paper)}</span><span class="grow"><span class="nb-rt">${esc(n.text)}</span><small class="muted">${new Date(n.at).toLocaleDateString('zh-TW')}・${where(n)}</small></span><span class="chip ${n.found ? 'ok' : ''}">${n.found ? `已被找到 ${new Date(n.foundAt).toLocaleDateString('zh-TW', { month: 'numeric', day: 'numeric' })}` : '還藏著'}</span></div>`).join('') || '<p class="small muted center">還沒藏過紙條</p>'}</div>`}`,
+      <div class="nb-grid">${got.map((n, i) => `<button class="nb-note letter note-paper ${paperCls(n)}" data-k="${esc(noteKey(n))}" data-id="${n.id}" style="--r:${((i % 5) - 2) * 1.4}deg;--ink:${noteInk(n)}"><span class="nb-txt">${esc(n.text)}</span><span class="nb-meta">${new Date(n.foundAt || n.at).toLocaleDateString('zh-TW')}</span>${paperDeco(n)}</button>`).join('') || '<p class="small muted center" style="grid-column:1/-1">還沒有找到紙條，四處看看吧</p>'}</div>`
+    : `<div class="nb-list">${mine.map((n) => `<div class="nb-row" data-k="${esc(noteKey(n))}"><span class="nb-fold">${foldedNoteSVG(n.paper)}</span><span class="grow"><span class="nb-rt">${esc(n.text)}</span><small class="muted">${new Date(n.at).toLocaleDateString('zh-TW')}・${where(n)}</small></span><span class="chip ${n.found ? 'ok' : ''}">${n.found ? `已被找到 ${new Date(n.foundAt).toLocaleDateString('zh-TW', { month: 'numeric', day: 'numeric' })}` : '還藏著'}</span></div>`).join('') || '<p class="small muted center">還沒藏過紙條</p>'}</div>`}`,
   { center: true, cls: 'note-box' });
-  $$('#nb-seg button', m).forEach((b) => b.onclick = () => { closeModal(m); ACT.noteBox(null, null, b.dataset.t); });
+  $$('#nb-seg button', m).forEach((b) => b.onclick = () => { const q = $('#nb-q', m).value; closeModal(m); ACT.noteBox(null, null, b.dataset.t); const nm = [...document.querySelectorAll('.note-box')].pop(); if (nm && q) { const i = nm.querySelector('#nb-q'); i.value = q; i.dispatchEvent(new Event('input')); } });
+  const filter = () => {
+    const q = $('#nb-q', m).value.trim().toLowerCase(), ws = q.split(/\s+/).filter(Boolean);
+    let shown = 0;
+    $$('[data-k]', m).forEach((x) => { const ok = ws.every((w) => x.dataset.k.includes(w)); x.style.display = ok ? '' : 'none'; if (ok) shown++; });
+    $('#nb-x', m).classList.toggle('hidden', !q);
+    let em = $('#nb-empty', m);
+    if (q && !shown) { if (!em) { em = document.createElement('p'); em.id = 'nb-empty'; em.className = 'small muted center'; $('.nb-grid, .nb-list', m).after(em); } em.textContent = `找不到「${q}」的紙條`; }
+    else if (em) em.remove();
+  };
+  $('#nb-q', m).addEventListener('input', filter);
+  $('#nb-x', m).onclick = () => { $('#nb-q', m).value = ''; filter(); };
   $$('.nb-note', m).forEach((b) => b.onclick = () => {
     const n = list('notes').find((x) => x.id === b.dataset.id);
     openModal(`<div class="letter note-paper ${paperCls(n)} nb-read" style="--ink:${noteInk(n)}">${esc(n.text)}${paperDeco(n)}</div>`, { center: true });
