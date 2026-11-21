@@ -39,7 +39,7 @@ festMotif = function (key, c) {
     <rect x="-8" y="17" width="16" height="5" rx="1" class="e-ink-f"/>${S1('M-4 22 V32 M0 22 V34 M4 22 V32', 1.2)}`;
   if (key === 'date') return `<rect x="-26" y="-20" width="52" height="44" rx="5" class="e-bg e-ink-s" stroke-width="1.6"/><rect x="-26" y="-20" width="52" height="11" rx="5" class="e-acc-f"/>${S1('M-26 -9 H26', 1.2)}
     ${S1('M-14 -26 V-15 M14 -26 V-15', 2.2)}${heart(1, 8)}`;
-  if (key === 'pet') return `<path d="M-24 4 C-25 -6 -22 -12 -20 -14 L-21 -27 L-8 -18 C-3 -19.5 3 -19.5 8 -18 L21 -27 L20 -14 C22 -12 25 -6 24 4 C23 17 12 25 0 25 C-12 25 -23 17 -24 4 Z" fill="#2b2633" class="e-ink-s" stroke-width="1.2" stroke-linejoin="round"/>
+  if (key === 'pet') return `<path d="M-24 4 C-25 -6 -22 -12 -20 -14 L-21 -27 L-8 -18 C-3 -19.5 3 -19.5 8 -18 L21 -27 L20 -14 C22 -12 25 -6 24 4 C23 17 12 25 0 25 C-12 25 -23 17 -24 4 Z" style="fill:#2b2633;stroke:var(--e-ink)" stroke-width="1.2" stroke-linejoin="round"/>
     <path d="M-18 -17 L-19.4 -24 L-11.5 -18.8 Z M18 -17 L19.4 -24 L11.5 -18.8 Z" fill="#e9a3b8" stroke-linejoin="round"/>
     <ellipse cx="-9" cy="2" rx="4.4" ry="5.4" fill="#f5c843"/><ellipse cx="9" cy="2" rx="4.4" ry="5.4" fill="#f5c843"/>
     <ellipse cx="-9" cy="2.5" rx="1.4" ry="4" fill="#2b2633"/><ellipse cx="9" cy="2.5" rx="1.4" ry="4" fill="#2b2633"/>
