@@ -2115,3 +2115,4 @@ button.sched-i { width: 100%; text-align: left; }
 .wait-svg { width: 100%; height: 100%; overflow: visible; }
 .wait-svg .cat-svg { width: 100px; height: auto; }
 .wait-more { font-size: 13px; font-weight: 700; color: var(--accent); white-space: nowrap; }
+.soft-todo .wait-head { margin-bottom: 0; }

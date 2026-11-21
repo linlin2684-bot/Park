@@ -1848,7 +1848,7 @@ PAGES.home = {
 
     ${todos.length ? `<div class="card soft-todo">
       <button class="wait-head" data-act="todoAll"><span class="wait-em">${waitEmblem()}</span><span class="grow"><b>有人在等你</b><br><span class="small muted">小小黑幫你記著</span></span><span class="wait-more">看全部 ›</span></button>
-      ${todos.slice(0, 2).map(todoRow).join('')}</div>` : ''}
+</div>` : ''}
 
     <div class="card note-row note-row2"><button class="nr-main" data-act="writeNote"><span class="lr-i"><i data-ic="letter"></i></span><span class="grow"><b>藏一張小紙條</b><div class="small muted">藏在 App 某個角落，等 ${esc(nick(p) || '對方')} 自己發現${list('notes').filter((n) => n.by === me() && !n.found).length ? `・${list('notes').filter((n) => n.by === me() && !n.found).length} 張還沒被找到` : ''}</div></span></button><button class="nr-box" data-act="noteBox"><i data-ic="book"></i><small>紙條盒</small></button></div>`;
   },
