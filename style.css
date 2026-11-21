@@ -1847,3 +1847,9 @@ html[data-theme="night"] .emb-F-pet { --e-bg: #18141c; --e-ink: #ece4ef; --e-acc
 .pz-row + .pz-count { margin-top: 18px; }
 .pc-back .pc-script + .pc-hint { margin-top: auto; }
 .pc-back { padding-bottom: 10px; }
+
+/* 點圖示也能轉／扭／擲 */
+.tap-run { cursor: pointer; -webkit-tap-highlight-color: transparent; }
+.wheel-wrap.tap-run .wheel-hub { transition: transform .15s; }
+.wheel-wrap.tap-run:active .wheel-hub { transform: translate(-50%, -50%) scale(.9); }
+.gacha-machine.tap-run:active .gm-base, #dc.tap-run:active, .hdice-row.tap-run:active .hdie { filter: brightness(.94); }

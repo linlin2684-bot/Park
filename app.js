@@ -3017,8 +3017,18 @@ ACT.gacha = () => {
     m._onClose = () => rays && rays.remove();
   };
   $('#g-pt', m).onclick = () => go(false);
+  tapRun(m, '#gm', '#g-pt', '#g-again');   // 點扭蛋機也能扭
   $('#g-tk', m) && ($('#g-tk', m).onclick = () => go(true));
 };
+
+// 點圖示也能動：點轉盤中間、扭蛋機、骰子，等於按下面的按鈕（按鈕不能按時就不動）
+function tapRun(m, sel, ...btns) {
+  const el = $(sel, m); if (!el) return;
+  el.classList.add('tap-run');
+  el.addEventListener('click', () => {
+    for (const s of btns) { const b = $(s, m); if (b && !b.disabled && b.offsetParent !== null) { b.click(); return; } }
+  });
+}
 
 // ---------- 轉盤元件 ----------
 // 轉盤：徽章風，顏色跟著主題（兩色交錯＋外圈遊樂園燈泡）
@@ -3069,6 +3079,7 @@ ACT.fate = () => {
     <div class="wheel-wrap"><div class="wheel-pointer"></div>${wheelSVG(W.map((x) => x.label))}<div class="wheel-hub"><i data-ic="ferris"></i></div></div>
     <div id="fres"></div>
     <button class="btn block" id="fgo" ${used ? 'disabled' : ''}>${used ? '這週已經轉過了，下週一再來' : '轉！'}</button>`, { center: true });
+  tapRun(m, '.wheel-wrap', '#fgo');
   $('#fgo', m).onclick = async () => {
     $('#fgo', m).disabled = true;
     const ok = await S.store.coupleTx(S.cid, (c) => ((c.spins || {})[me()] === weekKey() ? null : { [`spins.${me()}`]: weekKey() }));
@@ -3101,6 +3112,7 @@ ACT.food = () => {
     <div class="wheel-wrap"><div class="wheel-pointer"></div>${wheelSVG(foods)}<div class="wheel-hub"><i data-ic="dining"></i></div></div>
     <div id="fdres"></div>
     <div class="btn-row"><button class="btn ghost" id="fed">編輯選項</button><button class="btn" id="fsp">轉！</button></div>`, { center: true });
+  tapRun(m, '.wheel-wrap', '#fsp');
   $('#fsp', m).onclick = async () => {
     $('#fsp', m).disabled = true;
     const idx = Math.floor(Math.random() * foods.length);
@@ -3146,6 +3158,7 @@ function todModal({ levels, cls = '', key = 'park-tod-lv' }) {
   $$('#tlv button', m).forEach((b) => b.onclick = () => { lv = +b.dataset.l; localStorage.setItem(key, lv); $$('#tlv button', m).forEach((x) => x.classList.toggle('on', x === b)); });
   const setTurn = (u) => { turn = u; localStorage.setItem('park-tod-turn', u); $$('#tturn button', m).forEach((x) => x.classList.toggle('on', x.dataset.u === u)); };
   $$('#tturn button', m).forEach((b) => b.onclick = () => setTurn(b.dataset.u));
+  tapRun(m, '#dc', '[data-k="rand"]');   // 點骰子＝讓骰子決定
   $$('[data-k]', m).forEach((b) => b.onclick = async () => {
     let k = b.dataset.k;
     if (k === 'rand') k = Math.random() < .5 ? 'truth' : 'dare';
@@ -3182,6 +3195,7 @@ function todModal({ levels, cls = '', key = 'park-tod-lv' }) {
 function todayQuiz() { return list('quiz').find((x) => x.id === dkey()); }
 const quizIndex = () => hash(dkey() + (S.cid || '')) % D.QUIZ.length;
 ACT.quiz = () => {
+  let sel;   // 還沒送出前先選，可以改、可以取消
   const draw = (m) => {
     const doc = todayQuiz();
     const qi = doc ? doc.qi : quizIndex();
@@ -3195,27 +3209,40 @@ ACT.quiz = () => {
     const html = `${mhead('<i data-ic="minds"></i> 默契問答')}
       <p class="small muted" style="margin:0 0 8px">兩人各自作答，答案一樣兩人都拿 ${D.POINTS.quizMatch} 點。目前默契度 ${rate}%（${done.length} 題）</p>
       <div style="font-family:var(--serif);font-size:20px;font-weight:800">${esc(Q.q)}</div>
-      ${Q.opts.map((o, i) => `<button class="quiz-opt ${both && mine === i ? 'mine' : ''} ${both && theirs === i ? 'theirs' : ''} ${!both && mine === i ? 'mine' : ''}" data-i="${i}" ${mine !== undefined ? 'disabled' : ''}>
-        ${esc(o)}<span class="tags">${both ? `${mine === i ? avatar(me()) : ''}${theirs === i ? avatar(p) : ''}` : mine === i ? '✓' : ''}</span></button>`).join('')}
+      ${Q.opts.map((o, i) => `<button class="quiz-opt ${both && mine === i ? 'mine' : ''} ${both && theirs === i ? 'theirs' : ''} ${!both && (mine === undefined ? sel : mine) === i ? 'mine' : ''}" data-i="${i}" ${mine !== undefined ? 'disabled' : ''}>
+        ${esc(o)}<span class="tags">${both ? `${mine === i ? avatar(me()) : ''}${theirs === i ? avatar(p) : ''}` : (mine === undefined ? sel : mine) === i ? '✓' : ''}</span></button>`).join('')}
       <div class="mt center">${both ? (mine === theirs ? `<div class="prompt-card"><i data-ic="heart"></i> 心有靈犀！兩人各 +${D.POINTS.quizMatch} 點</div>` : `<div class="prompt-card">不一樣！聊聊為什麼吧（各 +${D.POINTS.quizMiss} 點）</div>`)
-        : mine !== undefined ? `<p class="muted">已作答，等 ${esc(nick(p))} 回答後揭曉 <i data-ic="lock"></i></p>` : theirs !== undefined ? `<p class="muted">${esc(nick(p))} 已經答好了，換你！</p>` : ''}</div>`;
+        : mine !== undefined ? `<p class="muted">已作答，等 ${esc(nick(p))} 回答後揭曉 <i data-ic="lock"></i></p><button class="link" id="qz-redo">改答案</button>`
+        : `${theirs !== undefined ? `<p class="muted">${esc(nick(p))} 已經答好了，換你！</p>` : ''}<div class="btn-row"><button class="btn ghost" id="qz-clear" ${sel === undefined ? 'disabled' : ''}>取消</button><button class="btn" id="qz-send" ${sel === undefined ? 'disabled' : ''}>送出答案</button></div>`}</div>`;
     if (!m) m = openModal(html, { center: true }); else m.querySelector('.modal').innerHTML = html;
-    $$('[data-i]', m).forEach((b) => b.onclick = async () => {
-      const i = +b.dataset.i;
-      const id = dkey();
+    // 選答案：只改畫面，馬上有反應
+    $$('[data-i]', m).forEach((b) => b.onclick = () => { sel = +b.dataset.i; vibrate(10); draw(m); });
+    $('#qz-clear', m) && ($('#qz-clear', m).onclick = () => { sel = undefined; draw(m); });
+    $('#qz-redo', m) && ($('#qz-redo', m).onclick = async () => {
+      const cur = todayQuiz();
+      if (p && (cur?.answers || {})[p] !== undefined) return draw(m);   // 對方剛好答完了，已經揭曉
+      sel = mine;
+      await col('quiz').update(dkey(), { [`answers.${me()}`]: S.store.DEL() });
+      draw(m);
+    });
+    $('#qz-send', m) && ($('#qz-send', m).onclick = async (e) => {
+      if (sel === undefined) return;
+      e.currentTarget.disabled = true; e.currentTarget.textContent = '送出中…';
+      const i = sel, id = dkey();
       const cur = todayQuiz();
       if (cur) await col('quiz').update(id, { [`answers.${me()}`]: i });
       else await col('quiz').set(id, { qi, answers: { [me()]: i }, at: now() });
       const th = p ? (cur?.answers || {})[p] : undefined;
+      sfx('pop');
       if (th !== undefined) {
         const match = th === i;
         await col('quiz').update(id, { match });
         const pts = match ? D.POINTS.quizMatch : D.POINTS.quizMiss;
         await addPoints(me(), pts, '默契問答'); await addPoints(p, pts, '默契問答');
-        await notify(p, 'quiz', match ? '默契問答：心有靈犀 💞' : '默契問答結果出爐了 🧠');
+        fire(notify(p, 'quiz', match ? '默契問答：心有靈犀 💞' : '默契問答結果出爐了 🧠'));
         if (match) confetti(70);
-      } else await notify(p, 'quiz', `${nick(me())} 答完今天的默契問答了，換你 🧠`);
-      setTimeout(() => draw(m), 250);
+      } else fire(notify(p, 'quiz', `${nick(me())} 答完今天的默契問答了，換你 🧠`));
+      draw(m);
     });
     return m;
   };
@@ -6954,6 +6981,7 @@ ACT.hotPlay = () => {
   $$('#hd-turn button', m).forEach((b) => b.onclick = () => setTurn(b.dataset.u));
   $('#hp-light', m).onclick = async () => { const el = $('#hp-lt', m); for (let i = 0; i < 6; i++) { el.textContent = pick(D.HOT_LIGHTS); await sleep(70); } el.textContent = hotLight(true); sfx('pop'); };
   $('#hd-edit', m).onclick = () => hotDiceEditor(hotLv());
+  tapRun(m, '#hp-dice', '[data-k="dice"]');   // 點骰子＝擲骰子
   const timerBtn = (t, label) => hotSecs(t) ? `<button class="btn block ghost hd-timer" id="hd-t"><i data-ic="hourglass"></i> 開始倒數 ${esc(fmtSecs(hotSecs(t)))}</button>` : '';
   const wireTimer = (t, label) => { $('#hd-t', m) && ($('#hd-t', m).onclick = () => hotTimer(hotSecs(t), label, true)); };
   let busy = false;

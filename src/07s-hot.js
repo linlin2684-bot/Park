@@ -203,6 +203,7 @@ ACT.hotPlay = () => {
   $$('#hd-turn button', m).forEach((b) => b.onclick = () => setTurn(b.dataset.u));
   $('#hp-light', m).onclick = async () => { const el = $('#hp-lt', m); for (let i = 0; i < 6; i++) { el.textContent = pick(D.HOT_LIGHTS); await sleep(70); } el.textContent = hotLight(true); sfx('pop'); };
   $('#hd-edit', m).onclick = () => hotDiceEditor(hotLv());
+  tapRun(m, '#hp-dice', '[data-k="dice"]');   // 點骰子＝擲骰子
   const timerBtn = (t, label) => hotSecs(t) ? `<button class="btn block ghost hd-timer" id="hd-t"><i data-ic="hourglass"></i> 開始倒數 ${esc(fmtSecs(hotSecs(t)))}</button>` : '';
   const wireTimer = (t, label) => { $('#hd-t', m) && ($('#hd-t', m).onclick = () => hotTimer(hotSecs(t), label, true)); };
   let busy = false;
