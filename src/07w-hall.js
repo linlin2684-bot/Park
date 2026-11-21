@@ -182,3 +182,25 @@ function hotDrawFx() {
   setTimeout(() => el.classList.add('out'), 1500);
   setTimeout(() => el.remove(), 2100);
 }
+
+// 生日卡組裡的火辣級卡：兩人都開火辣前是蓋住的「神秘卡」
+const hotLockedCard = (c) => !!c && c.series === D.BIRTHDAY_SERIES && (c.spice || 1) >= 3 && !(typeof hotOn === 'function' && hotOn());
+const maskHot = (c) => ({ ...c, title: '神秘卡', desc: '兩個人都打開火辣後才會揭曉', mark: '？', mystery: false });
+const _ticketHTML0 = ticketHTML;
+ticketHTML = (c, o) => _ticketHTML0(hotLockedCard(c) ? maskHot(c) : c, o);
+const _emblemSVG0 = emblemSVG;
+emblemSVG = (c, hide) => _emblemSVG0(hotLockedCard(c) ? maskHot(c) : c, hide);
+ACT.openCard = ((orig) => (el) => {
+  const c = list('cards').find((x) => x.id === el?.dataset?.id);
+  if (hotLockedCard(c)) { toast('這張是神秘卡，兩個人都打開火辣後才會揭曉'); return; }
+  return orig(el);
+})(ACT.openCard);
+
+// 測試期間：想試清單自己勾的就算配對（好寶加入後恢復成兩個人都勾才算）
+const _hotMatches0 = hotMatches;
+hotMatches = () => {
+  if (!trialOpen()) return _hotMatches0();
+  const mine = hotWants(me());
+  const at = (k) => Math.max(...hotDocs('want').filter((d) => d.k === k).map((d) => d.at || 0));
+  return hotItems().filter((x) => mine.has(x.k)).map((x) => ({ ...x, at: at(x.k) }));
+};
