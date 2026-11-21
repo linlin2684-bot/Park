@@ -199,7 +199,7 @@ function pickLineIdx(k, n) {
   const old = [], fresh = [];
   for (let i = 0; i < n; i++) (seen[i] ? old : fresh).push(i);
   const q = dexQuota('line');
-  const goNew = fresh.length && (!old.length || (q.used < DEX_NEW_PER_DAY && Math.random() < DEX_NEW_CHANCE));
+  const goNew = fresh.length && (!old.length || trialOpen() || (q.used < DEX_NEW_PER_DAY && Math.random() < DEX_NEW_CHANCE));
   if (goNew) { if (old.length) q.use(); return fresh[Math.floor(Math.random() * fresh.length)]; }
   return old[Math.floor(Math.random() * old.length)];
 }
@@ -220,10 +220,11 @@ function walker(k, cls = '') {
 }
 function catStroll(force) {
   // 週年動畫、回顧故事、新手導覽進行中不打擾
-  if (S.tab !== 'home' || (S.couple?.members || []).length < 2 || document.querySelector('.cat-stroll, .anniv-intro, .story, .tour, .modal-back')) return;
+  if (S.tab !== 'home' || (S.couple?.members || []).length < (trialOpen() ? 1 : 2) || document.querySelector('.cat-stroll, .anniv-intro, .story, .tour, .modal-back')) return;
   if (!force && typeof carryStroll === 'function' && carryStroll()) return;
   const key = 'park-stroll-at';
-  if (!force && (now() - +(localStorage.getItem(key) || 0) < 30 * 60000 || Math.random() > .4)) return;
+  // 好寶加入前的測試期間：每 10 秒就來一隻
+  if (!force && (now() - +(localStorage.getItem(key) || 0) < (trialOpen() ? 9000 : 30 * 60000) || (!trialOpen() && Math.random() > .4))) return;
   localStorage.setItem(key, now());
   const k = force || pickFriend();
   // 有時候兩隻一起路過，會演一段小劇場

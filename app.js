@@ -1008,7 +1008,7 @@ function pickLineIdx(k, n) {
   const old = [], fresh = [];
   for (let i = 0; i < n; i++) (seen[i] ? old : fresh).push(i);
   const q = dexQuota('line');
-  const goNew = fresh.length && (!old.length || (q.used < DEX_NEW_PER_DAY && Math.random() < DEX_NEW_CHANCE));
+  const goNew = fresh.length && (!old.length || trialOpen() || (q.used < DEX_NEW_PER_DAY && Math.random() < DEX_NEW_CHANCE));
   if (goNew) { if (old.length) q.use(); return fresh[Math.floor(Math.random() * fresh.length)]; }
   return old[Math.floor(Math.random() * old.length)];
 }
@@ -1029,10 +1029,11 @@ function walker(k, cls = '') {
 }
 function catStroll(force) {
   // 週年動畫、回顧故事、新手導覽進行中不打擾
-  if (S.tab !== 'home' || (S.couple?.members || []).length < 2 || document.querySelector('.cat-stroll, .anniv-intro, .story, .tour, .modal-back')) return;
+  if (S.tab !== 'home' || (S.couple?.members || []).length < (trialOpen() ? 1 : 2) || document.querySelector('.cat-stroll, .anniv-intro, .story, .tour, .modal-back')) return;
   if (!force && typeof carryStroll === 'function' && carryStroll()) return;
   const key = 'park-stroll-at';
-  if (!force && (now() - +(localStorage.getItem(key) || 0) < 30 * 60000 || Math.random() > .4)) return;
+  // 好寶加入前的測試期間：每 10 秒就來一隻
+  if (!force && (now() - +(localStorage.getItem(key) || 0) < (trialOpen() ? 9000 : 30 * 60000) || (!trialOpen() && Math.random() > .4))) return;
   localStorage.setItem(key, now());
   const k = force || pickFriend();
   // 有時候兩隻一起路過，會演一段小劇場
@@ -5087,7 +5088,7 @@ function pickScene(k) {
   if (!cand.length || Math.random() > .3) return null;
   const fresh = cand.filter((s) => !sceneSeen()[s.id]), old = cand.filter((s) => sceneSeen()[s.id]);
   const q = dexQuota('scene');
-  if (fresh.length && q.used < 1 && Math.random() < (old.length ? .35 : .6)) { q.use(); return fresh[Math.floor(Math.random() * fresh.length)]; }
+  if (fresh.length && (q.used < 1 || trialOpen()) && Math.random() < (old.length ? .35 : .6)) { q.use(); return fresh[Math.floor(Math.random() * fresh.length)]; }
   return old.length ? old[Math.floor(Math.random() * old.length)] : null;
 }
 
@@ -5442,6 +5443,8 @@ async function joinFreshStart() {
     moods: {}, moodHist: {}, spins: {}, annivLetters: {}, opened: {}, taskOverride: {}, taskSwapReq: null, battleSwaps: {},
     'fund.rewarded': false, fundsDone: 0, sched: {},
   });
+  // 測試期間補的點數可能剛好晚一步寫進來，再掃一次
+  for (const d of list('points')) await col('points').remove(d.id);
   // 新手禮：兩個人各 40 點（可以扭兩次）
   for (const u of c.members || []) await addPoints(u, 40, '新手禮：歡迎來到遊樂園');
   // 這台手機記得的成就、紙條、提醒也清掉
@@ -7618,6 +7621,32 @@ function hotWishPick(t, done, pay) {
     sfx('sparkle'); toast('許願成功，等對方兌現'); closeModal(m); done && done();
   });
 }
+
+// ============================================================
+//  好寶加入前的測試期間（只有一個人的時候）
+//  - 小動物每 10 秒路過一次、新台詞／新小劇場不限次數
+//  - 點數補到 9999、扭蛋券補到 99，玩不完
+//  好寶加入那一刻 joinFreshStart 會清掉所有點數、扭蛋券，自動變回正常
+// ============================================================
+function trialOpen() { return !!S.couple && (S.couple.members || []).length === 1; }
+const TRIAL_PTS = 9999, TRIAL_TICKETS = 99;
+let trialBusy = false;
+async function trialTopUp() {
+  if (trialBusy || !trialOpen() || !S.d.points) return;
+  trialBusy = true;
+  try {
+    const bal = balance(me());
+    if (bal < 2000) await addPoints(me(), TRIAL_PTS - bal, '測試期間：點數補滿');
+    const tk = (S.couple.tickets || {})[me()] || 0;
+    if (tk < 20) await S.store.updateCouple(S.cid, { [`tickets.${me()}`]: TRIAL_TICKETS });
+  } catch (e) { console.warn('測試點數', e); }
+  trialBusy = false;
+}
+setInterval(() => {
+  if (!trialOpen() || document.visibilityState === 'hidden') return;
+  trialTopUp();
+  catStroll();
+}, 10000);
 // ============================================================
 //  啟動
 // ============================================================

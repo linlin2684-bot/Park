@@ -48,7 +48,7 @@ function pickScene(k) {
   if (!cand.length || Math.random() > .3) return null;
   const fresh = cand.filter((s) => !sceneSeen()[s.id]), old = cand.filter((s) => sceneSeen()[s.id]);
   const q = dexQuota('scene');
-  if (fresh.length && q.used < 1 && Math.random() < (old.length ? .35 : .6)) { q.use(); return fresh[Math.floor(Math.random() * fresh.length)]; }
+  if (fresh.length && (q.used < 1 || trialOpen()) && Math.random() < (old.length ? .35 : .6)) { q.use(); return fresh[Math.floor(Math.random() * fresh.length)]; }
   return old.length ? old[Math.floor(Math.random() * old.length)] : null;
 }
 
@@ -403,6 +403,8 @@ async function joinFreshStart() {
     moods: {}, moodHist: {}, spins: {}, annivLetters: {}, opened: {}, taskOverride: {}, taskSwapReq: null, battleSwaps: {},
     'fund.rewarded': false, fundsDone: 0, sched: {},
   });
+  // 測試期間補的點數可能剛好晚一步寫進來，再掃一次
+  for (const d of list('points')) await col('points').remove(d.id);
   // 新手禮：兩個人各 40 點（可以扭兩次）
   for (const u of c.members || []) await addPoints(u, 40, '新手禮：歡迎來到遊樂園');
   // 這台手機記得的成就、紙條、提醒也清掉
