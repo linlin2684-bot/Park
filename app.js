@@ -6941,20 +6941,21 @@ ACT.hotDice = () => {
   $('#hd-go', m).onclick = async () => {
     if (rolling) return; rolling = true;
     const lv = hotLv(), doer = turn, target = other(turn);
+    const who = (t) => t.replace(/【做的人】/g, nick(doer)).replace(/【被做的人】/g, nick(target));
     $('#hd-res', m).innerHTML = '';
     vibrate([15, 30, 15, 30, 15]); sfx('pop');
-    const out = {};
+    const out = {}, raw = {};
     await Promise.all(kinds.map(async (k, i) => {
       const el = $(`.hdie[data-k="${k}"]`, m), faces = hotFaces(lv, k), b = $('b', el);
       el.classList.remove('spin'); void el.offsetWidth; el.classList.add('spin');
       const stop = now() + 700 + i * 260;
-      while (now() < stop) { b.textContent = pick(faces); await sleep(70); }
-      out[k] = pick(faces); b.textContent = out[k];
+      while (now() < stop) { b.textContent = who(pick(faces)); await sleep(70); }
+      raw[k] = pick(faces); out[k] = who(raw[k]); b.textContent = out[k];
       el.classList.remove('spin'); el.classList.add('land'); setTimeout(() => el.classList.remove('land'), 400);
     }));
     sfx('chime');
-    $('#hd-res', m).innerHTML = `<div class="prompt-card hd-card"><div class="small muted" style="font-family:var(--sans)">${spiceIc(lv)} ${esc(nick(doer))} → ${esc(nick(target))}</div>
-      ${esc(out.act)}<span class="hd-sep">·</span>${esc(nick(target))}的${esc(out.part)}<span class="hd-sep">·</span>${esc(out.time)}</div>`;
+    $('#hd-res', m).innerHTML = `<div class="prompt-card hd-card"><div class="small muted" style="font-family:var(--sans)">${spiceIc(lv)} ${esc(nick(doer))} 對 ${esc(nick(target))}</div>
+      ${esc(out.act)}<span class="hd-sep">·</span>${/【/.test(raw.part) ? '' : esc(nick(target)) + '的'}${esc(out.part)}<span class="hd-sep">·</span>${esc(out.time)}</div>`;
     if (ms.length > 1) setTurn(target);
     rolling = false;
   };
@@ -6963,7 +6964,7 @@ ACT.hotDice = () => {
 function hotDiceEditor(lv) {
   const kinds = ['act', 'part', 'time'];
   const m = openModal(`${mhead(`改骰子 · ${D.SPICE[lv].label}`)}
-    <p class="small muted" style="margin:0 0 8px">一行一面，至少 2 面。改了兩個人都會一起換</p>
+    <p class="small muted" style="margin:0 0 8px">一行一面，2～12 面。改了兩個人都會一起換。寫【做的人】【被做的人】，擲出來會換成名字</p>
     ${kinds.map((k) => `<label>${D.HOT_DICE_NAMES[k]}</label><textarea id="de-${k}" rows="6">${esc(hotFaces(lv, k).join('\n'))}</textarea>`).join('')}
     <div class="btn-row"><button class="btn ghost" id="de-reset">換回預設</button><button class="btn hot-btn" id="de-save">儲存</button></div>`, { center: true, cls: 'hot-zone' });
   const save = async (reset) => {
