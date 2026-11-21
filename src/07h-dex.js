@@ -21,6 +21,16 @@ const SCENES = [
     lines: [['n', '晽晽貓貓看到小魚乾走過來'], ['n', '晽晽貓貓直接把小魚乾撞飛'], ['a', '（抱緊自己的小魚乾）這是我的！'], ['b', '……喵？']] },
   { id: 'eatshark', a: 'orange', b: 'shark', lead: 'shark', title: '被吃掉了',
     lines: [['n', '晽晽貓貓一口把鯊魚吃掉了'], ['a', '嗝～'], ['b', '長長長 長長長 長長長長 長完了～'], ['b', '人類～我被吃掉了喔？']] },
+  { id: 'nose', a: 'abian', b: 'shark', lead: 'shark', title: '鼻子',
+    lines: [['b', '人類～……啊不對，你是阿扁'], ['a', '（摀住鼻子）你不要碰我的鼻子，我也不碰你的'], ['b', '好～'], ['n', '鯊魚碰了一下自己的鼻子，關機了'], ['a', '（拍拍手）']] },
+  { id: 'hello', a: 'gungun', b: 'shark', lead: 'shark', title: '哈囉',
+    lines: [['a', '棍～'], ['b', '人類～哈囉～'], ['a', '……魚'], ['b', '我是鯊魚～'], ['n', '小棍棍踩了鯊魚一下，鯊魚開心地游走了']] },
+  { id: 'bask', a: 'black', b: 'white', lead: 'black', title: '曬太陽',
+    lines: [['n', '小小黑走到陷阱貓旁邊'], ['b', '這裡很溫暖，你也一起來曬吧'], ['a', '喵～'], ['n', '兩隻貓並排趴著，一起曬太陽']] },
+  { id: 'aflower', a: 'tuxedo', b: 'abian', lead: 'tuxedo', title: '阿扁花',
+    lines: [['a', '（叼來一朵花）給你'], ['b', '這是什麼花？'], ['a', '不知道'], ['b', '那我叫它「阿扁花」'], ['n', '阿扁拍拍手']] },
+  { id: 'trap', a: 'white', b: 'shark', lead: 'shark', title: '陷阱',
+    lines: [['n', '陷阱貓躲在紙箱後面'], ['b', '人類～……箱子～哈囉～'], ['a', '……我是陷阱'], ['b', '陷阱～哈囉～'], ['n', '陷阱貓放棄了']] },
   { id: 'sunspot', a: 'orange', b: 'calico', lead: 'calico', title: '搶位子',
     lines: [['n', '小魚乾在窗邊曬太陽'], ['a', '讓開，這是我的位子'], ['b', '喵！（我先來的）'], ['n', '晽晽貓貓直接坐上去，把小魚乾擠下去了']] },
   { id: 'snack', a: 'orange', b: 'calico', lead: 'calico', title: '偷吃',
@@ -129,7 +139,7 @@ function blackPatXP() {
 }
 
 // ---------- 節日／心情 ----------
-const FEST_NAMES = { anniv: '週年', bday: '生日', xmas: '聖誕', newyear: '新年', valentine: '情人節', halloween: '萬聖節', rain: '下雨心情' };
+const FEST_NAMES = { morning: '早上', eaten: '被吃掉', eaten2: '被吃掉', anniv: '週年', bday: '生日', xmas: '聖誕', newyear: '新年', valentine: '情人節', halloween: '萬聖節', rain: '下雨心情' };
 function festNow() {
   const pv = localStorage.getItem('park-fest-preview');
   if (pv) return pv;
@@ -309,6 +319,7 @@ function animalPage(k, i) {
     ${L.map((t, j) => `<div class="dex-line ${got[j] ? '' : 'locked'}">${got[j] ? esc(t) : '？？？'}</div>`).join('')}
     ${sp.length ? `<h3 class="da-h">限定台詞 <span>${sp.filter((_, j) => got['s' + j]).length} 句</span></h3>
       ${sp.map((x, j) => `<div class="dex-line sp ${got['s' + j] ? '' : 'locked'}"><span class="sp-tag">${FEST_NAMES[x.w]}</span>${got['s' + j] ? esc(x.t) : '？？？'}</div>`).join('')}` : ''}
+    ${typeof pestDexHTML === 'function' ? pestDexHTML(k, got) : ''}
     <h3 class="da-h">我們幫牠加的 <span>${cu.length}</span></h3>
     ${cu.map((c) => `<div class="dex-line cu">${esc(c.t)}<span class="cu-by">— ${esc(nick(c.by))}</span>${c.by === me() ? `<button class="cu-del" data-del="${c.id}" aria-label="刪除">✕</button>` : ''}</div>`).join('') || '<p class="small muted" style="margin:4px 0 0">你們最懂牠，幫牠多說幾句吧，路過時牠就會說出來。</p>'}
     <button class="btn ghost sm da-add" data-add="${k}"><i data-ic="plus"></i> 幫牠加一句</button>

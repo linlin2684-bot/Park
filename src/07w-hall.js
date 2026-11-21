@@ -16,7 +16,7 @@ ACT.sub = ((orig) => (el) => {
 if (S.sub && S.sub.wallet === 'book') S.sub.wallet = 'mine';
 
 // ---------- 火辣級的兌換卡：火辣配色 ----------
-const isHotCard = (c) => !!c && !c.series && c.kind !== 'collect' && (c.spice || 1) >= 3;
+const isHotCard = (c) => !!c && !c.series && c.kind !== 'collect' && (c.spice || 1) >= 3 && typeof hotOn === 'function' && hotOn();
 const _embPalette0 = embPalette;
 embPalette = (c) => (!c.pal && isHotCard(c) ? 'HOT' : _embPalette0(c));
 
@@ -184,15 +184,16 @@ function hotDrawFx() {
 }
 
 // 生日卡組裡的火辣級卡：兩人都開火辣前是蓋住的「神秘卡」
-const hotLockedCard = (c) => !!c && c.series === D.BIRTHDAY_SERIES && (c.spice || 1) >= 3 && !(typeof hotOn === 'function' && hotOn());
-const maskHot = (c) => ({ ...c, title: '神秘卡', desc: '兩個人都打開火辣後才會揭曉', mark: '？', mystery: false });
+// 火辣級的卡（生日卡組、扭蛋卡池都算）：兩人都開火辣前是蓋住的「？」
+const hotLockedCard = (c) => !!c && (c.spice || 1) >= 3 && c.kind !== 'collect' && !(typeof hotOn === 'function' && hotOn());
+const maskHot = (c) => ({ ...c, title: '？', desc: '兩個人都打開火辣後才會揭曉', mark: '？', mystery: false });
 const _ticketHTML0 = ticketHTML;
 ticketHTML = (c, o) => _ticketHTML0(hotLockedCard(c) ? maskHot(c) : c, o);
 const _emblemSVG0 = emblemSVG;
 emblemSVG = (c, hide) => _emblemSVG0(hotLockedCard(c) ? maskHot(c) : c, hide);
 ACT.openCard = ((orig) => (el) => {
   const c = list('cards').find((x) => x.id === el?.dataset?.id);
-  if (hotLockedCard(c)) { toast('這張是神秘卡，兩個人都打開火辣後才會揭曉'); return; }
+  if (hotLockedCard(c)) { toast('這張是「？」卡，兩個人都打開火辣後才會揭曉'); return; }
   return orig(el);
 })(ACT.openCard);
 

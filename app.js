@@ -3,8 +3,8 @@
 //  （這個檔案是由 src/ 資料夾裡的分段檔合併而成）
 // ============================================================
 import { firebaseConfig } from './config.js';
-import * as D from './data.js?v=11211635';
-import { createStore } from './store.js?v=11211635';
+import * as D from './data.js?v=11211647';
+import { createStore } from './store.js?v=11211647';
 
 const S = {
   store: null, me: null, cid: null, couple: null, d: {},
@@ -1027,7 +1027,7 @@ function pickLineIdx(k, n) {
 }
 
 // ---------- 路過首頁 ----------
-const STROLL_ODDS = [['black', .2], ['orange', .2], ['haohao', .11], ['doggy', .08], ['abian', .08], ['gungun', .09], ['shark', .09], ['white', .05], ['calico', .05], ['tuxedo', .05]];
+const STROLL_ODDS = [['black', .11], ['orange', .10], ['haohao', .09], ['doggy', .09], ['abian', .10], ['gungun', .10], ['shark', .11], ['white', .10], ['calico', .10], ['tuxedo', .10]];   // 十隻差不多，小劇場少的稍微高一點
 function pickFriend() {
   // 心情下雨的時候，狗狗比較常來陪你
   if (typeof myMoodRain === 'function' && myMoodRain() && Math.random() < .45) return 'doggy';
@@ -1458,7 +1458,7 @@ function renderTop() {
   const tk = tickets(me());
   top.innerHTML = `
     <div class="brand"><i data-ic="ferris"></i> 兩人遊樂園</div>
-    <button class="pill" data-act="pointsLog"><i data-ic="coin"></i> ${balance(me())}${tk ? ` · <i data-ic="ticket"></i>${tk}` : ''}</button>
+    <button class="pill pill2" data-act="pointsLog"><span><i data-ic="coin"></i>${balance(me())}</span>${tk ? `<span><i data-ic="ticket"></i>${tk}</span>` : ''}</button>
     ${typeof hotMoonHTML === 'function' ? hotMoonHTML() : ''}
     <button class="icon-btn" data-act="theme" title="日夜模式">${mode === 'auto' ? '<i data-ic="candle"></i>' : t === 'day' ? '<i data-ic="sun"></i>' : '<i data-ic="moon"></i>'}</button>
     <button class="icon-btn" data-act="inbox"><i data-ic="bell"></i>${n ? `<span class="badge-dot">${n > 9 ? '9+' : n}</span>` : ''}</button>
@@ -1503,13 +1503,30 @@ function renderMain() {
 
 // ---------- 通知中心 ----------
 const EV_ICON = { card: '<i data-ic="ticket"></i>', redeem: '<i data-ic="ticket"></i>', stamp: '<i data-ic="stamp"></i>', miss: '<i data-ic="heart"></i>', mood: '<i data-ic="weather"></i>', wish: '<i data-ic="shooting"></i>', battle: '<i data-ic="swords"></i>', note: '<i data-ic="letter"></i>', capsule: '<i data-ic="hourglass"></i>', fund: '<i data-ic="coins"></i>', trip: '<i data-ic="map"></i>', goal: '<i data-ic="target"></i>', daily: '<i data-ic="chat"></i>', quiz: '<i data-ic="minds"></i>', mystery: '<i data-ic="gift"></i>' };
+// 通知分類：票券／互動／旅行回憶／其他
+const EV_CAT = { card: 'card', redeem: 'card', mystery: 'card', wish: 'card', wishes: 'card', stamp: 'card',
+  miss: 'us', mood: 'us', note: 'us', letter: 'us', poke: 'us', quiz: 'us', daily: 'us', deep: 'us', battle: 'us', battles: 'us',
+  trip: 'mem', fund: 'mem', goal: 'mem', capsule: 'mem', date: 'mem' };
+const EV_TABS = [['all', '全部'], ['card', '票券'], ['us', '互動'], ['mem', '約會回憶'], ['etc', '其他']];
 ACT.inbox = async () => {
-  const evs = list('events').filter((e) => e.to === me()).sort((a, b) => b.at - a.at).slice(0, 60);
-  openModal(`${mhead('通知')}
-    ${evs.length ? evs.map((e) => `<div class="list-row ${e.read ? '' : 'unread'}"><span class="lr-i">${EV_ICON[e.type] || '<i data-ic="sparkle"></i>'}</span>
-      <div class="grow">${esc(e.text)}${e.detail ? `<div class="small muted">${esc(e.detail)}</div>` : ''}</div><span class="when">${ago(e.at)}</span></div>`).join('')
-      : '<div class="empty"><span class="big"><i data-ic="bell"></i></span>還沒有通知</div>'}`);
+  const evs = list('events').filter((e) => e.to === me()).sort((a, b) => b.at - a.at).slice(0, 80);
+  const unread = new Set(evs.filter((e) => !e.read).map((e) => e.id));
+  let tab = 'all';
+  const m = openModal('', {});
+  const draw = () => {
+    const shown = evs.filter((e) => tab === 'all' || (EV_CAT[e.type] || 'etc') === tab);
+    const cnt = (k) => evs.filter((e) => unread.has(e.id) && (k === 'all' || (EV_CAT[e.type] || 'etc') === k)).length;
+    m.querySelector('.modal').innerHTML = `${mhead('<i data-ic="bell"></i> 通知')}
+      <div class="seg inbox-tabs">${EV_TABS.map(([k, n]) => `<button data-t="${k}" class="${tab === k ? 'on' : ''}">${n}${cnt(k) ? `<span class="it-n">${cnt(k)}</span>` : ''}</button>`).join('')}</div>
+      ${shown.length ? shown.map((e) => `<div class="list-row ${unread.has(e.id) ? 'unread' : ''}"><span class="lr-i">${EV_ICON[e.type] || '<i data-ic="sparkle"></i>'}</span>
+        <div class="grow">${esc(e.text)}${e.detail ? `<div class="small muted">${esc(e.detail)}</div>` : ''}</div><span class="when">${ago(e.at)}</span></div>`).join('')
+        : '<div class="empty"><span class="big"><i data-ic="bell"></i></span>這裡還沒有通知</div>'}`;
+    $$('.inbox-tabs button', m).forEach((b) => b.onclick = () => { tab = b.dataset.t; draw(); });
+  };
+  draw();
+  // 打開就算看過了（畫面上的未讀標記留到關掉為止）
   for (const e of evs) if (!e.read) col('events').update(e.id, { read: true });
+  m._onClose = () => render();
 };
 
 ACT.pointsLog = () => {
@@ -1737,6 +1754,13 @@ function countdowns() {
   items.push({ name: '聖誕節', ...nextOf('12-25'), icon: '<i data-ic="tree"></i>' });
   const dt = daysTogether(), next100 = Math.ceil((dt + 1) / 100) * 100;
   items.push({ name: `第 ${next100} 天`, days: next100 - dt, icon: '<i data-ic="hundred"></i>' });
+  // 自己加的日子（每年重複，或只有一次；過了的一次性日子就不顯示）
+  const t0 = new Date(); t0.setHours(0, 0, 0, 0);
+  for (const [, x] of Object.entries(c.cdates || {})) {
+    if (!x || !x.date) continue;
+    if (x.yearly) items.push({ name: x.name, ...nextOf(x.date.slice(5)), icon: `<i data-ic="${x.icon || 'star'}"></i>` });
+    else { const d = new Date(x.date + 'T00:00:00'); const days = Math.round((d - t0) / 86400000); if (days >= 0) items.push({ name: x.name, days, icon: `<i data-ic="${x.icon || 'star'}"></i>` }); }
+  }
   return items.sort((x, y) => x.days - y.days);
 }
 
@@ -1800,11 +1824,11 @@ PAGES.home = {
       <div class="small muted">我們在一起</div>
       <div class="days">第 ${money(daysTogether())} <small>天</small></div>
       <div class="couple"><span>${avatar(me())} ${esc(nick(me()))}</span><span class="heart"><i data-ic="heart" class="ic-fill"></i></span><span>${p ? `${avatar(p)} ${esc(nick(p))}${partnerOnline() ? `<button class="online-dot" data-act="poke" aria-label="戳一下"><i></i>在線上・戳一下</button>` : ''}` : '<span class="muted">等待對方加入…</span>'}</span></div>
-      <div class="countdowns">${cds.map((x) => `<div class="cd ${x.days === 0 ? 'today' : ''}">${x.icon} ${esc(x.name)}<b>${x.days === 0 ? '就是今天！' : x.days + ' 天'}</b></div>`).join('')}</div>
+      <div class="countdowns">${cds.map((x) => `<div class="cd ${x.days === 0 ? 'today' : ''}">${x.icon} ${esc(x.name)}<b>${x.days === 0 ? '就是今天！' : x.days + ' 天'}</b></div>`).join('')}<button class="cd cd-add" data-act="cdEdit" aria-label="設定倒數的日子"><i data-ic="gear"></i></button></div>
     </div>
 
-    ${todos.length ? `<div class="card"><h3><i data-ic="pushpin"></i> 待辦</h3>${todos.map((t) => `<div class="todo-item"><span class="ti">${t.icon}</span><span class="grow">${esc(t.text)}</span>
-      <button class="btn sm" data-act="${t.act}" ${t.id ? `data-id="${t.id}"` : ''} ${t.tab ? `data-tab="${t.tab}"` : ''}>${t.btn}</button></div>`).join('')}</div>` : ''}
+    ${todos.length ? `<div class="card soft-todo">${todos.slice(0, S.todoAll ? 99 : 3).map((t) => `<div class="todo-item"><span class="ti">${t.icon}</span><span class="grow">${esc(t.text)}</span>
+      <button class="btn sm" data-act="${t.act}" ${t.id ? `data-id="${t.id}"` : ''} ${t.tab ? `data-tab="${t.tab}"` : ''}>${t.btn}</button></div>`).join('')}${todos.length > 3 ? `<button class="link center todo-more" data-act="todoMore">${S.todoAll ? '收起來' : `還有 ${todos.length - 3} 件`}</button>` : ''}</div>` : ''}
 
     <div class="card">
       <h3><i data-ic="weather"></i> 心情天氣 <span class="sub">點自己的換心情</span></h3>
@@ -1923,6 +1947,49 @@ ACT.dailyToMem = async (el) => {
 };
 
 // ---------- 情話小紙條 ----------
+
+// ---------- 自己加的倒數日子（兩個人都看得到、都能改） ----------
+const CD_ICONS = ['star', 'heart', 'plane', 'cake', 'gift', 'house', 'camera', 'violin', 'dining', 'rose', 'tree', 'flag'];
+ACT.cdEdit = () => {
+  const m = openModal('', { center: true });
+  const draw = () => {
+    const ds = Object.entries(S.couple.cdates || {}).filter(([, x]) => x).sort((a, b) => (a[1].date || '').localeCompare(b[1].date || ''));
+    m.querySelector('.modal').innerHTML = `${mhead('<i data-ic="gear"></i> 倒數的日子')}
+      <p class="small muted" style="margin:0 0 8px">加上你們想倒數的日子，兩個人都看得到、都能改</p>
+      ${ds.length ? ds.map(([id, x]) => `<button class="cd-row" data-id="${id}"><span class="cd-ri"><i data-ic="${x.icon || 'star'}"></i></span><span class="grow"><b>${esc(x.name)}</b><br><span class="small muted">${x.yearly ? '每年 ' + x.date.slice(5).replace('-', '/') : x.date.replace(/-/g, '/')}</span></span><span>›</span></button>`).join('') : '<div class="empty">還沒有自己加的日子</div>'}
+      <button class="btn block mt" id="cd-new">＋ 加一個日子</button>`;
+    $$('.cd-row', m).forEach((b) => b.onclick = () => form(b.dataset.id));
+    $('#cd-new', m).onclick = () => form(null);
+  };
+  const form = (id) => {
+    const x = id ? S.couple.cdates[id] : { name: '', date: dkey(), yearly: false, icon: 'star' };
+    let icon = x.icon || 'star', yearly = !!x.yearly;
+    m.querySelector('.modal').innerHTML = `${mhead(id ? '改這個日子' : '加一個日子')}
+      <label>名稱</label><input id="cd-n" maxlength="12" value="${esc(x.name)}" placeholder="例如：去日本">
+      <label>日期</label><input id="cd-d" type="date" value="${esc(x.date)}">
+      <label>重複</label><div class="seg" id="cd-y"><button data-y="0" class="${yearly ? '' : 'on'}">只有一次</button><button data-y="1" class="${yearly ? 'on' : ''}">每年</button></div>
+      <label>圖示</label><div class="cd-icons">${CD_ICONS.map((k) => `<button data-ic2="${k}" class="${k === icon ? 'on' : ''}"><i data-ic="${k}"></i></button>`).join('')}</div>
+      <button class="btn block mt" id="cd-ok">${id ? '儲存' : '加上去'}</button>
+      ${id ? '<button class="btn ghost block mt" id="cd-del" style="color:#d4405f">刪掉這個日子</button>' : ''}
+      <button class="link center" id="cd-back" style="display:block;margin:10px auto 0">‹ 回到列表</button>`;
+    $$('#cd-y button', m).forEach((b) => b.onclick = () => { yearly = b.dataset.y === '1'; $$('#cd-y button', m).forEach((z) => z.classList.toggle('on', z === b)); });
+    $$('.cd-icons button', m).forEach((b) => b.onclick = () => { icon = b.dataset.ic2; $$('.cd-icons button', m).forEach((z) => z.classList.toggle('on', z === b)); });
+    $('#cd-back', m).onclick = draw;
+    $('#cd-ok', m).onclick = () => {
+      const name = $('#cd-n', m).value.trim(), date = $('#cd-d', m).value;
+      if (!name) return toast('幫這個日子取個名字');
+      if (!date) return toast('選一個日期');
+      const k = id || ('c' + Date.now().toString(36));
+      S.store.updateCouple(S.cid, { [`cdates.${k}`]: { name, date, yearly, icon, by: me(), at: now() } });
+      sfx('pop'); toast(id ? '改好了' : '加上去了'); setTimeout(draw, 150);
+    };
+    $('#cd-del', m) && ($('#cd-del', m).onclick = async () => { if (await confirmBox(`刪掉「${x.name}」？`, '刪掉')) { S.store.updateCouple(S.cid, { [`cdates.${id}`]: S.store.DEL() }); setTimeout(draw, 150); } });
+  };
+  draw();
+  m._onClose = () => render();
+};
+
+ACT.todoMore = () => { S.todoAll = !S.todoAll; render(); };
 // ============================================================
 //  圖騰系統：依卡名產生和風幾何底紋＋中央徽章＋卡框（不用 emoji）
 // ============================================================
@@ -2436,7 +2503,7 @@ function walletMine() {
     ${fresh.length ? `<div class="card"><h3><i data-ic="sparkle"></i> 新票券 <span class="sub">刮開看看是什麼</span></h3>
       <div class="new-tickets">${fresh.map((c) => `<button class="scratch-thumb" data-act="scratch" data-id="${c.id}"><span class="q">?</span>刮刮卡<span class="small">${c.from === 'sys' ? '遊樂園送的' : '來自 ' + esc(nick(c.from))}</span></button>`).join('')}</div></div>` : ''}
     <button class="btn block" data-act="giveCard" style="margin-bottom:14px"><i data-ic="letter"></i> 發一張卡給 ${esc(nick(partner()))}</button>
-    ${typeof mySched === 'function' && mySched().length ? `<div class="sched-list"><div class="small muted">預約中的卡（對方還看不到）</div>${mySched().map((x) => `<div class="sched-i"><b>${esc(x.t.title)}</b><span>${+x.day.slice(5, 7)}/${+x.day.slice(8)} 送到</span></div>`).join('')}</div>` : ''}
+    ${typeof mySched === 'function' && mySched().length ? `<div class="sched-list"><div class="small muted">預約中的卡（對方還看不到）</div>${mySched().map((x) => `<button class="sched-i" data-act="schedEdit" data-id="${x.id}"><b>${esc(x.t.title)}</b><span>${+x.day.slice(5, 7)}/${+x.day.slice(8)} 送到 · 改／取消 ›</span></button>`).join('')}</div>` : ''}
     <div class="seg">${[['ok', '可以用'], ['used', '用過的'], ['all', '全部']].map(([k, n]) => `<button class="${filter === k ? 'on' : ''}" data-act="walletFilter" data-f="${k}">${n}</button>`).join('')}</div>
     <div class="wsort"><span class="small muted">排序</span>${[['rarity', '稀有度'], ['new', '最新拿到'], ['old', '最早拿到']].map(([k, n]) => `<button class="${sort === k ? 'on' : ''}" data-act="walletSort" data-s="${k}">${n}</button>`).join('')}</div>
     ${cards.length ? cards.map((c) => ticketHTML(c)).join('') : `<div class="empty"><span class="big"><i data-ic="ticket"></i></span>${filter === 'ok' ? '目前沒有可以用的票券<br>去遊樂區扭蛋，或許個願吧' : '這裡空空的'}</div>`}`;
@@ -2962,7 +3029,8 @@ function drawFromPool(rarity, exact = false, exclude = '') {
   const lv = spiceLevel();
   const ful = partner();
   const role = ful ? prof(ful).role : '';
-  const pool = list('pool').filter((p) => (p.spice || 1) <= lv && p.title !== exclude && (!poolGiver(p) || !role || poolGiver(p) === role));
+  // 火辣級的卡一直都抽得到；兩人沒開火辣時，卡面蓋住變「？」
+  const pool = list('pool').filter((p) => ((p.spice || 1) <= lv || (p.spice || 1) >= 3) && p.title !== exclude && (!poolGiver(p) || !role || poolGiver(p) === role));
   let r = rarityRank(rarity);
   while (r >= 0) {
     const cand = pool.filter((p) => p.rarity === D.RARITY_ORDER[r]);
@@ -3040,7 +3108,7 @@ ACT.gacha = () => {
     if (rarity === 'SSR') { rays = document.createElement('div'); rays.className = 'ssr-rays'; document.body.appendChild(rays); confetti(150, ['#f6d365', '#fda085', '#f093fb', '#8fd3f4', '#fff']); vibrate([60, 40, 60, 40, 200]); }
     else if (rarity === 'SR') confetti(80, ['#a66bf0', '#d6b4ff', '#fff']);
     sfx(rarity === 'SSR' ? 'sparkle' : rarity === 'SR' ? 'chime' : 'pop');
-    if ((tpl.spice || 1) >= 3 && typeof hotDrawFx === 'function') hotDrawFx();
+    if ((tpl.spice || 1) >= 3 && typeof hotDrawFx === 'function' && hotOn()) hotDrawFx();
     const bonus = await petGachaBonus();
     const card = { id, ...cardDoc(tpl, me(), from), scratched: true };
     $('#gres', m).innerHTML = `<div class="center" style="font-family:var(--serif);font-weight:900;font-size:${rarity === 'SSR' ? 30 : 22}px;color:${R.color}">${rarity === 'SSR' ? '✦ SSR 傳說降臨 ✦' : rarity === 'SR' ? '稀有！SR' : rarity + ' · ' + R.label}</div>
@@ -3082,7 +3150,7 @@ ACT.gacha = () => {
     let rays = null;
     if (best === 'SSR') { rays = document.createElement('div'); rays.className = 'ssr-rays'; document.body.appendChild(rays); confetti(150, ['#f6d365', '#fda085', '#f093fb', '#8fd3f4', '#fff']); vibrate([60, 40, 60, 40, 200]); }
     else if (best === 'SR') confetti(80, ['#a66bf0', '#d6b4ff', '#fff']); else confetti(40);
-    if (got.some((x) => (x.tpl.spice || 1) >= 3) && typeof hotDrawFx === 'function') setTimeout(hotDrawFx, 300);
+    if (got.some((x) => (x.tpl.spice || 1) >= 3) && typeof hotDrawFx === 'function' && hotOn()) setTimeout(hotDrawFx, 300);
     sfx(best === 'SSR' ? 'sparkle' : best === 'SR' ? 'chime' : 'pop');
     const bonus = await petGachaBonus();
     // 重複：手上已經有一張還沒用的同名卡（這一輪裡第二張以後也算）
@@ -3096,8 +3164,8 @@ ACT.gacha = () => {
     const dups = got.filter((x) => x.dup);
     const R = D.RARITY[best];
     $('#gres', m).innerHTML = `<div class="center" style="font-family:var(--serif);font-weight:900;font-size:22px;color:${R.color}">十連抽 · 最高 ${best}${best === 'SSR' ? ' ✦' : ''}</div>
-      <div class="g10-grid">${got.map((x, i) => { const C = D.RARITY[x.rarity]; return `<div class="g10-card r-${x.rarity} ${x.gift ? 'gift' : ''} ${(x.tpl.spice || 1) >= 3 ? 'hot' : ''}" data-i="${i}" style="--rc:${C.color};animation-delay:${i * 70}ms">
-        <div class="g10-r">${x.rarity}</div><div class="g10-t">${esc(x.tpl.mystery ? '神秘盲盒' : x.tpl.title)}</div>
+      <div class="g10-grid">${got.map((x, i) => { const C = D.RARITY[x.rarity]; return `<div class="g10-card r-${x.rarity} ${x.gift ? 'gift' : ''} ${(x.tpl.spice || 1) >= 3 && hotOn() ? 'hot' : ''}" data-i="${i}" style="--rc:${C.color};animation-delay:${i * 70}ms">
+        <div class="g10-r">${x.rarity}</div><div class="g10-t">${esc(x.tpl.mystery ? '神秘盲盒' : (x.tpl.spice || 1) >= 3 && !hotOn() ? '？' : x.tpl.title)}</div>
         ${x.gift ? '<span class="g10-tag">送</span>' : x.dup ? '<span class="g10-tag dup">重複</span>' : ''}</div>`; }).join('')}</div>
       ${bonus ? `<div class="bonus-acc"><span class="ba-cat">${petSVG(2, 'happy', bonus.id, { blink: false })}</span><div><b>額外掉落！</b><div class="small">${esc(petState().name)}的限定配件「${bonus.name}」</div></div></div>` : ''}
       ${dups.length ? `<button class="btn ghost block mt" id="g10-can">重複的 ${dups.length} 張全部換成罐罐</button>` : ''}
@@ -3106,7 +3174,7 @@ ACT.gacha = () => {
     // 換罐罐：一張一張換（點卡片看說明，裡面有按鈕），或重複的全部一次換
     const toCan = async (x) => {
       const c = list('cards').find((y) => y.id === x.id); if (!c || c.used || x.canned) return false;
-      x.canned = true;
+      x.canned = true; x.saved = c;
       await col('cards').remove(c.id); await giveCan(me(), '', true);
       const t = $(`.g10-card[data-i="${got.indexOf(x)}"] .g10-tag`, m); if (t) t.textContent = '換罐罐';
       $(`.g10-card[data-i="${got.indexOf(x)}"]`, m)?.classList.add('canned');
@@ -3126,10 +3194,15 @@ ACT.gacha = () => {
       const card = list('cards').find((y) => y.id === x.id) || { ...cardDoc(x.tpl, me(), 'sys'), id: x.id };
       const v = openModal(`${mhead(esc(x.tpl.mystery ? '神秘盲盒' : x.tpl.title))}
         <div style="margin:4px 0 10px">${ticketHTML({ ...card, scratched: true }, { act: '' })}</div>
-        ${x.canned ? '<p class="center small muted">這張已經換成罐罐了</p>'
+        ${x.canned ? '<p class="center small muted">這張已經換成罐罐了</p><button class="btn ghost block" id="g1-undo">按錯了，復原</button>'
           : x.dup ? `<p class="center small muted">你已經有一張還沒用的「${esc(x.tpl.title)}」了</p><button class="btn block" id="g1-can">這張換成罐罐</button>`
           : '<p class="center small muted">已經放進票夾了</p>'}
         <button class="btn ghost block mt" data-act="close">回到十連抽</button>`, { center: true });
+      $('#g1-undo', v) && ($('#g1-undo', v).onclick = async () => {
+        x.id = await canUndo(x.saved); x.canned = false;
+        const el2 = $(`.g10-card[data-i="${got.indexOf(x)}"]`, m); el2?.classList.remove('canned'); const tg = el2?.querySelector('.g10-tag'); if (tg) tg.textContent = '重複';
+        sfx('pop'); toast('復原了，卡放回票夾'); refreshAll(); closeModal(v);
+      });
       $('#g1-can', v) && ($('#g1-can', v).onclick = async () => { if (await toCan(x)) { sfx('pop'); toast('換成一個罐罐了'); } refreshAll(); closeModal(v); });
     });
     $('#g-again', m).onclick = () => { rays && rays.remove(); closeModal(m); ACT.gacha(); setTimeout(() => { const b = $(useTicket ? '#g-10t' : '#g-10'); b && b.click(); }, 400); };
@@ -5176,6 +5249,16 @@ const SCENES = [
     lines: [['n', '晽晽貓貓看到小魚乾走過來'], ['n', '晽晽貓貓直接把小魚乾撞飛'], ['a', '（抱緊自己的小魚乾）這是我的！'], ['b', '……喵？']] },
   { id: 'eatshark', a: 'orange', b: 'shark', lead: 'shark', title: '被吃掉了',
     lines: [['n', '晽晽貓貓一口把鯊魚吃掉了'], ['a', '嗝～'], ['b', '長長長 長長長 長長長長 長完了～'], ['b', '人類～我被吃掉了喔？']] },
+  { id: 'nose', a: 'abian', b: 'shark', lead: 'shark', title: '鼻子',
+    lines: [['b', '人類～……啊不對，你是阿扁'], ['a', '（摀住鼻子）你不要碰我的鼻子，我也不碰你的'], ['b', '好～'], ['n', '鯊魚碰了一下自己的鼻子，關機了'], ['a', '（拍拍手）']] },
+  { id: 'hello', a: 'gungun', b: 'shark', lead: 'shark', title: '哈囉',
+    lines: [['a', '棍～'], ['b', '人類～哈囉～'], ['a', '……魚'], ['b', '我是鯊魚～'], ['n', '小棍棍踩了鯊魚一下，鯊魚開心地游走了']] },
+  { id: 'bask', a: 'black', b: 'white', lead: 'black', title: '曬太陽',
+    lines: [['n', '小小黑走到陷阱貓旁邊'], ['b', '這裡很溫暖，你也一起來曬吧'], ['a', '喵～'], ['n', '兩隻貓並排趴著，一起曬太陽']] },
+  { id: 'aflower', a: 'tuxedo', b: 'abian', lead: 'tuxedo', title: '阿扁花',
+    lines: [['a', '（叼來一朵花）給你'], ['b', '這是什麼花？'], ['a', '不知道'], ['b', '那我叫它「阿扁花」'], ['n', '阿扁拍拍手']] },
+  { id: 'trap', a: 'white', b: 'shark', lead: 'shark', title: '陷阱',
+    lines: [['n', '陷阱貓躲在紙箱後面'], ['b', '人類～……箱子～哈囉～'], ['a', '……我是陷阱'], ['b', '陷阱～哈囉～'], ['n', '陷阱貓放棄了']] },
   { id: 'sunspot', a: 'orange', b: 'calico', lead: 'calico', title: '搶位子',
     lines: [['n', '小魚乾在窗邊曬太陽'], ['a', '讓開，這是我的位子'], ['b', '喵！（我先來的）'], ['n', '晽晽貓貓直接坐上去，把小魚乾擠下去了']] },
   { id: 'snack', a: 'orange', b: 'calico', lead: 'calico', title: '偷吃',
@@ -5284,7 +5367,7 @@ function blackPatXP() {
 }
 
 // ---------- 節日／心情 ----------
-const FEST_NAMES = { anniv: '週年', bday: '生日', xmas: '聖誕', newyear: '新年', valentine: '情人節', halloween: '萬聖節', rain: '下雨心情' };
+const FEST_NAMES = { morning: '早上', eaten: '被吃掉', eaten2: '被吃掉', anniv: '週年', bday: '生日', xmas: '聖誕', newyear: '新年', valentine: '情人節', halloween: '萬聖節', rain: '下雨心情' };
 function festNow() {
   const pv = localStorage.getItem('park-fest-preview');
   if (pv) return pv;
@@ -5464,6 +5547,7 @@ function animalPage(k, i) {
     ${L.map((t, j) => `<div class="dex-line ${got[j] ? '' : 'locked'}">${got[j] ? esc(t) : '？？？'}</div>`).join('')}
     ${sp.length ? `<h3 class="da-h">限定台詞 <span>${sp.filter((_, j) => got['s' + j]).length} 句</span></h3>
       ${sp.map((x, j) => `<div class="dex-line sp ${got['s' + j] ? '' : 'locked'}"><span class="sp-tag">${FEST_NAMES[x.w]}</span>${got['s' + j] ? esc(x.t) : '？？？'}</div>`).join('')}` : ''}
+    ${typeof pestDexHTML === 'function' ? pestDexHTML(k, got) : ''}
     <h3 class="da-h">我們幫牠加的 <span>${cu.length}</span></h3>
     ${cu.map((c) => `<div class="dex-line cu">${esc(c.t)}<span class="cu-by">— ${esc(nick(c.by))}</span>${c.by === me() ? `<button class="cu-del" data-del="${c.id}" aria-label="刪除">✕</button>` : ''}</div>`).join('') || '<p class="small muted" style="margin:4px 0 0">你們最懂牠，幫牠多說幾句吧，路過時牠就會說出來。</p>'}
     <button class="btn ghost sm da-add" data-add="${k}"><i data-ic="plus"></i> 幫牠加一句</button>
@@ -6107,9 +6191,16 @@ function canState(u = me()) {
   return { daily: ((c.canDay || {})[u] || '') !== dkey(), stock: (c.cans || {})[u] || 0 };
 }
 async function giveCan(u, why, quiet = false) {
-  if (!S.couple || (S.couple.members || []).length < 2) return;
+  if (!S.couple || (S.couple.members || []).length < (trialOpen() ? 1 : 2)) return;
   await S.store.coupleTx(S.cid, (c) => ({ [`cans.${u}`]: ((c.cans || {})[u] || 0) + 1 }));
   if (!quiet && u === me()) setTimeout(() => toast(`${why}，掉了一個罐罐`), 900);
+}
+// 換罐罐按錯了：把卡拿回來、罐罐收回一個
+async function canUndo(card) {
+  const { id, ...data } = card;
+  const nid = await col('cards').add(data);
+  await S.store.coupleTx(S.cid, (c) => ({ [`cans.${me()}`]: Math.max(0, ((c.cans || {})[me()] || 0) - 1) }));
+  return nid;
 }
 // 回答每日一問、做每週任務、被蓋章時偶爾掉一個
 const maybeCan = (u, why, p) => { if (Math.random() < p) giveCan(u, why, u !== me()); };
@@ -6763,7 +6854,30 @@ async function schedDeliver() {
     await notify(x.to, 'card', `${nick(x.from)} 預約的卡今天送到了 🎟️`, x.t.title);
   }
 }
-const mySched = () => Object.values(S.couple?.sched || {}).filter((x) => x && x.from === me()).sort((a, b) => a.day.localeCompare(b.day));
+const mySched = () => Object.entries(S.couple?.sched || {}).filter(([, x]) => x && x.from === me()).map(([id, x]) => ({ ...x, id })).sort((a, b) => a.day.localeCompare(b.day));
+// 預約中的卡：可以改內容、改日期、取消
+ACT.schedEdit = (el) => {
+  const id = el.dataset.id, x = (S.couple.sched || {})[id]; if (!x) return toast('這張已經送出了');
+  const m = openModal(`${mhead('預約中的卡')}
+    <label>卡名</label><input id="se-t" maxlength="20" value="${esc(x.t.title)}">
+    <label>說明</label><input id="se-d" maxlength="40" value="${esc(x.t.desc || '')}">
+    <label>哪一天送到</label><input id="se-day" type="date" value="${esc(x.day)}" min="${dkey(new Date(Date.now() + 86400000))}">
+    <button class="btn block mt" id="se-ok">儲存</button>
+    <button class="btn ghost block mt" id="se-del" style="color:#d4405f">取消這次預約</button>`, { center: true });
+  $('#se-ok', m).onclick = () => {
+    const title = $('#se-t', m).value.trim(), day = $('#se-day', m).value;
+    if (!title) return toast('卡名不能空白');
+    if (!day || day <= dkey()) return toast('要選明天以後的日子');
+    const cur = (S.couple.sched || {})[id]; if (!cur) { closeModal(m); return toast('這張已經送出了'); }
+    S.store.updateCouple(S.cid, { [`sched.${id}.t.title`]: title, [`sched.${id}.t.desc`]: $('#se-d', m).value.trim(), [`sched.${id}.day`]: day });
+    toast('改好了'); closeModal(m); setTimeout(render, 150);
+  };
+  $('#se-del', m).onclick = async () => {
+    if (!(await confirmBox(`取消預約「${x.t.title}」？卡不會送出`, '取消預約'))) return;
+    S.store.updateCouple(S.cid, { [`sched.${id}`]: S.store.DEL() });
+    toast('預約取消了'); closeModal(m); setTimeout(render, 150);
+  };
+};
 
 // ---------- 心情關心：抱抱券、和好券 ----------
 function careOffer() {
@@ -6843,7 +6957,11 @@ ACT.dupToCan = async (el) => {
   el.disabled = true;   // 連點兩下不會換到兩個罐罐
   await col('cards').remove(c.id);
   await giveCan(me(), '', true);
-  el.closest('.dup-row') && (el.closest('.dup-row').innerHTML = `<span class="small">換好了，${esc(petState().name)}多了一個罐罐</span>`);
+  const row = el.closest('.dup-row');
+  if (row) {
+    row.innerHTML = `<span class="small">換好了，${esc(petState().name)}多了一個罐罐</span><button class="btn sm ghost">按錯了，復原</button>`;
+    row.querySelector('button').onclick = async (e) => { e.currentTarget.disabled = true; await canUndo(c); row.innerHTML = '<span class="small">復原了，卡放回票夾</span>'; sfx('pop'); };
+  }
   sfx('pop'); toast('換成一個罐罐了');
 };
 
@@ -7944,11 +8062,12 @@ function showPest(k = pick(PEST_KEYS)) {
   let hits = 0, gone = false;
   const el = document.createElement('div');
   el.className = `pest pest-${k} ${Math.random() < .5 ? 'from-l' : 'from-r'}`;
-  el.innerHTML = `<div class="pest-say">${esc(pick(P.hi))}</div>
+  const hi = pick(P.hi); pestHeard(k, hi);
+  el.innerHTML = `<div class="pest-say">${esc(hi)}</div>
     <button class="pest-body" aria-label="${esc(FRIENDS[k].name)}" style="width:${Math.round(Math.max(FRIENDS[k].w * 1.25, 110))}px"><span class="pest-art">${typeof withHat === 'function' ? withHat(k, friendArt(k)) : friendArt(k)}</span></button>`;
   document.body.appendChild(el);
   sfx('pop'); vibrate(15);
-  const say = (t) => { const s = $('.pest-say', el); s.textContent = t; s.classList.remove('pop'); void s.offsetWidth; s.classList.add('pop'); };
+  const say = (t) => { pestHeard(k, t); const s = $('.pest-say', el); s.textContent = t; s.classList.remove('pop'); void s.offsetWidth; s.classList.add('pop'); };
   const leave = (t, chased) => {
     if (gone) return; gone = true; clearTimeout(idle);
     say(t); el.classList.add(chased ? 'chased' : 'wander');
@@ -7979,6 +8098,16 @@ function showPest(k = pick(PEST_KEYS)) {
   }, 500);
 }
 window.__pest = (k) => showPest(k);
+
+// 搗蛋台詞也收進圖鑑（只有兩人都開火辣時才看得到這一段）
+const pestAll = (k) => { const P = PESTS[k]; return P ? [...P.hi, ...P.push, ...P.bye, P.idle] : []; };
+function pestHeard(k, t) { const i = pestAll(k).indexOf(t); if (i >= 0 && typeof dexNote === 'function') dexNote(k, 'p' + i); }
+function pestDexHTML(k, got) {
+  if (!PESTS[k] || typeof hotOn !== 'function' || !hotOn()) return '';
+  const all = pestAll(k), n = all.filter((_, i) => got['p' + i]).length;
+  return `<h3 class="da-h">火辣區搗蛋 <span>${n} 句</span></h3>
+    ${all.map((t, i) => `<div class="dex-line sp hot ${got['p' + i] ? '' : 'locked'}"><span class="sp-tag">火辣</span>${got['p' + i] ? esc(t) : '？？？'}</div>`).join('')}`;
+}
 
 // ============================================================
 //  好寶加入前的測試期間（只有一個人的時候）
@@ -8045,10 +8174,10 @@ function poolGot() {
 function poolBookData() {
   const got = poolGot();
   // 火辣級的卡：兩人都開火辣才看得到（連問號都不顯示）
-  const pool = list('pool').filter((p) => p.title && ((p.spice || 1) < 3 || (typeof hotOn === 'function' && hotOn())));
+  const pool = list('pool').filter((p) => p.title);
   const byR = {};
   for (const r of D.RARITY_ORDER) byR[r] = pool.filter((p) => (p.rarity || 'N') === r).sort((a, b) => (got[b.title] ? 1 : 0) - (got[a.title] ? 1 : 0) || (got[a.title]?.first || 0) - (got[b.title]?.first || 0));
-  const n = pool.filter((p) => got[p.title]).length;
+  const n = pool.filter((p) => got[p.title] && ((p.spice || 1) < 3 || hotOn())).length;
   return { got, byR, n };
 }
 
@@ -8095,7 +8224,8 @@ ACT.poolBookOpen = () => {
     for (let i = 0; i < arr.length; i += PER) pages.push({ r, items: arr.slice(i, i + PER), part: Math.floor(i / PER) + 1, parts: Math.ceil(arr.length / PER) });
   }
   const cell = (p, no) => {
-    if (!got[p.title]) return `<div class="alb-slot"><span class="alb-no">No.${String(no).padStart(2, '0')}</span><b>？</b><small>${esc(D.RARITY[p.rarity || 'N'].label)}</small></div>`;
+    // 火辣級：沒開火辣時就算抽到也只顯示「？」
+    if (!got[p.title] || ((p.spice || 1) >= 3 && !hotOn())) return `<div class="alb-slot"><span class="alb-no">No.${String(no).padStart(2, '0')}</span><b>？</b><small>${esc(D.RARITY[p.rarity || 'N'].label)}</small></div>`;
     const c = { title: p.title, rarity: p.rarity || 'N', mark: p.mark || '', desc: p.desc || '', spice: p.spice || 1 };
     const used = got[p.title].cards.reduce((s, x) => s + (x.used || 0), 0);
     return `<button class="alb-card emb-${embPalette(c)}" data-pt="${esc(p.title)}">${emblemSVG(c)}${used ? `<span class="alb-used">兌換 ${used} 次</span>` : ''}</button>`;
@@ -8179,7 +8309,7 @@ ACT.sub = ((orig) => (el) => {
 if (S.sub && S.sub.wallet === 'book') S.sub.wallet = 'mine';
 
 // ---------- 火辣級的兌換卡：火辣配色 ----------
-const isHotCard = (c) => !!c && !c.series && c.kind !== 'collect' && (c.spice || 1) >= 3;
+const isHotCard = (c) => !!c && !c.series && c.kind !== 'collect' && (c.spice || 1) >= 3 && typeof hotOn === 'function' && hotOn();
 const _embPalette0 = embPalette;
 embPalette = (c) => (!c.pal && isHotCard(c) ? 'HOT' : _embPalette0(c));
 
@@ -8347,15 +8477,16 @@ function hotDrawFx() {
 }
 
 // 生日卡組裡的火辣級卡：兩人都開火辣前是蓋住的「神秘卡」
-const hotLockedCard = (c) => !!c && c.series === D.BIRTHDAY_SERIES && (c.spice || 1) >= 3 && !(typeof hotOn === 'function' && hotOn());
-const maskHot = (c) => ({ ...c, title: '神秘卡', desc: '兩個人都打開火辣後才會揭曉', mark: '？', mystery: false });
+// 火辣級的卡（生日卡組、扭蛋卡池都算）：兩人都開火辣前是蓋住的「？」
+const hotLockedCard = (c) => !!c && (c.spice || 1) >= 3 && c.kind !== 'collect' && !(typeof hotOn === 'function' && hotOn());
+const maskHot = (c) => ({ ...c, title: '？', desc: '兩個人都打開火辣後才會揭曉', mark: '？', mystery: false });
 const _ticketHTML0 = ticketHTML;
 ticketHTML = (c, o) => _ticketHTML0(hotLockedCard(c) ? maskHot(c) : c, o);
 const _emblemSVG0 = emblemSVG;
 emblemSVG = (c, hide) => _emblemSVG0(hotLockedCard(c) ? maskHot(c) : c, hide);
 ACT.openCard = ((orig) => (el) => {
   const c = list('cards').find((x) => x.id === el?.dataset?.id);
-  if (hotLockedCard(c)) { toast('這張是神秘卡，兩個人都打開火辣後才會揭曉'); return; }
+  if (hotLockedCard(c)) { toast('這張是「？」卡，兩個人都打開火辣後才會揭曉'); return; }
   return orig(el);
 })(ACT.openCard);
 

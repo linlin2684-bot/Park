@@ -74,11 +74,12 @@ function showPest(k = pick(PEST_KEYS)) {
   let hits = 0, gone = false;
   const el = document.createElement('div');
   el.className = `pest pest-${k} ${Math.random() < .5 ? 'from-l' : 'from-r'}`;
-  el.innerHTML = `<div class="pest-say">${esc(pick(P.hi))}</div>
+  const hi = pick(P.hi); pestHeard(k, hi);
+  el.innerHTML = `<div class="pest-say">${esc(hi)}</div>
     <button class="pest-body" aria-label="${esc(FRIENDS[k].name)}" style="width:${Math.round(Math.max(FRIENDS[k].w * 1.25, 110))}px"><span class="pest-art">${typeof withHat === 'function' ? withHat(k, friendArt(k)) : friendArt(k)}</span></button>`;
   document.body.appendChild(el);
   sfx('pop'); vibrate(15);
-  const say = (t) => { const s = $('.pest-say', el); s.textContent = t; s.classList.remove('pop'); void s.offsetWidth; s.classList.add('pop'); };
+  const say = (t) => { pestHeard(k, t); const s = $('.pest-say', el); s.textContent = t; s.classList.remove('pop'); void s.offsetWidth; s.classList.add('pop'); };
   const leave = (t, chased) => {
     if (gone) return; gone = true; clearTimeout(idle);
     say(t); el.classList.add(chased ? 'chased' : 'wander');
@@ -109,3 +110,13 @@ function showPest(k = pick(PEST_KEYS)) {
   }, 500);
 }
 window.__pest = (k) => showPest(k);
+
+// 搗蛋台詞也收進圖鑑（只有兩人都開火辣時才看得到這一段）
+const pestAll = (k) => { const P = PESTS[k]; return P ? [...P.hi, ...P.push, ...P.bye, P.idle] : []; };
+function pestHeard(k, t) { const i = pestAll(k).indexOf(t); if (i >= 0 && typeof dexNote === 'function') dexNote(k, 'p' + i); }
+function pestDexHTML(k, got) {
+  if (!PESTS[k] || typeof hotOn !== 'function' || !hotOn()) return '';
+  const all = pestAll(k), n = all.filter((_, i) => got['p' + i]).length;
+  return `<h3 class="da-h">火辣區搗蛋 <span>${n} 句</span></h3>
+    ${all.map((t, i) => `<div class="dex-line sp hot ${got['p' + i] ? '' : 'locked'}"><span class="sp-tag">火辣</span>${got['p' + i] ? esc(t) : '？？？'}</div>`).join('')}`;
+}

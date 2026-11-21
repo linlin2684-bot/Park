@@ -950,8 +950,11 @@ html[data-theme="day"] .wheel-svg .wseg.c { fill: color-mix(in srgb, var(--accen
 @keyframes catYarn { 0%, 100% { transform: translateX(0) rotate(0); } 50% { transform: translateX(-3px) rotate(-30deg); } }
 .cat-svg .cat-rain { animation: catRain 1s linear infinite; }
 @keyframes catRain { from { transform: translateY(-4px); opacity: .9; } to { transform: translateY(6px); opacity: 0; } }
-.cat-svg .cat-legs-a { animation: catStep .5s steps(1) infinite; }
-.cat-svg .cat-legs-b { animation: catStep .5s steps(1) infinite reverse; }
+/* 走路：四隻腳都看得到，前後兩組交錯擺動 */
+.cat-svg .cat-legs-a, .cat-svg .cat-legs-b { transform-box: fill-box; transform-origin: 50% 0; }
+.cat-svg .cat-legs-a { animation: legSwing .5s ease-in-out infinite alternate; }
+.cat-svg .cat-legs-b { animation: legSwing .5s ease-in-out infinite alternate-reverse; }
+@keyframes legSwing { from { transform: skewX(-16deg); } to { transform: skewX(16deg); } }
 @keyframes catStep { 50% { opacity: 0; } }
 .cat-jump .cat-svg, .cat-svg.cat-jump { animation: catJump .9s ease-in-out infinite; }
 @keyframes catJump { 0%, 100% { transform: translateY(4px); } 50% { transform: translateY(-6px); } }
@@ -2064,3 +2067,23 @@ html[data-theme="night"] .emb-HOT { --e-bg: #2a0f1c; --e-ink: #e9c27a; --e-acc: 
 .fr-bubble.tappable { pointer-events: auto; cursor: pointer; }
 .g10-card { cursor: pointer; }
 .g10-card.canned { opacity: .45; }
+/* 自己加的倒數日子 */
+.countdowns .cd-add { flex: none; min-width: 52px; display: grid; place-items: center; color: var(--muted, #8a7a80); border-style: dashed; }
+.countdowns .cd-add .ic { width: 20px; height: 20px; }
+.cd-row { display: flex; align-items: center; gap: 12px; width: 100%; text-align: left; padding: 10px 12px; margin-bottom: 8px; border-radius: 14px; background: var(--card); border: 1px solid var(--line); }
+.cd-ri { width: 38px; height: 38px; border-radius: 50%; display: grid; place-items: center; background: color-mix(in srgb, var(--accent) 14%, var(--card)); color: var(--accent); }
+.cd-icons { display: grid; grid-template-columns: repeat(6, 1fr); gap: 8px; }
+.cd-icons button { aspect-ratio: 1; border-radius: 12px; display: grid; place-items: center; background: var(--card); border: 1px solid var(--line); color: var(--ink); }
+.cd-icons button.on { border-color: var(--accent); color: var(--accent); background: color-mix(in srgb, var(--accent) 12%, var(--card)); }
+.cd-icons .ic { width: 22px; height: 22px; }
+button.sched-i { width: 100%; text-align: left; }
+/* 右上點數：點數、扭蛋券上下兩行，標題才不會被擋住 */
+.topbar .brand { flex: 1 0 auto; overflow: visible; }
+.topbar .pill2 { flex-direction: column; align-items: flex-start; gap: 0; padding: 4px 10px; line-height: 1.25; font-size: 12px; }
+.topbar .pill2 span { display: flex; align-items: center; gap: 3px; }
+.topbar .pill2 .ic { width: 13px; height: 13px; }
+.dex-line.sp.hot .sp-tag { background: #7a1f35; color: #f6e3c8; }
+.inbox-tabs { margin-bottom: 10px; flex-wrap: nowrap; overflow-x: auto; }
+.inbox-tabs button { white-space: nowrap; }
+.it-n { display: inline-block; min-width: 16px; margin-left: 4px; padding: 0 4px; border-radius: 99px; background: var(--accent); color: #fff; font-size: 10px; line-height: 16px; }
+.soft-todo .todo-more { display: block; margin: 6px auto 0; font-size: 13px; }

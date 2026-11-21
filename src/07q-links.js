@@ -49,7 +49,30 @@ async function schedDeliver() {
     await notify(x.to, 'card', `${nick(x.from)} 預約的卡今天送到了 🎟️`, x.t.title);
   }
 }
-const mySched = () => Object.values(S.couple?.sched || {}).filter((x) => x && x.from === me()).sort((a, b) => a.day.localeCompare(b.day));
+const mySched = () => Object.entries(S.couple?.sched || {}).filter(([, x]) => x && x.from === me()).map(([id, x]) => ({ ...x, id })).sort((a, b) => a.day.localeCompare(b.day));
+// 預約中的卡：可以改內容、改日期、取消
+ACT.schedEdit = (el) => {
+  const id = el.dataset.id, x = (S.couple.sched || {})[id]; if (!x) return toast('這張已經送出了');
+  const m = openModal(`${mhead('預約中的卡')}
+    <label>卡名</label><input id="se-t" maxlength="20" value="${esc(x.t.title)}">
+    <label>說明</label><input id="se-d" maxlength="40" value="${esc(x.t.desc || '')}">
+    <label>哪一天送到</label><input id="se-day" type="date" value="${esc(x.day)}" min="${dkey(new Date(Date.now() + 86400000))}">
+    <button class="btn block mt" id="se-ok">儲存</button>
+    <button class="btn ghost block mt" id="se-del" style="color:#d4405f">取消這次預約</button>`, { center: true });
+  $('#se-ok', m).onclick = () => {
+    const title = $('#se-t', m).value.trim(), day = $('#se-day', m).value;
+    if (!title) return toast('卡名不能空白');
+    if (!day || day <= dkey()) return toast('要選明天以後的日子');
+    const cur = (S.couple.sched || {})[id]; if (!cur) { closeModal(m); return toast('這張已經送出了'); }
+    S.store.updateCouple(S.cid, { [`sched.${id}.t.title`]: title, [`sched.${id}.t.desc`]: $('#se-d', m).value.trim(), [`sched.${id}.day`]: day });
+    toast('改好了'); closeModal(m); setTimeout(render, 150);
+  };
+  $('#se-del', m).onclick = async () => {
+    if (!(await confirmBox(`取消預約「${x.t.title}」？卡不會送出`, '取消預約'))) return;
+    S.store.updateCouple(S.cid, { [`sched.${id}`]: S.store.DEL() });
+    toast('預約取消了'); closeModal(m); setTimeout(render, 150);
+  };
+};
 
 // ---------- 心情關心：抱抱券、和好券 ----------
 function careOffer() {
@@ -129,7 +152,11 @@ ACT.dupToCan = async (el) => {
   el.disabled = true;   // 連點兩下不會換到兩個罐罐
   await col('cards').remove(c.id);
   await giveCan(me(), '', true);
-  el.closest('.dup-row') && (el.closest('.dup-row').innerHTML = `<span class="small">換好了，${esc(petState().name)}多了一個罐罐</span>`);
+  const row = el.closest('.dup-row');
+  if (row) {
+    row.innerHTML = `<span class="small">換好了，${esc(petState().name)}多了一個罐罐</span><button class="btn sm ghost">按錯了，復原</button>`;
+    row.querySelector('button').onclick = async (e) => { e.currentTarget.disabled = true; await canUndo(c); row.innerHTML = '<span class="small">復原了，卡放回票夾</span>'; sfx('pop'); };
+  }
   sfx('pop'); toast('換成一個罐罐了');
 };
 

@@ -7,9 +7,16 @@ function canState(u = me()) {
   return { daily: ((c.canDay || {})[u] || '') !== dkey(), stock: (c.cans || {})[u] || 0 };
 }
 async function giveCan(u, why, quiet = false) {
-  if (!S.couple || (S.couple.members || []).length < 2) return;
+  if (!S.couple || (S.couple.members || []).length < (trialOpen() ? 1 : 2)) return;
   await S.store.coupleTx(S.cid, (c) => ({ [`cans.${u}`]: ((c.cans || {})[u] || 0) + 1 }));
   if (!quiet && u === me()) setTimeout(() => toast(`${why}，掉了一個罐罐`), 900);
+}
+// 換罐罐按錯了：把卡拿回來、罐罐收回一個
+async function canUndo(card) {
+  const { id, ...data } = card;
+  const nid = await col('cards').add(data);
+  await S.store.coupleTx(S.cid, (c) => ({ [`cans.${me()}`]: Math.max(0, ((c.cans || {})[me()] || 0) - 1) }));
+  return nid;
 }
 // 回答每日一問、做每週任務、被蓋章時偶爾掉一個
 const maybeCan = (u, why, p) => { if (Math.random() < p) giveCan(u, why, u !== me()); };

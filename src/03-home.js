@@ -29,6 +29,13 @@ function countdowns() {
   items.push({ name: '聖誕節', ...nextOf('12-25'), icon: '<i data-ic="tree"></i>' });
   const dt = daysTogether(), next100 = Math.ceil((dt + 1) / 100) * 100;
   items.push({ name: `第 ${next100} 天`, days: next100 - dt, icon: '<i data-ic="hundred"></i>' });
+  // 自己加的日子（每年重複，或只有一次；過了的一次性日子就不顯示）
+  const t0 = new Date(); t0.setHours(0, 0, 0, 0);
+  for (const [, x] of Object.entries(c.cdates || {})) {
+    if (!x || !x.date) continue;
+    if (x.yearly) items.push({ name: x.name, ...nextOf(x.date.slice(5)), icon: `<i data-ic="${x.icon || 'star'}"></i>` });
+    else { const d = new Date(x.date + 'T00:00:00'); const days = Math.round((d - t0) / 86400000); if (days >= 0) items.push({ name: x.name, days, icon: `<i data-ic="${x.icon || 'star'}"></i>` }); }
+  }
   return items.sort((x, y) => x.days - y.days);
 }
 
@@ -92,11 +99,11 @@ PAGES.home = {
       <div class="small muted">我們在一起</div>
       <div class="days">第 ${money(daysTogether())} <small>天</small></div>
       <div class="couple"><span>${avatar(me())} ${esc(nick(me()))}</span><span class="heart"><i data-ic="heart" class="ic-fill"></i></span><span>${p ? `${avatar(p)} ${esc(nick(p))}${partnerOnline() ? `<button class="online-dot" data-act="poke" aria-label="戳一下"><i></i>在線上・戳一下</button>` : ''}` : '<span class="muted">等待對方加入…</span>'}</span></div>
-      <div class="countdowns">${cds.map((x) => `<div class="cd ${x.days === 0 ? 'today' : ''}">${x.icon} ${esc(x.name)}<b>${x.days === 0 ? '就是今天！' : x.days + ' 天'}</b></div>`).join('')}</div>
+      <div class="countdowns">${cds.map((x) => `<div class="cd ${x.days === 0 ? 'today' : ''}">${x.icon} ${esc(x.name)}<b>${x.days === 0 ? '就是今天！' : x.days + ' 天'}</b></div>`).join('')}<button class="cd cd-add" data-act="cdEdit" aria-label="設定倒數的日子"><i data-ic="gear"></i></button></div>
     </div>
 
-    ${todos.length ? `<div class="card"><h3><i data-ic="pushpin"></i> 待辦</h3>${todos.map((t) => `<div class="todo-item"><span class="ti">${t.icon}</span><span class="grow">${esc(t.text)}</span>
-      <button class="btn sm" data-act="${t.act}" ${t.id ? `data-id="${t.id}"` : ''} ${t.tab ? `data-tab="${t.tab}"` : ''}>${t.btn}</button></div>`).join('')}</div>` : ''}
+    ${todos.length ? `<div class="card soft-todo">${todos.slice(0, S.todoAll ? 99 : 3).map((t) => `<div class="todo-item"><span class="ti">${t.icon}</span><span class="grow">${esc(t.text)}</span>
+      <button class="btn sm" data-act="${t.act}" ${t.id ? `data-id="${t.id}"` : ''} ${t.tab ? `data-tab="${t.tab}"` : ''}>${t.btn}</button></div>`).join('')}${todos.length > 3 ? `<button class="link center todo-more" data-act="todoMore">${S.todoAll ? '收起來' : `還有 ${todos.length - 3} 件`}</button>` : ''}</div>` : ''}
 
     <div class="card">
       <h3><i data-ic="weather"></i> 心情天氣 <span class="sub">點自己的換心情</span></h3>
@@ -215,3 +222,46 @@ ACT.dailyToMem = async (el) => {
 };
 
 // ---------- 情話小紙條 ----------
+
+// ---------- 自己加的倒數日子（兩個人都看得到、都能改） ----------
+const CD_ICONS = ['star', 'heart', 'plane', 'cake', 'gift', 'house', 'camera', 'violin', 'dining', 'rose', 'tree', 'flag'];
+ACT.cdEdit = () => {
+  const m = openModal('', { center: true });
+  const draw = () => {
+    const ds = Object.entries(S.couple.cdates || {}).filter(([, x]) => x).sort((a, b) => (a[1].date || '').localeCompare(b[1].date || ''));
+    m.querySelector('.modal').innerHTML = `${mhead('<i data-ic="gear"></i> 倒數的日子')}
+      <p class="small muted" style="margin:0 0 8px">加上你們想倒數的日子，兩個人都看得到、都能改</p>
+      ${ds.length ? ds.map(([id, x]) => `<button class="cd-row" data-id="${id}"><span class="cd-ri"><i data-ic="${x.icon || 'star'}"></i></span><span class="grow"><b>${esc(x.name)}</b><br><span class="small muted">${x.yearly ? '每年 ' + x.date.slice(5).replace('-', '/') : x.date.replace(/-/g, '/')}</span></span><span>›</span></button>`).join('') : '<div class="empty">還沒有自己加的日子</div>'}
+      <button class="btn block mt" id="cd-new">＋ 加一個日子</button>`;
+    $$('.cd-row', m).forEach((b) => b.onclick = () => form(b.dataset.id));
+    $('#cd-new', m).onclick = () => form(null);
+  };
+  const form = (id) => {
+    const x = id ? S.couple.cdates[id] : { name: '', date: dkey(), yearly: false, icon: 'star' };
+    let icon = x.icon || 'star', yearly = !!x.yearly;
+    m.querySelector('.modal').innerHTML = `${mhead(id ? '改這個日子' : '加一個日子')}
+      <label>名稱</label><input id="cd-n" maxlength="12" value="${esc(x.name)}" placeholder="例如：去日本">
+      <label>日期</label><input id="cd-d" type="date" value="${esc(x.date)}">
+      <label>重複</label><div class="seg" id="cd-y"><button data-y="0" class="${yearly ? '' : 'on'}">只有一次</button><button data-y="1" class="${yearly ? 'on' : ''}">每年</button></div>
+      <label>圖示</label><div class="cd-icons">${CD_ICONS.map((k) => `<button data-ic2="${k}" class="${k === icon ? 'on' : ''}"><i data-ic="${k}"></i></button>`).join('')}</div>
+      <button class="btn block mt" id="cd-ok">${id ? '儲存' : '加上去'}</button>
+      ${id ? '<button class="btn ghost block mt" id="cd-del" style="color:#d4405f">刪掉這個日子</button>' : ''}
+      <button class="link center" id="cd-back" style="display:block;margin:10px auto 0">‹ 回到列表</button>`;
+    $$('#cd-y button', m).forEach((b) => b.onclick = () => { yearly = b.dataset.y === '1'; $$('#cd-y button', m).forEach((z) => z.classList.toggle('on', z === b)); });
+    $$('.cd-icons button', m).forEach((b) => b.onclick = () => { icon = b.dataset.ic2; $$('.cd-icons button', m).forEach((z) => z.classList.toggle('on', z === b)); });
+    $('#cd-back', m).onclick = draw;
+    $('#cd-ok', m).onclick = () => {
+      const name = $('#cd-n', m).value.trim(), date = $('#cd-d', m).value;
+      if (!name) return toast('幫這個日子取個名字');
+      if (!date) return toast('選一個日期');
+      const k = id || ('c' + Date.now().toString(36));
+      S.store.updateCouple(S.cid, { [`cdates.${k}`]: { name, date, yearly, icon, by: me(), at: now() } });
+      sfx('pop'); toast(id ? '改好了' : '加上去了'); setTimeout(draw, 150);
+    };
+    $('#cd-del', m) && ($('#cd-del', m).onclick = async () => { if (await confirmBox(`刪掉「${x.name}」？`, '刪掉')) { S.store.updateCouple(S.cid, { [`cdates.${id}`]: S.store.DEL() }); setTimeout(draw, 150); } });
+  };
+  draw();
+  m._onClose = () => render();
+};
+
+ACT.todoMore = () => { S.todoAll = !S.todoAll; render(); };

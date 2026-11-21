@@ -3,8 +3,8 @@
 //  （這個檔案是由 src/ 資料夾裡的分段檔合併而成）
 // ============================================================
 import { firebaseConfig } from './config.js';
-import * as D from './data.js?v=11211635';
-import { createStore } from './store.js?v=11211635';
+import * as D from './data.js?v=11211647';
+import { createStore } from './store.js?v=11211647';
 
 const S = {
   store: null, me: null, cid: null, couple: null, d: {},

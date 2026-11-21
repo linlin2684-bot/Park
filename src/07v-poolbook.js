@@ -18,10 +18,10 @@ function poolGot() {
 function poolBookData() {
   const got = poolGot();
   // 火辣級的卡：兩人都開火辣才看得到（連問號都不顯示）
-  const pool = list('pool').filter((p) => p.title && ((p.spice || 1) < 3 || (typeof hotOn === 'function' && hotOn())));
+  const pool = list('pool').filter((p) => p.title);
   const byR = {};
   for (const r of D.RARITY_ORDER) byR[r] = pool.filter((p) => (p.rarity || 'N') === r).sort((a, b) => (got[b.title] ? 1 : 0) - (got[a.title] ? 1 : 0) || (got[a.title]?.first || 0) - (got[b.title]?.first || 0));
-  const n = pool.filter((p) => got[p.title]).length;
+  const n = pool.filter((p) => got[p.title] && ((p.spice || 1) < 3 || hotOn())).length;
   return { got, byR, n };
 }
 
@@ -68,7 +68,8 @@ ACT.poolBookOpen = () => {
     for (let i = 0; i < arr.length; i += PER) pages.push({ r, items: arr.slice(i, i + PER), part: Math.floor(i / PER) + 1, parts: Math.ceil(arr.length / PER) });
   }
   const cell = (p, no) => {
-    if (!got[p.title]) return `<div class="alb-slot"><span class="alb-no">No.${String(no).padStart(2, '0')}</span><b>？</b><small>${esc(D.RARITY[p.rarity || 'N'].label)}</small></div>`;
+    // 火辣級：沒開火辣時就算抽到也只顯示「？」
+    if (!got[p.title] || ((p.spice || 1) >= 3 && !hotOn())) return `<div class="alb-slot"><span class="alb-no">No.${String(no).padStart(2, '0')}</span><b>？</b><small>${esc(D.RARITY[p.rarity || 'N'].label)}</small></div>`;
     const c = { title: p.title, rarity: p.rarity || 'N', mark: p.mark || '', desc: p.desc || '', spice: p.spice || 1 };
     const used = got[p.title].cards.reduce((s, x) => s + (x.used || 0), 0);
     return `<button class="alb-card emb-${embPalette(c)}" data-pt="${esc(p.title)}">${emblemSVG(c)}${used ? `<span class="alb-used">兌換 ${used} 次</span>` : ''}</button>`;

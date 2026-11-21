@@ -218,7 +218,7 @@ function pickLineIdx(k, n) {
 }
 
 // ---------- 路過首頁 ----------
-const STROLL_ODDS = [['black', .2], ['orange', .2], ['haohao', .11], ['doggy', .08], ['abian', .08], ['gungun', .09], ['shark', .09], ['white', .05], ['calico', .05], ['tuxedo', .05]];
+const STROLL_ODDS = [['black', .11], ['orange', .10], ['haohao', .09], ['doggy', .09], ['abian', .10], ['gungun', .10], ['shark', .11], ['white', .10], ['calico', .10], ['tuxedo', .10]];   // 十隻差不多，小劇場少的稍微高一點
 function pickFriend() {
   // 心情下雨的時候，狗狗比較常來陪你
   if (typeof myMoodRain === 'function' && myMoodRain() && Math.random() < .45) return 'doggy';

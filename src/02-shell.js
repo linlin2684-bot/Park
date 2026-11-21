@@ -359,7 +359,7 @@ function renderTop() {
   const tk = tickets(me());
   top.innerHTML = `
     <div class="brand"><i data-ic="ferris"></i> 兩人遊樂園</div>
-    <button class="pill" data-act="pointsLog"><i data-ic="coin"></i> ${balance(me())}${tk ? ` · <i data-ic="ticket"></i>${tk}` : ''}</button>
+    <button class="pill pill2" data-act="pointsLog"><span><i data-ic="coin"></i>${balance(me())}</span>${tk ? `<span><i data-ic="ticket"></i>${tk}</span>` : ''}</button>
     ${typeof hotMoonHTML === 'function' ? hotMoonHTML() : ''}
     <button class="icon-btn" data-act="theme" title="日夜模式">${mode === 'auto' ? '<i data-ic="candle"></i>' : t === 'day' ? '<i data-ic="sun"></i>' : '<i data-ic="moon"></i>'}</button>
     <button class="icon-btn" data-act="inbox"><i data-ic="bell"></i>${n ? `<span class="badge-dot">${n > 9 ? '9+' : n}</span>` : ''}</button>
@@ -404,13 +404,30 @@ function renderMain() {
 
 // ---------- 通知中心 ----------
 const EV_ICON = { card: '<i data-ic="ticket"></i>', redeem: '<i data-ic="ticket"></i>', stamp: '<i data-ic="stamp"></i>', miss: '<i data-ic="heart"></i>', mood: '<i data-ic="weather"></i>', wish: '<i data-ic="shooting"></i>', battle: '<i data-ic="swords"></i>', note: '<i data-ic="letter"></i>', capsule: '<i data-ic="hourglass"></i>', fund: '<i data-ic="coins"></i>', trip: '<i data-ic="map"></i>', goal: '<i data-ic="target"></i>', daily: '<i data-ic="chat"></i>', quiz: '<i data-ic="minds"></i>', mystery: '<i data-ic="gift"></i>' };
+// 通知分類：票券／互動／旅行回憶／其他
+const EV_CAT = { card: 'card', redeem: 'card', mystery: 'card', wish: 'card', wishes: 'card', stamp: 'card',
+  miss: 'us', mood: 'us', note: 'us', letter: 'us', poke: 'us', quiz: 'us', daily: 'us', deep: 'us', battle: 'us', battles: 'us',
+  trip: 'mem', fund: 'mem', goal: 'mem', capsule: 'mem', date: 'mem' };
+const EV_TABS = [['all', '全部'], ['card', '票券'], ['us', '互動'], ['mem', '約會回憶'], ['etc', '其他']];
 ACT.inbox = async () => {
-  const evs = list('events').filter((e) => e.to === me()).sort((a, b) => b.at - a.at).slice(0, 60);
-  openModal(`${mhead('通知')}
-    ${evs.length ? evs.map((e) => `<div class="list-row ${e.read ? '' : 'unread'}"><span class="lr-i">${EV_ICON[e.type] || '<i data-ic="sparkle"></i>'}</span>
-      <div class="grow">${esc(e.text)}${e.detail ? `<div class="small muted">${esc(e.detail)}</div>` : ''}</div><span class="when">${ago(e.at)}</span></div>`).join('')
-      : '<div class="empty"><span class="big"><i data-ic="bell"></i></span>還沒有通知</div>'}`);
+  const evs = list('events').filter((e) => e.to === me()).sort((a, b) => b.at - a.at).slice(0, 80);
+  const unread = new Set(evs.filter((e) => !e.read).map((e) => e.id));
+  let tab = 'all';
+  const m = openModal('', {});
+  const draw = () => {
+    const shown = evs.filter((e) => tab === 'all' || (EV_CAT[e.type] || 'etc') === tab);
+    const cnt = (k) => evs.filter((e) => unread.has(e.id) && (k === 'all' || (EV_CAT[e.type] || 'etc') === k)).length;
+    m.querySelector('.modal').innerHTML = `${mhead('<i data-ic="bell"></i> 通知')}
+      <div class="seg inbox-tabs">${EV_TABS.map(([k, n]) => `<button data-t="${k}" class="${tab === k ? 'on' : ''}">${n}${cnt(k) ? `<span class="it-n">${cnt(k)}</span>` : ''}</button>`).join('')}</div>
+      ${shown.length ? shown.map((e) => `<div class="list-row ${unread.has(e.id) ? 'unread' : ''}"><span class="lr-i">${EV_ICON[e.type] || '<i data-ic="sparkle"></i>'}</span>
+        <div class="grow">${esc(e.text)}${e.detail ? `<div class="small muted">${esc(e.detail)}</div>` : ''}</div><span class="when">${ago(e.at)}</span></div>`).join('')
+        : '<div class="empty"><span class="big"><i data-ic="bell"></i></span>這裡還沒有通知</div>'}`;
+    $$('.inbox-tabs button', m).forEach((b) => b.onclick = () => { tab = b.dataset.t; draw(); });
+  };
+  draw();
+  // 打開就算看過了（畫面上的未讀標記留到關掉為止）
   for (const e of evs) if (!e.read) col('events').update(e.id, { read: true });
+  m._onClose = () => render();
 };
 
 ACT.pointsLog = () => {
