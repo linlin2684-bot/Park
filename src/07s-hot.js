@@ -680,8 +680,23 @@ function hotMoonLit() {
 }
 function hotMoonHTML() {
   if (!hotOn() || S.tab !== 'home' || (S.couple.members || []).length < (trialOpen() ? 1 : 2)) return '';   // 測試期間一個人也看得到
-  return `<button class="icon-btn hot-moon ${hotMoonLit() ? 'lit' : ''}" data-act="hotSignal" aria-label="月亮"><svg viewBox="0 0 24 24" class="ic"><path d="M15 3.5 A8.5 8.5 0 1 0 20.5 15 A6.8 6.8 0 0 1 15 3.5 Z" fill="currentColor" stroke="none"/><path d="M19 4 l.6 1.4 l1.4 .6 l-1.4 .6 l-.6 1.4 l-.6 -1.4 l-1.4 -.6 l1.4 -.6 z" fill="currentColor"/></svg></button>`;
+  return `<button class="icon-btn hot-moon ${hotMoonLit() || hotTeaseNew() ? 'lit' : ''}" data-act="hotMoon" aria-label="月亮"><svg viewBox="0 0 24 24" class="ic"><path d="M15 3.5 A8.5 8.5 0 1 0 20.5 15 A6.8 6.8 0 0 1 15 3.5 Z" fill="currentColor" stroke="none"/><path d="M19 4 l.6 1.4 l1.4 .6 l-1.4 .6 l-.6 1.4 l-.6 -1.4 l-1.4 -.6 l1.4 -.6 z" fill="currentColor"/></svg></button>`;
 }
+// 撩撥任務有新的（對方派給你、或對方說做了等你驗收）也讓小月亮亮
+function hotTeaseNew() { const f = teaseForMe(), b = teaseBy(); return !!((f && f.status === 'sent') || (b && b.status === 'done')); }
+// 首頁的月亮：撩撥有新的、暗號沒有，就直接開撩撥任務；其他時候開暗號
+ACT.hotMoon = async () => {
+  if (hotTeaseNew() && !hotMoonLit()) {
+    if (!hotOn()) return;
+    if (now() >= hotUntil) {
+      if (!S.couple.hot?.pin) { if (!(await hotSetPin())) return; }
+      else if (!(await pinPad({ title: '輸入密碼', sub: '只有我們兩個知道', check: hotCheck }))) return;
+      hotUntil = now() + HOT_UNLOCK_MS;
+    }
+    return ACT.hotTease();
+  }
+  return ACT.hotSignal();
+};
 // 從首頁按月亮也要先解鎖
 ACT.hotSignal = async () => {
   if (!hotOn()) return;
@@ -781,7 +796,7 @@ ACT.hotTease = () => {
     });
   };
   draw();
-  m._onClose = hotRedrawHub;
+  m._onClose = () => { hotRedrawHub(); render(); };   // 首頁小月亮也要跟著更新
 };
 const hotStampSVG = () => `<svg class="hstamp" viewBox="-30 -30 60 60" aria-hidden="true"><circle r="27" class="hs-r"/><circle r="22" class="hs-r2" stroke-dasharray="1.2 2.2"/><g transform="translate(-14.5 -16) scale(1.2)"><path d="M12 21 C8 21 6 18.5 6 15.5 C6 12 9 10.5 9 7 C11.5 8.5 12 10.5 11.8 12.2 C13 11.4 13.6 10 13.6 8.5 C16.5 10.5 18 13 18 15.5 C18 18.5 16 21 12 21 Z" class="hs-f"/></g></svg>`;
 
