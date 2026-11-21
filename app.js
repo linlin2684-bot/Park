@@ -8188,6 +8188,32 @@ setInterval(() => { if (document.visibilityState !== 'hidden') trialOffOnce(); }
 })();
 window.__toast = toast;
 
+// 火辣區密碼的保險：密碼的雜湊值也存一份在自己的帳號資料（users/{uid}.hotPin）
+// 萬一空間裡的 hot.pin 不見了，打開 app 時自動補回去，不會被要求重設
+const _hotSetPin0 = hotSetPin;
+hotSetPin = async () => {
+  const ok = await _hotSetPin0();
+  if (ok) setTimeout(hotPinMirror, 800);
+  return ok;
+};
+let hotPinChecked = '';
+async function hotPinMirror() {
+  try {
+    if (!S.couple || !S.cid || !me()) return;
+    const u = (await S.store.getUser(me())) || {};
+    const mine = u.hotPin && u.hotPin.cid === S.cid ? u.hotPin : null;
+    const cur = S.couple.hot && S.couple.hot.pin;
+    if (cur && (!mine || mine.pin !== cur)) await S.store.setUser(me(), { hotPin: { cid: S.cid, pin: cur, at: S.couple.hot.pinAt || now() } });
+    else if (!cur && mine) { S.store.updateCouple(S.cid, { 'hot.pin': mine.pin, 'hot.pinAt': mine.at }); console.warn('火辣區密碼不見了，已從帳號備份補回'); }
+  } catch (e) { console.warn('火辣密碼備份', e); }
+}
+setInterval(() => {
+  if (!S.couple || !S.cid || document.visibilityState === 'hidden') return;
+  const k = `${S.cid}:${(S.couple.hot && S.couple.hot.pin) || ''}`;
+  if (hotPinChecked === k) return;
+  hotPinChecked = k; hotPinMirror();
+}, 4000);
+
 // ============================================================
 //  收藏冊：兌換卡（扭蛋卡池裡的卡）
 //  抽到就收進來；依稀有度分頁；還沒抽到的是問號徽章（不暴雷）
