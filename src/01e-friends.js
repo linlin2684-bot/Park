@@ -155,7 +155,9 @@ const FRIENDS = {
   gungun: { name: '小棍棍', kind: '小熊貓', intro: '會「棍～」地叫，講話幾乎只講最後一個字。最愛蘋果，喜歡踩狗狗，但狗狗不喜歡。', w: 104,
     lines: ['小棍棍：棍～', '小棍棍：蛋', '小棍棍：狗狗❤️', '小棍棍：狗狗～（踩）', '小棍棍：蘋果～', '小棍棍被打了一下：一袋～（跑掉）', '小棍棍：……果（想說蘋果）', '小棍棍：……狗（想說狗狗，但狗狗已經跑了）', '小棍棍抱著蘋果睡著了'] },
   shark: { name: '鯊魚', kind: '鯊魚', intro: '男朋友最喜歡的小動物。鼻子被碰到就會關機，再碰一下會倒吸一口氣醒來。', w: 110, swim: true,
-    lines: ['鯊魚被碰到鼻子，關機了', '鯊魚：河！（倒吸一口氣，開機了）', '鯊魚：河！河！（嚇一跳游走了）', '鯊魚在空氣裡游泳，看起來很認真', '鯊魚用鼻子碰了一下你……然後自己關機了', '鯊魚：河～（小小聲的，在打呵欠）'] },
+    lines: ['鯊魚被碰到鼻子，關機了', '鯊魚：河！（倒吸一口氣，開機了）', '鯊魚：河！河！（嚇一跳游走了）', '鯊魚在空氣裡游泳，看起來很認真', '鯊魚用鼻子碰了一下你……然後自己關機了', '鯊魚：河～（小小聲的，在打呵欠）',
+      '鯊魚：人類～哈囉～', '鯊魚：人類～我很乖喔～', '鯊魚呆呆地游過去，撞到空氣，自己嚇一跳', '鯊魚在空氣裡游泳，游著游著忘記要去哪裡',
+      '鯊魚：人類～今天也要一起玩嗎～', '鯊魚：人類～（只是想叫你一下）', '鯊魚：人類～我的尾巴在哪裡？'] },
 };
 const friendLines = (k) => { const L = FRIENDS[k].lines; return typeof L === 'function' ? L() : L; };
 function friendArt(k, opts) {
@@ -252,6 +254,8 @@ function catStroll(force) {
         sfx('flip'); sayAt = el; sayLine('shark', 0);
         clearTimeout(timer); timer = setTimeout(() => el.remove(), 25000);
       } else {
+        // 有時候晽晽貓貓衝過來把牠吃掉，牠會再長出來
+        if (typeof sharkEaten === 'function' && Math.random() < .3) { clearTimeout(timer); return sharkEaten(el); }
         el.classList.remove('off'); el.classList.add('wake'); el.innerHTML = withHat('shark', sharkArt());
         sfx('heart'); sayAt = el; sayLine('shark', Math.random() < .6 ? 1 : 2);
         clearTimeout(timer); setTimeout(() => el.remove(), 3400);

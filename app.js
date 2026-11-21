@@ -964,7 +964,9 @@ const FRIENDS = {
   gungun: { name: '小棍棍', kind: '小熊貓', intro: '會「棍～」地叫，講話幾乎只講最後一個字。最愛蘋果，喜歡踩狗狗，但狗狗不喜歡。', w: 104,
     lines: ['小棍棍：棍～', '小棍棍：蛋', '小棍棍：狗狗❤️', '小棍棍：狗狗～（踩）', '小棍棍：蘋果～', '小棍棍被打了一下：一袋～（跑掉）', '小棍棍：……果（想說蘋果）', '小棍棍：……狗（想說狗狗，但狗狗已經跑了）', '小棍棍抱著蘋果睡著了'] },
   shark: { name: '鯊魚', kind: '鯊魚', intro: '男朋友最喜歡的小動物。鼻子被碰到就會關機，再碰一下會倒吸一口氣醒來。', w: 110, swim: true,
-    lines: ['鯊魚被碰到鼻子，關機了', '鯊魚：河！（倒吸一口氣，開機了）', '鯊魚：河！河！（嚇一跳游走了）', '鯊魚在空氣裡游泳，看起來很認真', '鯊魚用鼻子碰了一下你……然後自己關機了', '鯊魚：河～（小小聲的，在打呵欠）'] },
+    lines: ['鯊魚被碰到鼻子，關機了', '鯊魚：河！（倒吸一口氣，開機了）', '鯊魚：河！河！（嚇一跳游走了）', '鯊魚在空氣裡游泳，看起來很認真', '鯊魚用鼻子碰了一下你……然後自己關機了', '鯊魚：河～（小小聲的，在打呵欠）',
+      '鯊魚：人類～哈囉～', '鯊魚：人類～我很乖喔～', '鯊魚呆呆地游過去，撞到空氣，自己嚇一跳', '鯊魚在空氣裡游泳，游著游著忘記要去哪裡',
+      '鯊魚：人類～今天也要一起玩嗎～', '鯊魚：人類～（只是想叫你一下）', '鯊魚：人類～我的尾巴在哪裡？'] },
 };
 const friendLines = (k) => { const L = FRIENDS[k].lines; return typeof L === 'function' ? L() : L; };
 function friendArt(k, opts) {
@@ -1061,6 +1063,8 @@ function catStroll(force) {
         sfx('flip'); sayAt = el; sayLine('shark', 0);
         clearTimeout(timer); timer = setTimeout(() => el.remove(), 25000);
       } else {
+        // 有時候晽晽貓貓衝過來把牠吃掉，牠會再長出來
+        if (typeof sharkEaten === 'function' && Math.random() < .3) { clearTimeout(timer); return sharkEaten(el); }
         el.classList.remove('off'); el.classList.add('wake'); el.innerHTML = withHat('shark', sharkArt());
         sfx('heart'); sayAt = el; sayLine('shark', Math.random() < .6 ? 1 : 2);
         clearTimeout(timer); setTimeout(() => el.remove(), 3400);
@@ -2973,7 +2977,7 @@ PAGES.play = {
       <button class="game-tile" data-act="food"><span class="gi"><i data-ic="dining" data-medal></i></span><b>今天吃什麼</b><span>選擇障礙救星</span></button>
       <button class="game-tile" data-act="tod"><span class="gi"><i data-ic="dice" data-medal></i></span><b>真心話大冒險</b><span>輪流抽題，誰都逃不掉</span></button>
       <button class="game-tile" data-act="quiz"><span class="gi"><i data-ic="minds" data-medal></i></span><b>默契問答</b><span>${quizNew ? '今天的題目來了' : (q && p && q.answers[p] ? '看結果' : '等對方作答')}</span>${quizNew ? '<span class="badge-dot">!</span>' : ''}</button>
-      <button class="game-tile wide" data-act="dex"><span class="gi"><i data-ic="book" data-medal></i></span><div class="grow"><b>小動物圖鑑</b><br><span>已經遇到 ${dexCount()} 位朋友，牠們會偶爾路過首頁</span></div><span style="font-size:22px">›</span></button>
+      <button class="game-tile wide" data-act="hall" data-t="dex"><span class="gi"><i data-ic="book" data-medal></i></span><div class="grow"><b>小動物圖鑑</b><br><span>已經遇到 ${dexCount()} 位朋友，牠們會偶爾路過首頁</span></div><span style="font-size:22px">›</span></button>
       <button class="game-tile wide" data-act="battle"><span class="gi"><i data-ic="swords" data-medal></i></span><div class="grow"><b>對戰挑戰</b><br><span>${bt ? `進行中：${esc(bt.task)}` : '一週內誰先完成？輸的人發卡'}</span></div><span style="font-size:22px">›</span></button>
     </div>
     ${stampCardHTML()}
@@ -2993,6 +2997,7 @@ ACT.gacha = () => {
     <div id="gbtns">
       <div class="btn-row"><button class="btn" id="g-pt">扭一次（${D.POINTS.gachaCost} 點）</button>${tickets(me()) ? `<button class="btn gold" id="g-tk">用扭蛋券 <i data-ic="ticket"></i>${tickets(me())}</button>` : ''}</div>
       <button class="btn block g10-btn" id="g-10"><b>十連抽</b>（${D.POINTS.gachaCost * 10} 點）<span class="g10-gift">多送 1 抽</span></button>
+      ${tickets(me()) >= 10 ? `<button class="btn gold block g10-btn tk" id="g-10t"><b>十連抽</b>（扭蛋券 10 張）<span class="g10-gift">多送 1 抽</span></button>` : ''}
       <p class="center small muted">我的點數：<i data-ic="coin"></i> ${balance(me())} · 機率 N ${D.RARITY.N.weight}% / R ${D.RARITY.R.weight}% / SR ${D.RARITY.SR.weight}% / SSR ${D.RARITY.SSR.weight}%</p>
     </div>`, { center: true });
   const go = async (useTicket) => {
@@ -3021,6 +3026,7 @@ ACT.gacha = () => {
     if (rarity === 'SSR') { rays = document.createElement('div'); rays.className = 'ssr-rays'; document.body.appendChild(rays); confetti(150, ['#f6d365', '#fda085', '#f093fb', '#8fd3f4', '#fff']); vibrate([60, 40, 60, 40, 200]); }
     else if (rarity === 'SR') confetti(80, ['#a66bf0', '#d6b4ff', '#fff']);
     sfx(rarity === 'SSR' ? 'sparkle' : rarity === 'SR' ? 'chime' : 'pop');
+    if ((tpl.spice || 1) >= 3 && typeof hotDrawFx === 'function') hotDrawFx();
     const bonus = await petGachaBonus();
     const card = { id, ...cardDoc(tpl, me(), from), scratched: true };
     $('#gres', m).innerHTML = `<div class="center" style="font-family:var(--serif);font-weight:900;font-size:${rarity === 'SSR' ? 30 : 22}px;color:${R.color}">${rarity === 'SSR' ? '✦ SSR 傳說降臨 ✦' : rarity === 'SR' ? '稀有！SR' : rarity + ' · ' + R.label}</div>
@@ -3033,13 +3039,15 @@ ACT.gacha = () => {
     m._onClose = () => rays && rays.remove();
   };
   $('#g-pt', m).onclick = () => go(false);
-  $('#g-10', m).onclick = () => go10();
+  $('#g-10', m).onclick = () => go10(false);
+  $('#g-10t', m) && ($('#g-10t', m).onclick = () => go10(true));
   // 十連抽：付 10 抽的點數，抽 11 張
-  const go10 = async () => {
+  const go10 = async (useTicket) => {
     const cost = D.POINTS.gachaCost * 10;
-    if (balance(me()) < cost) return toast(`點數不夠，十連抽要 ${cost} 點，還差 ${cost - balance(me())} 點`);
+    if (useTicket) { if (tickets(me()) < 10) return toast('扭蛋券不到 10 張'); }
+    else if (balance(me()) < cost) return toast(`點數不夠，十連抽要 ${cost} 點，還差 ${cost - balance(me())} 點`);
     $('#gbtns', m).innerHTML = '';
-    await addPoints(me(), -cost, '扭蛋：十連抽');
+    if (useTicket) await addTicket(me(), -10); else await addPoints(me(), -cost, '扭蛋：十連抽');
     $('#kn', m).style.transform = 'rotate(1080deg)';
     vibrate(30); await sleep(700);
     $('#gm', m).classList.add('shake'); vibrate([20, 30, 20, 30, 20, 30, 20]); await sleep(900);
@@ -3057,6 +3065,7 @@ ACT.gacha = () => {
     let rays = null;
     if (best === 'SSR') { rays = document.createElement('div'); rays.className = 'ssr-rays'; document.body.appendChild(rays); confetti(150, ['#f6d365', '#fda085', '#f093fb', '#8fd3f4', '#fff']); vibrate([60, 40, 60, 40, 200]); }
     else if (best === 'SR') confetti(80, ['#a66bf0', '#d6b4ff', '#fff']); else confetti(40);
+    if (got.some((x) => (x.tpl.spice || 1) >= 3) && typeof hotDrawFx === 'function') setTimeout(hotDrawFx, 300);
     sfx(best === 'SSR' ? 'sparkle' : best === 'SR' ? 'chime' : 'pop');
     const bonus = await petGachaBonus();
     // 重複：手上已經有一張還沒用的同名卡（這一輪裡第二張以後也算）
@@ -3070,7 +3079,7 @@ ACT.gacha = () => {
     const dups = got.filter((x) => x.dup);
     const R = D.RARITY[best];
     $('#gres', m).innerHTML = `<div class="center" style="font-family:var(--serif);font-weight:900;font-size:22px;color:${R.color}">十連抽 · 最高 ${best}${best === 'SSR' ? ' ✦' : ''}</div>
-      <div class="g10-grid">${got.map((x, i) => { const C = D.RARITY[x.rarity]; return `<div class="g10-card r-${x.rarity} ${x.gift ? 'gift' : ''}" style="--rc:${C.color};animation-delay:${i * 70}ms">
+      <div class="g10-grid">${got.map((x, i) => { const C = D.RARITY[x.rarity]; return `<div class="g10-card r-${x.rarity} ${x.gift ? 'gift' : ''} ${(x.tpl.spice || 1) >= 3 ? 'hot' : ''}" style="--rc:${C.color};animation-delay:${i * 70}ms">
         <div class="g10-r">${x.rarity}</div><div class="g10-t">${esc(x.tpl.mystery ? '神秘盲盒' : x.tpl.title)}</div>
         ${x.gift ? '<span class="g10-tag">送</span>' : x.dup ? '<span class="g10-tag dup">重複</span>' : ''}</div>`; }).join('')}</div>
       ${bonus ? `<div class="bonus-acc"><span class="ba-cat">${petSVG(2, 'happy', bonus.id, { blink: false })}</span><div><b>額外掉落！</b><div class="small">${esc(petState().name)}的限定配件「${bonus.name}」</div></div></div>` : ''}
@@ -3084,7 +3093,7 @@ ACT.gacha = () => {
       e.currentTarget.textContent = `換好了，${petState().name}多了 ${n} 個罐罐`; sfx('pop');
       $$('.g10-tag.dup', m).forEach((t) => { t.textContent = '換罐罐'; });
     });
-    $('#g-again', m).onclick = () => { rays && rays.remove(); closeModal(m); ACT.gacha(); setTimeout(() => { const b = $('#g-10'); b && b.click(); }, 400); };
+    $('#g-again', m).onclick = () => { rays && rays.remove(); closeModal(m); ACT.gacha(); setTimeout(() => { const b = $(useTicket ? '#g-10t' : '#g-10'); b && b.click(); }, 400); };
     m._onClose = () => rays && rays.remove();
   };
   tapRun(m, '#gm', '#g-pt', '#g-again');   // 點扭蛋機也能扭
@@ -4272,11 +4281,11 @@ function memAch() {
   const tot = (t) => D.ACHIEVEMENTS.filter((a) => a.tier === t).length;
   const sorted = [...D.ACHIEVEMENTS].sort((a, b) => (got.has(b.id) ? 1 : 0) - (got.has(a.id) ? 1 : 0));
   return `<div class="card center"><div class="fund-num">${got.size}</div><div class="small muted">我們一起解鎖的成就</div>
-      <div class="row" style="justify-content:center;gap:16px;margin-top:8px">${['g', 's', 'b'].map((t) => `<span class="ach-tier t-${t}">${tiers[t]} ${cnt(t)}/${tot(t)}</span>`).join('')}</div></div>
+      <div class="row" style="justify-content:center;gap:16px;margin-top:8px">${['g', 's', 'b'].map((t) => `<span class="ach-tier t-${t}">${tiers[t]} ${cnt(t)}</span>`).join('')}</div></div>
     <div class="ach-grid">${sorted.map((a) => {
       const ok = got.has(a.id), v = Math.min(m[a.m] || 0, a.goal);
       return `<div class="ach ach-${a.tier} ${ok ? '' : 'locked'}">${achBadge(a, ok)}<b>${esc(a.name)}</b><span>${esc(a.desc)}</span>
-        ${ok ? `<span class="ach-tier t-${a.tier}">${tiers[a.tier]}</span>` : a.goal > 1 ? `<div class="ach-prog"><div style="width:${v / a.goal * 100}%"></div></div><span>${money(v)} / ${money(a.goal)}</span>` : ''}</div>`;
+        ${ok ? `<span class="ach-tier t-${a.tier}">${tiers[a.tier]}</span>` : ''}</div>`;
     }).join('')}</div>`;
 }
 
@@ -5127,6 +5136,8 @@ const SCENES = [
     lines: [['n', '吵吵貓送陷阱貓一朵花'], ['b', '哼，我就收下吧'], ['n', '吵吵貓開心到跌倒了']] },
   { id: 'mine', a: 'orange', b: 'calico', lead: 'calico', title: '這是我的！',
     lines: [['n', '晽晽貓貓看到小魚乾走過來'], ['n', '晽晽貓貓直接把小魚乾撞飛'], ['a', '（抱緊自己的小魚乾）這是我的！'], ['b', '……喵？']] },
+  { id: 'eatshark', a: 'orange', b: 'shark', lead: 'shark', title: '被吃掉了',
+    lines: [['n', '晽晽貓貓一口把鯊魚吃掉了'], ['a', '嗝～'], ['b', '長長長 長長長 長長長長 長完了～'], ['b', '人類～我被吃掉了喔？']] },
   { id: 'sunspot', a: 'orange', b: 'calico', lead: 'calico', title: '搶位子',
     lines: [['n', '小魚乾在窗邊曬太陽'], ['a', '讓開，這是我的位子'], ['b', '喵！（我先來的）'], ['n', '晽晽貓貓直接坐上去，把小魚乾擠下去了']] },
   { id: 'snack', a: 'orange', b: 'calico', lead: 'calico', title: '偷吃',
@@ -5257,11 +5268,15 @@ const SPECIAL_LINES = {
   doggy: [{ w: 'rain', t: '狗狗走過來，把頭靠在你腳邊' }, { w: 'rain', t: '狗狗：汪（今天先不用洗澡，抱抱）' }, { w: 'rain', t: '狗狗香香的，借你聞一下' }, { w: 'xmas', t: '狗狗：汪，聖誕節也要去洗澡' }],
   abian: [{ w: 'newyear', t: '阿扁在思考……新的一年要想什麼' }, { w: 'anniv', t: '阿扁：五週年，「無」週年？（自己拍拍手）' }],
   gungun: [{ w: 'xmas', t: '小棍棍：誕' }, { w: 'valentine', t: '小棍棍：狗狗❤️❤️❤️' }],
-  shark: [{ w: 'newyear', t: '鯊魚：河！（新年快樂）' }, { w: 'halloween', t: '鯊魚戴著巫婆帽關機了，看起來很像在裝死' }],
+  shark: [{ w: 'newyear', t: '鯊魚：河！（新年快樂）' }, { w: 'halloween', t: '鯊魚戴著巫婆帽關機了，看起來很像在裝死' },
+    { w: 'morning', t: '鯊魚：人類～早安～' }, { w: 'morning', t: '鯊魚：人類～早安～我今天也很乖～' }, { w: 'morning', t: '鯊魚：人類～早安～（還沒完全開機）' },
+    { w: 'eaten', t: '鯊魚：長長長 長長長 長長長長 長完了～' }, { w: 'eaten', t: '鯊魚：人類～我被吃掉了喔？' },
+    { w: 'eaten2', t: '鯊魚：長…長…長…' }, { w: 'eaten2', t: '鯊魚：長長長長長長長 呼～長完了' }],
 };
 function specialNow(k) {
   const f = festNow(), rain = myMoodRain();
-  return (SPECIAL_LINES[k] || []).map((x, i) => [i, x]).filter(([, x]) => x.w === f || (x.w === 'rain' && rain));
+  const h = new Date().getHours(), morning = h >= 5 && h < 11;   // 早安只在早上 5～11 點
+  return (SPECIAL_LINES[k] || []).map((x, i) => [i, x]).filter(([, x]) => x.w === f || (x.w === 'rain' && rain) || (x.w === 'morning' && morning));
 }
 
 // 節日小帽子：畫在每隻動物頭上（座標是各自的 viewBox）
@@ -5524,6 +5539,40 @@ async function joinFreshStart() {
   toast('歡迎加入！遊樂園從今天開始重新記錄，兩個人各送 40 點新手禮');
   setTimeout(() => { if (typeof holidayDrops === 'function') holidayDrops(); }, 2500);
 }
+
+// 鯊魚被晽晽貓貓吃掉，再長出來
+async function sharkEaten(el) {
+  const r = el.getBoundingClientRect();
+  const cat = walker('orange', 'eater');
+  cat.style.animation = 'none'; cat.style.left = '-100px'; cat.style.bottom = el.style.bottom || getComputedStyle(el).bottom;
+  document.body.appendChild(cat);
+  await sleep(30);
+  cat.style.transition = 'left .55s ease-in'; cat.style.left = (r.left + r.width / 2 - 40) + 'px';
+  await sleep(560);
+  sfx('pop'); vibrate(30);
+  el.classList.add('eaten');
+  const b1 = bubble('晽晽貓貓一口把鯊魚吃掉了', r.left + r.width / 2, r.top, 'solo narr');
+  await sleep(1300);
+  b1.remove();
+  cat.style.transition = 'left .8s ease-in'; cat.style.left = (innerWidth + 120) + 'px';
+  setTimeout(() => cat.remove(), 900);
+  await sleep(700);
+  // 長出來：先慢慢長一半「長…長…長…」，再點一下才一口氣長完；沒點的話自己慢慢長完
+  el.classList.remove('eaten', 'off'); el.innerHTML = withHat('shark', sharkArt());
+  const L = SPECIAL_LINES.shark, ix = (t) => L.findIndex((x) => x.t === t);
+  const say = (t, ms) => { const rr = el.getBoundingClientRect(); const b = bubble(t, rr.left + rr.width / 2, rr.top, 'solo'); dexNote('shark', 's' + ix(t)); if (ms) setTimeout(() => b.remove(), ms); return b; };
+  const grow = async (steps) => { for (const sc of steps) { el.style.setProperty('--grow', sc); el.classList.add('regrow'); sfx('pop'); await sleep(520); } };
+  await grow([.2, .35, .5]);
+  const slow = say('鯊魚：長…長…長…');
+  const tapped = await new Promise((res) => { const t = setTimeout(() => res(false), 12000); el.onclick = () => { clearTimeout(t); res(true); }; });
+  el.onclick = null; slow.remove();
+  if (tapped) { const b = say('鯊魚：長長長長長長長 呼～長完了'); await grow([1]); await sleep(1400); b.remove(); }
+  else { const b = say('鯊魚：長長長 長長長 長長長長 長完了～'); await grow([.7, .85, 1]); await sleep(900); b.remove(); }
+  if (Math.random() < .5) { const b = say('鯊魚：人類～我被吃掉了喔？'); await sleep(2200); b.remove(); }
+  el.classList.remove('regrow'); el.classList.add('wake');
+  setTimeout(() => el.remove(), 2200);
+}
+window.__eat = () => { catStroll('shark'); setTimeout(() => { const e = document.querySelector('.fr-shark'); if (e) { e.click(); setTimeout(() => sharkEaten(e), 700); } }, 2500); };
 // ============================================================
 //  想你：愛心雨、想你系列紀念卡
 // ============================================================
@@ -7850,7 +7899,8 @@ function poolGot() {
 }
 function poolBookData() {
   const got = poolGot();
-  const pool = list('pool').filter((p) => p.title);
+  // 火辣級的卡：兩人都開火辣才看得到（連問號都不顯示）
+  const pool = list('pool').filter((p) => p.title && ((p.spice || 1) < 3 || (typeof hotOn === 'function' && hotOn())));
   const byR = {};
   for (const r of D.RARITY_ORDER) byR[r] = pool.filter((p) => (p.rarity || 'N') === r).sort((a, b) => (got[b.title] ? 1 : 0) - (got[a.title] ? 1 : 0) || (got[a.title]?.first || 0) - (got[b.title]?.first || 0));
   const n = pool.filter((p) => got[p.title]).length;
@@ -7965,6 +8015,190 @@ function poolCardDetail(title) {
     };
   };
   wire();
+}
+
+// ============================================================
+//  收藏館：成就／卡冊／圖鑑／火辣（兩人都火辣才出現，進去要密碼）
+//  入口在「回憶」最上面；原本票夾的收藏冊、遊樂區的圖鑑、回憶的成就都改成開這裡
+// ============================================================
+S.hallTab ||= 'ach';
+function openHall(t) { if (t) S.hallTab = t; S.tab = 'memory'; S.sub.memory = 'hall'; render(); window.scrollTo(0, 0); }
+ACT.hall = (el) => openHall(el?.dataset?.t);
+
+// 票夾的「收藏冊」改成去收藏館
+ACT.sub = ((orig) => (el) => {
+  if (el.dataset.page === 'wallet' && el.dataset.sub === 'book') return openHall('book');
+  if (el.dataset.page === 'memory' && el.dataset.sub === 'ach') return openHall('ach');
+  return orig(el);
+})(ACT.sub);
+if (S.sub && S.sub.wallet === 'book') S.sub.wallet = 'mine';
+
+// ---------- 火辣級的兌換卡：火辣配色 ----------
+const isHotCard = (c) => !!c && !c.series && c.kind !== 'collect' && (c.spice || 1) >= 3;
+const _embPalette0 = embPalette;
+embPalette = (c) => (!c.pal && isHotCard(c) ? 'HOT' : _embPalette0(c));
+
+// ---------- 收藏館頁面 ----------
+function memHall() {
+  const hot = typeof hotOn === 'function' && hotOn();
+  if (S.hallTab === 'hot' && !hot) S.hallTab = 'ach';
+  const tabs = [['ach', '<i data-ic="trophy"></i> 成就'], ['book', '<i data-ic="ticket"></i> 卡冊'], ['dex', '<i data-ic="book"></i> 圖鑑'], ...(hot ? [['hot', '<i data-ic="w_fire"></i> 火辣']] : [])];
+  const body = { ach: memAch, book: walletBook, dex: hallDex, hot: hallHot }[S.hallTab] || memAch;
+  return `<div class="hall-head"><span class="hall-em">${hallEmblem()}</span><div><b>收藏館</b><div class="small muted">我們一起收集的東西都在這裡</div></div></div>
+    <div class="seg seg-fit hall-tabs">${tabs.map(([k, n]) => `<button class="${S.hallTab === k ? 'on' : ''} ${k === 'hot' ? 'hot' : ''}" data-act="hallTab" data-t="${k}">${n}</button>`).join('')}</div>
+    <div class="hall-body ${S.hallTab === 'hot' ? 'hz-hall' : ''}">${body()}</div>`;
+}
+ACT.hallTab = async (el) => {
+  const t = el.dataset.t;
+  if (t === 'hot' && !(await hotHallUnlock())) return;
+  S.hallTab = t; render();
+};
+async function hotHallUnlock() {
+  if (now() < hotUntil) return true;
+  if (!S.couple.hot?.pin) { if (!(await hotSetPin())) return false; }
+  else if (!(await pinPad({ title: '輸入密碼', sub: '只有我們兩個知道', check: hotCheck }))) return false;
+  hotUntil = now() + HOT_UNLOCK_MS;
+  return true;
+}
+function hallEmblem() {
+  return `<svg viewBox="-44 -44 88 88"><circle r="41" class="hall-c1"/><circle r="35" class="hall-c2"/>
+    <path d="M-20 14 L-20 -6 L0 -20 L20 -6 L20 14 Z" class="hall-c3"/><path d="M-12 14 L-12 0 M0 14 L0 -2 M12 14 L12 0" class="hall-c3"/>
+    <path d="M-25 18 L25 18" class="hall-c3"/><circle cx="0" cy="-9" r="3" class="hall-c4"/></svg>`;
+}
+// 圖鑑分頁：小動物圖鑑（翻書）＋小小黑
+function hallDex() {
+  const n = dexCount();
+  return `<button class="card hall-entry" data-act="dex"><span class="hall-ic"><i data-ic="book" data-medal></i></span>
+      <span class="grow"><b>小動物圖鑑</b><br><span class="small muted">已經遇到 ${n} 位朋友，點開翻書</span></span><span style="font-size:22px">›</span></button>`;
+}
+
+// 回憶頁：最上面放收藏館入口，原本的「成就」小按鈕改成收藏館
+PAGES.memory.html = ((orig) => function () {
+  if (S.sub.memory === 'hall') {
+    const back = '<button class="link back-link" data-act="sub" data-page="memory" data-sub="goals">‹ 回到回憶</button>';
+    return `<div class="page-title"><h2><i data-ic="book"></i> 回憶</h2></div>${back}${memHall()}`;
+  }
+  const h = orig.call(this).replace(/<button class="ach-chip[^"]*"[^>]*>[\s\S]*?<\/button>/, '');
+  const entry = `<button class="card hall-banner" data-act="hall" data-t="ach"><span class="hall-em">${hallEmblem()}</span>
+      <span class="grow"><b>收藏館</b><br><span class="small muted">成就、卡冊、小動物圖鑑</span></span><span style="font-size:22px">›</span></button>`;
+  const i = h.indexOf('</div>', h.indexOf('page-title'));
+  return h.slice(0, i + 6) + entry + h.slice(i + 6);
+})(PAGES.memory.html);
+
+// ============================================================
+//  火辣分頁：火辣成就＋火辣收藏冊
+// ============================================================
+const HOT_ACH = [
+  { id: 'h_pose10', name: '十種花樣', desc: '試過 10 張姿勢', m: 'pose', goal: 10, tier: 'b', mark: '十' },
+  { id: 'h_pose30', name: '解鎖達人', desc: '試過 30 張姿勢', m: 'pose', goal: 30, tier: 's', mark: '解' },
+  { id: 'h_pose69', name: '六十九', desc: '69 張姿勢全部試過', m: 'pose', goal: 69, tier: 'g', mark: '69' },
+  { id: 'h_tease1', name: '第一次撩', desc: '撩撥任務驗收通過 1 次', m: 'tease', goal: 1, tier: 'b', mark: '撩' },
+  { id: 'h_tease10', name: '撩人高手', desc: '撩撥任務驗收通過 10 次', m: 'tease', goal: 10, tier: 's', mark: '撩' },
+  { id: 'h_tease50', name: '撩不停', desc: '撩撥任務驗收通過 50 次', m: 'tease', goal: 50, tier: 'g', mark: '撩' },
+  { id: 'h_match1', name: '心照不宣', desc: '想試清單第一次配對', m: 'match', goal: 1, tier: 'b', mark: '配' },
+  { id: 'h_match10', name: '想法一樣', desc: '想試清單配對 10 項', m: 'match', goal: 10, tier: 's', mark: '配' },
+  { id: 'h_done1', name: '第一次解鎖', desc: '想試清單蓋了第一個「已解鎖」章', m: 'done', goal: 1, tier: 'b', mark: '鎖' },
+  { id: 'h_done10', name: '清單殺手', desc: '想試清單解鎖 10 項', m: 'done', goal: 10, tier: 's', mark: '鎖' },
+  { id: 'h_done30', name: '什麼都試過', desc: '想試清單解鎖 30 項', m: 'done', goal: 30, tier: 'g', mark: '鎖' },
+  { id: 'h_sig1', name: '今晚有約', desc: '今晚的暗號被答應 1 次', m: 'sig', goal: 1, tier: 'b', mark: '約' },
+  { id: 'h_sig10', name: '暗號達人', desc: '今晚的暗號被答應 10 次', m: 'sig', goal: 10, tier: 's', mark: '約' },
+  { id: 'h_stamp5', name: '集章開始', desc: '拿到 5 個火辣印章', m: 'stamp', goal: 5, tier: 'b', mark: '章' },
+  { id: 'h_stamp30', name: '印章滿滿', desc: '拿到 30 個火辣印章', m: 'stamp', goal: 30, tier: 's', mark: '章' },
+  { id: 'h_lot1', name: '手氣火辣', desc: '第一次火辣抽獎', m: 'lot', goal: 1, tier: 'b', mark: '抽' },
+  { id: 'h_rare1', name: '稀有大獎', desc: '火辣抽獎抽到 ★ 稀有獎', m: 'rare', goal: 1, tier: 's', mark: '★' },
+];
+function hotAchMetrics() {
+  const hd = (t) => (typeof hotDocs === 'function' ? hotDocs(t) : []);
+  return {
+    pose: new Set(hd('pose-done').map((d) => d.key)).size,
+    tease: hd('tease').filter((d) => d.status === 'checked').length,
+    match: typeof hotMatches === 'function' ? hotMatches().length : 0,
+    done: new Set(hd('done').map((d) => d.k)).size,
+    sig: hd('signal').filter((d) => d.status === 'yes').length,
+    stamp: hd('stamp').length,
+    lot: hd('voucher').filter((d) => d.kind === 'lottery').length,
+    rare: hd('voucher').filter((d) => d.kind === 'lottery' && d.rare).length,
+  };
+}
+const hotAchGot = () => { const m = hotAchMetrics(); return new Set(HOT_ACH.filter((a) => (m[a.m] || 0) >= a.goal).map((a) => a.id)); };
+
+function hallHot() {
+  if (now() >= hotUntil) return `<div class="card center"><p class="muted">火辣分頁要先輸入密碼</p><button class="btn hot-btn" data-act="hallTab" data-t="hot">輸入密碼</button></div>`;
+  const got = hotAchGot();
+  const tiers = { b: '銅', s: '銀', g: '金' };
+  const sorted = [...HOT_ACH].sort((a, b) => (got.has(b.id) ? 1 : 0) - (got.has(a.id) ? 1 : 0));
+  const hd = (t) => hotDocs(t);
+  const poseN = new Set(hd('pose-done').map((d) => d.key)).size;
+  const vN = hd('voucher').length;
+  const doneN = new Set(hd('done').map((d) => d.k)).size;
+  const cardN = hotPoolCards().filter((p) => p.got).length;
+  const cover = (act, ic, t, s) => `<button class="hh-cover" data-act="${act}"><span class="hh-em"><i data-ic="${ic}" data-medal></i></span><b>${t}</b><small>${s}</small></button>`;
+  return `<h3 class="hh-title">火辣收藏冊</h3>
+    <div class="hh-covers">
+      ${cover('hotPoseBook', 'star', '姿勢圖鑑', `試過 ${poseN} 張`)}
+      ${cover('hotHallVouchers', 'ticket', '抽到的獎', `${vN} 張`)}
+      ${cover('hotHallDone', 'heart', '解鎖的章', `${doneN} 個`)}
+      ${cover('hotHallCards', 'w_fire', '火辣兌換卡', `${cardN} 張`)}
+    </div>
+    <h3 class="hh-title">火辣成就</h3>
+    <div class="ach-grid">${sorted.map((a) => { const ok = got.has(a.id); return `<div class="ach ach-${a.tier} ${ok ? '' : 'locked'}">${achBadge(a, ok)}<b>${esc(ok ? a.name : '？？？')}</b><span>${esc(a.desc)}</span>${ok ? `<span class="ach-tier t-${a.tier}">${tiers[a.tier]}</span>` : ''}</div>`; }).join('')}</div>`;
+}
+
+// 火辣級兌換卡（卡池裡 spice 3）
+function hotPoolCards() {
+  const got = poolGot();
+  return list('pool').filter((p) => (p.spice || 1) >= 3).map((p) => ({ ...p, got: !!got[p.title] })).sort((a, b) => (b.got ? 1 : 0) - (a.got ? 1 : 0) || rarityRank(b.rarity) - rarityRank(a.rarity));
+}
+function hotAlbum(title, cells) {
+  return openModal(`${mhead(esc(title))}<div class="hh-grid">${cells.join('') || '<div class="empty">還沒有</div>'}</div>`, { center: true, cls: 'hot-zone hz-book' });
+}
+const hhQ = '<span class="hh-q"><svg viewBox="-40 -40 80 80"><circle r="38" class="pe-bg"/><circle r="38" class="pe-r" stroke-width="1.2" stroke-dasharray="2 3"/><text y="10" text-anchor="middle">?</text></svg></span>';
+ACT.hotHallCards = () => {
+  const m = hotAlbum('火辣兌換卡', hotPoolCards().map((p) => p.got
+    ? `<button class="hh-cell on emb-HOT" data-pt="${esc(p.title)}">${emblemSVG({ title: p.title, rarity: p.rarity, mark: p.mark || '', spice: 3 })}</button>`
+    : `<div class="hh-cell">${hhQ}<small>${esc(D.RARITY[p.rarity || 'N'].label)}</small></div>`));
+  $$('[data-pt]', m).forEach((b) => b.onclick = () => poolCardDetail(b.dataset.pt));
+};
+ACT.hotHallVouchers = () => {
+  const vs = hotDocs('voucher').sort((a, b) => b.at - a.at);
+  hotAlbum('抽到的獎', vs.map((v) => `<div class="hh-row"><b>${v.rare ? '★ ' : ''}${esc(v.title)}</b><span class="small muted">${esc(v.desc || '')}</span>
+    <span class="small muted">${esc(nick(v.uid))} · ${fmtFull(v.at)}${v.status === 'redeemed' ? ' · 兌現了' : ''}</span></div>`));
+};
+ACT.hotHallDone = () => {
+  const items = hotItems();
+  const ds = hotDocs('done').sort((a, b) => b.at - a.at);
+  const seen = new Set();
+  hotAlbum('解鎖的章', ds.filter((d) => !seen.has(d.k) && seen.add(d.k)).map((d) => { const it = items.find((x) => x.k === d.k); return `<div class="hh-row hh-stamp"><span class="hh-stamp-ic">已解鎖</span><b>${esc(it ? it.t : '')}</b><span class="small muted">${fmtFull(d.at)}</span></div>`; }));
+};
+
+// 金色火辣成就：兩人各掉一張火辣紀念券（放在火辣票夾，跟一般票夾分開）
+async function hotAchDrops() {
+  const ms = S.couple?.members || [];
+  if (ms.length < 2 || typeof hotOn !== 'function' || !hotOn() || !S.d.hot) return;
+  const got = hotAchGot();
+  for (const a of HOT_ACH) {
+    if (a.tier !== 'g' || !got.has(a.id) || (S.couple.drops || {})[`hach-${a.id}`]) continue;
+    const ok = await S.store.coupleTx(S.cid, (x) => (x.drops && x.drops[`hach-${a.id}`] ? null : { [`drops.hach-${a.id}`]: true }));
+    if (!ok) continue;
+    for (const u of ms) await col('hot').add({ type: 'voucher', uid: u, kind: 'ach', title: `${a.name}紀念券`, desc: `解鎖金色火辣成就「${a.name}」：${a.desc}。內容兩人一起決定`, rare: true, status: 'new', at: now() });
+  }
+}
+setInterval(() => { try { hotAchDrops(); } catch (e) { console.warn(e); } }, 20000);
+
+// 切到背景：火辣分頁也一起關上
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'hidden' && S.hallTab === 'hot') { S.hallTab = 'ach'; if (S.tab === 'memory') render(); }
+});
+// 扭蛋抽到火辣級的卡：專屬的火辣演出（稀有度不變）
+function hotDrawFx() {
+  const el = document.createElement('div');
+  el.className = 'hot-draw-fx';
+  el.innerHTML = `<div class="hdf-ring">${typeof hotEmblem === 'function' ? hotEmblem() : ''}</div><div class="hdf-t">火辣級</div>`;
+  document.body.appendChild(el);
+  confetti(90, ['#d9485f', '#e9c27a', '#7a1f35', '#fff4e6']);
+  vibrate([40, 30, 40, 30, 120]); sfx('sparkle');
+  setTimeout(() => el.classList.add('out'), 1500);
+  setTimeout(() => el.remove(), 2100);
 }
 // ============================================================
 //  啟動

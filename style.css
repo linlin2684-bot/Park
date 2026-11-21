@@ -1946,3 +1946,53 @@ button, a, .game-tile, .cat-stroll, .pest-body { touch-action: manipulation; }
 .pc-rows span { color: var(--muted, #8a7a80); }
 .pc-memo { text-align: center; padding: 12px; border-radius: 14px; border: 1.5px dashed var(--line); }
 .pc-memo-t { font-family: var(--serif); font-size: 17px; font-weight: 800; line-height: 1.5; margin-bottom: 4px; }
+.g10-btn.tk { background: linear-gradient(90deg, #e9b949, #f1a33c); color: #3a2410; } .g10-btn.tk .g10-gift { color: #c27a12; }
+
+/* 收藏館 */
+.hall-banner, .hall-entry { display: flex; align-items: center; gap: 12px; width: 100%; text-align: left; margin-bottom: 12px; }
+.hall-em { width: 52px; height: 52px; flex: none; }
+.hall-em svg { width: 100%; height: 100%; }
+.hall-c1 { fill: color-mix(in srgb, var(--accent2) 14%, var(--card)); stroke: var(--accent2); stroke-width: 2; }
+.hall-c2 { fill: none; stroke: color-mix(in srgb, var(--accent2) 50%, transparent); stroke-width: 1; stroke-dasharray: 2 3; }
+.hall-c3 { fill: none; stroke: var(--ink); stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
+.hall-c4 { fill: var(--accent); }
+.hall-head { display: flex; align-items: center; gap: 12px; margin: 4px 0 12px; }
+.hall-head b { font-family: var(--serif); font-size: 22px; }
+.hall-tabs button.hot.on { background: #7a1f35; color: #f6e3c8; }
+.hall-ic { width: 48px; height: 48px; display: grid; place-items: center; }
+/* 火辣分頁：固定深酒紅＋金 */
+.hz-hall { margin: 0 -14px; padding: 14px; border-radius: 22px; background: radial-gradient(ellipse 90% 40% at 50% 0%, rgba(217, 72, 95, .28), transparent 70%), linear-gradient(180deg, #2a0f1c, #1a0912); color: #f6e3c8; }
+.hz-hall .ach { background: rgba(255, 255, 255, .05); box-shadow: inset 0 0 0 1px rgba(233, 194, 122, .25); color: #f6e3c8; }
+.hz-hall .ach span { color: rgba(246, 227, 200, .7); }
+.hz-hall .ach { --e-bg: #2a0f1c; --e-ink: #e9c27a; --e-acc: #d9485f; }
+.hh-title { font-family: var(--serif); color: #e9c27a; margin: 6px 2px 10px; }
+.hh-covers { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 16px; }
+.hh-cover { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 14px 8px; border-radius: 16px; background: rgba(255, 255, 255, .05); border: 1px solid rgba(233, 194, 122, .35); color: #f6e3c8; }
+.hh-cover b { font-family: var(--serif); font-size: 16px; }
+.hh-cover small { color: rgba(246, 227, 200, .7); }
+.hh-em { width: 54px; height: 54px; display: grid; place-items: center; color: #e9c27a; }
+.hh-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.hh-cell { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 4px; border-radius: 12px; }
+.hh-cell svg { width: 100%; height: auto; }
+.hh-q svg { width: 70px; height: 70px; }
+.hh-row { grid-column: 1 / -1; display: flex; flex-direction: column; gap: 2px; padding: 10px 12px; border-radius: 12px; background: rgba(255, 255, 255, .05); border: 1px solid rgba(233, 194, 122, .25); }
+.hh-stamp-ic { align-self: flex-start; font-size: 11px; font-weight: 800; color: #d9485f; border: 1.5px solid #d9485f; border-radius: 6px; padding: 0 6px; transform: rotate(-6deg); }
+.emb-HOT { --e-bg: #2a0f1c; --e-ink: #e9c27a; --e-acc: #d9485f; }
+html[data-theme="night"] .emb-HOT { --e-bg: #2a0f1c; --e-ink: #e9c27a; --e-acc: #d9485f; }
+.g10-card.hot { background: linear-gradient(135deg, #3a1626, #2a0f1c); color: #f6e3c8; border-color: rgba(233, 194, 122, .6); }
+/* 抽到火辣級的卡 */
+.hot-draw-fx { position: fixed; inset: 0; z-index: 250; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; pointer-events: none; background: radial-gradient(circle at 50% 45%, rgba(217, 72, 95, .55), rgba(26, 9, 18, .82) 60%); animation: hdfIn .35s ease-out; transition: opacity .6s; }
+.hot-draw-fx.out { opacity: 0; }
+.hdf-ring { width: 150px; height: 150px; animation: hdfPop .6s cubic-bezier(.3, 1.5, .5, 1); filter: drop-shadow(0 0 24px rgba(233, 194, 122, .7)); }
+.hdf-ring svg { width: 100%; height: 100%; }
+.hdf-t { font-family: var(--serif); font-size: 28px; font-weight: 900; color: #e9c27a; letter-spacing: .3em; text-shadow: 0 0 18px rgba(217, 72, 95, .9); }
+@keyframes hdfIn { from { opacity: 0; } to { opacity: 1; } }
+@keyframes hdfPop { from { transform: scale(.4) rotate(-20deg); opacity: 0; } to { transform: none; opacity: 1; } }
+.hh-q .pe-bg { fill: rgba(255, 255, 255, .04); }
+.hh-q .pe-r { fill: none; stroke: rgba(233, 194, 122, .6); }
+.hh-q text { fill: #e9c27a; font-family: var(--serif); font-size: 30px; font-weight: 800; }
+.hh-cell small { color: rgba(246, 227, 200, .7); }
+/* 鯊魚被吃掉、再長出來 */
+.cat-stroll.swim.eaten { animation: none; transform: translateY(72px) scale(0); transition: transform .25s ease-in; }
+.cat-stroll.swim.regrow { animation: none; transform: translateY(72px) scale(var(--grow, 1)); transform-origin: 50% 100%; transition: transform .3s cubic-bezier(.3, 1.6, .5, 1); }
+.cat-stroll.eater { z-index: 41; }

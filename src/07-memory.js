@@ -336,11 +336,11 @@ function memAch() {
   const tot = (t) => D.ACHIEVEMENTS.filter((a) => a.tier === t).length;
   const sorted = [...D.ACHIEVEMENTS].sort((a, b) => (got.has(b.id) ? 1 : 0) - (got.has(a.id) ? 1 : 0));
   return `<div class="card center"><div class="fund-num">${got.size}</div><div class="small muted">我們一起解鎖的成就</div>
-      <div class="row" style="justify-content:center;gap:16px;margin-top:8px">${['g', 's', 'b'].map((t) => `<span class="ach-tier t-${t}">${tiers[t]} ${cnt(t)}/${tot(t)}</span>`).join('')}</div></div>
+      <div class="row" style="justify-content:center;gap:16px;margin-top:8px">${['g', 's', 'b'].map((t) => `<span class="ach-tier t-${t}">${tiers[t]} ${cnt(t)}</span>`).join('')}</div></div>
     <div class="ach-grid">${sorted.map((a) => {
       const ok = got.has(a.id), v = Math.min(m[a.m] || 0, a.goal);
       return `<div class="ach ach-${a.tier} ${ok ? '' : 'locked'}">${achBadge(a, ok)}<b>${esc(a.name)}</b><span>${esc(a.desc)}</span>
-        ${ok ? `<span class="ach-tier t-${a.tier}">${tiers[a.tier]}</span>` : a.goal > 1 ? `<div class="ach-prog"><div style="width:${v / a.goal * 100}%"></div></div><span>${money(v)} / ${money(a.goal)}</span>` : ''}</div>`;
+        ${ok ? `<span class="ach-tier t-${a.tier}">${tiers[a.tier]}</span>` : ''}</div>`;
     }).join('')}</div>`;
 }
 

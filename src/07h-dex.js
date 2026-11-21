@@ -19,6 +19,8 @@ const SCENES = [
     lines: [['n', '吵吵貓送陷阱貓一朵花'], ['b', '哼，我就收下吧'], ['n', '吵吵貓開心到跌倒了']] },
   { id: 'mine', a: 'orange', b: 'calico', lead: 'calico', title: '這是我的！',
     lines: [['n', '晽晽貓貓看到小魚乾走過來'], ['n', '晽晽貓貓直接把小魚乾撞飛'], ['a', '（抱緊自己的小魚乾）這是我的！'], ['b', '……喵？']] },
+  { id: 'eatshark', a: 'orange', b: 'shark', lead: 'shark', title: '被吃掉了',
+    lines: [['n', '晽晽貓貓一口把鯊魚吃掉了'], ['a', '嗝～'], ['b', '長長長 長長長 長長長長 長完了～'], ['b', '人類～我被吃掉了喔？']] },
   { id: 'sunspot', a: 'orange', b: 'calico', lead: 'calico', title: '搶位子',
     lines: [['n', '小魚乾在窗邊曬太陽'], ['a', '讓開，這是我的位子'], ['b', '喵！（我先來的）'], ['n', '晽晽貓貓直接坐上去，把小魚乾擠下去了']] },
   { id: 'snack', a: 'orange', b: 'calico', lead: 'calico', title: '偷吃',
@@ -149,11 +151,15 @@ const SPECIAL_LINES = {
   doggy: [{ w: 'rain', t: '狗狗走過來，把頭靠在你腳邊' }, { w: 'rain', t: '狗狗：汪（今天先不用洗澡，抱抱）' }, { w: 'rain', t: '狗狗香香的，借你聞一下' }, { w: 'xmas', t: '狗狗：汪，聖誕節也要去洗澡' }],
   abian: [{ w: 'newyear', t: '阿扁在思考……新的一年要想什麼' }, { w: 'anniv', t: '阿扁：五週年，「無」週年？（自己拍拍手）' }],
   gungun: [{ w: 'xmas', t: '小棍棍：誕' }, { w: 'valentine', t: '小棍棍：狗狗❤️❤️❤️' }],
-  shark: [{ w: 'newyear', t: '鯊魚：河！（新年快樂）' }, { w: 'halloween', t: '鯊魚戴著巫婆帽關機了，看起來很像在裝死' }],
+  shark: [{ w: 'newyear', t: '鯊魚：河！（新年快樂）' }, { w: 'halloween', t: '鯊魚戴著巫婆帽關機了，看起來很像在裝死' },
+    { w: 'morning', t: '鯊魚：人類～早安～' }, { w: 'morning', t: '鯊魚：人類～早安～我今天也很乖～' }, { w: 'morning', t: '鯊魚：人類～早安～（還沒完全開機）' },
+    { w: 'eaten', t: '鯊魚：長長長 長長長 長長長長 長完了～' }, { w: 'eaten', t: '鯊魚：人類～我被吃掉了喔？' },
+    { w: 'eaten2', t: '鯊魚：長…長…長…' }, { w: 'eaten2', t: '鯊魚：長長長長長長長 呼～長完了' }],
 };
 function specialNow(k) {
   const f = festNow(), rain = myMoodRain();
-  return (SPECIAL_LINES[k] || []).map((x, i) => [i, x]).filter(([, x]) => x.w === f || (x.w === 'rain' && rain));
+  const h = new Date().getHours(), morning = h >= 5 && h < 11;   // 早安只在早上 5～11 點
+  return (SPECIAL_LINES[k] || []).map((x, i) => [i, x]).filter(([, x]) => x.w === f || (x.w === 'rain' && rain) || (x.w === 'morning' && morning));
 }
 
 // 節日小帽子：畫在每隻動物頭上（座標是各自的 viewBox）
@@ -416,3 +422,37 @@ async function joinFreshStart() {
   toast('歡迎加入！遊樂園從今天開始重新記錄，兩個人各送 40 點新手禮');
   setTimeout(() => { if (typeof holidayDrops === 'function') holidayDrops(); }, 2500);
 }
+
+// 鯊魚被晽晽貓貓吃掉，再長出來
+async function sharkEaten(el) {
+  const r = el.getBoundingClientRect();
+  const cat = walker('orange', 'eater');
+  cat.style.animation = 'none'; cat.style.left = '-100px'; cat.style.bottom = el.style.bottom || getComputedStyle(el).bottom;
+  document.body.appendChild(cat);
+  await sleep(30);
+  cat.style.transition = 'left .55s ease-in'; cat.style.left = (r.left + r.width / 2 - 40) + 'px';
+  await sleep(560);
+  sfx('pop'); vibrate(30);
+  el.classList.add('eaten');
+  const b1 = bubble('晽晽貓貓一口把鯊魚吃掉了', r.left + r.width / 2, r.top, 'solo narr');
+  await sleep(1300);
+  b1.remove();
+  cat.style.transition = 'left .8s ease-in'; cat.style.left = (innerWidth + 120) + 'px';
+  setTimeout(() => cat.remove(), 900);
+  await sleep(700);
+  // 長出來：先慢慢長一半「長…長…長…」，再點一下才一口氣長完；沒點的話自己慢慢長完
+  el.classList.remove('eaten', 'off'); el.innerHTML = withHat('shark', sharkArt());
+  const L = SPECIAL_LINES.shark, ix = (t) => L.findIndex((x) => x.t === t);
+  const say = (t, ms) => { const rr = el.getBoundingClientRect(); const b = bubble(t, rr.left + rr.width / 2, rr.top, 'solo'); dexNote('shark', 's' + ix(t)); if (ms) setTimeout(() => b.remove(), ms); return b; };
+  const grow = async (steps) => { for (const sc of steps) { el.style.setProperty('--grow', sc); el.classList.add('regrow'); sfx('pop'); await sleep(520); } };
+  await grow([.2, .35, .5]);
+  const slow = say('鯊魚：長…長…長…');
+  const tapped = await new Promise((res) => { const t = setTimeout(() => res(false), 12000); el.onclick = () => { clearTimeout(t); res(true); }; });
+  el.onclick = null; slow.remove();
+  if (tapped) { const b = say('鯊魚：長長長長長長長 呼～長完了'); await grow([1]); await sleep(1400); b.remove(); }
+  else { const b = say('鯊魚：長長長 長長長 長長長長 長完了～'); await grow([.7, .85, 1]); await sleep(900); b.remove(); }
+  if (Math.random() < .5) { const b = say('鯊魚：人類～我被吃掉了喔？'); await sleep(2200); b.remove(); }
+  el.classList.remove('regrow'); el.classList.add('wake');
+  setTimeout(() => el.remove(), 2200);
+}
+window.__eat = () => { catStroll('shark'); setTimeout(() => { const e = document.querySelector('.fr-shark'); if (e) { e.click(); setTimeout(() => sharkEaten(e), 700); } }, 2500); };

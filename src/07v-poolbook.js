@@ -17,7 +17,8 @@ function poolGot() {
 }
 function poolBookData() {
   const got = poolGot();
-  const pool = list('pool').filter((p) => p.title);
+  // 火辣級的卡：兩人都開火辣才看得到（連問號都不顯示）
+  const pool = list('pool').filter((p) => p.title && ((p.spice || 1) < 3 || (typeof hotOn === 'function' && hotOn())));
   const byR = {};
   for (const r of D.RARITY_ORDER) byR[r] = pool.filter((p) => (p.rarity || 'N') === r).sort((a, b) => (got[b.title] ? 1 : 0) - (got[a.title] ? 1 : 0) || (got[a.title]?.first || 0) - (got[b.title]?.first || 0));
   const n = pool.filter((p) => got[p.title]).length;
