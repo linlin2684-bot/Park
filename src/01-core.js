@@ -3,8 +3,8 @@
 //  （這個檔案是由 src/ 資料夾裡的分段檔合併而成）
 // ============================================================
 import { firebaseConfig } from './config.js';
-import * as D from './data.js';
-import { createStore } from './store.js';
+import * as D from './data.js?v=11211356';
+import { createStore } from './store.js?v=11211356';
 
 const S = {
   store: null, me: null, cid: null, couple: null, d: {},
@@ -173,7 +173,7 @@ function openModal(html, { center = false, cls = '', onClose } = {}) {
   const back = document.createElement('div');
   back.className = `modal-back ${center ? 'center' : ''} ${cls}`;
   back.innerHTML = `<div class="modal">${html}</div>`;
-  back.addEventListener('click', (e) => { if (e.target === back) closeModal(back); });
+  back.addEventListener('click', (e) => { if (e.target === back && !back.dataset.busy) closeModal(back); });   // busy：動畫進行中不能點外面關掉
   back._onClose = onClose;
   document.body.appendChild(back);
   return back;

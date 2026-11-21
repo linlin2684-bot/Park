@@ -3,8 +3,8 @@
 //  （這個檔案是由 src/ 資料夾裡的分段檔合併而成）
 // ============================================================
 import { firebaseConfig } from './config.js';
-import * as D from './data.js';
-import { createStore } from './store.js';
+import * as D from './data.js?v=11211356';
+import { createStore } from './store.js?v=11211356';
 
 const S = {
   store: null, me: null, cid: null, couple: null, d: {},
@@ -173,7 +173,7 @@ function openModal(html, { center = false, cls = '', onClose } = {}) {
   const back = document.createElement('div');
   back.className = `modal-back ${center ? 'center' : ''} ${cls}`;
   back.innerHTML = `<div class="modal">${html}</div>`;
-  back.addEventListener('click', (e) => { if (e.target === back) closeModal(back); });
+  back.addEventListener('click', (e) => { if (e.target === back && !back.dataset.busy) closeModal(back); });   // busy：動畫進行中不能點外面關掉
   back._onClose = onClose;
   document.body.appendChild(back);
   return back;
@@ -3004,6 +3004,7 @@ ACT.gacha = () => {
     if (useTicket) { if (tickets(me()) < 1) return toast('沒有扭蛋券'); }
     else if (balance(me()) < D.POINTS.gachaCost) return toast(`點數不夠，還差 ${D.POINTS.gachaCost - balance(me())} 點`);
     $('#gbtns', m).innerHTML = '';
+    m.dataset.busy = '1';
     if (useTicket) await addTicket(me(), -1); else await addPoints(me(), -D.POINTS.gachaCost, '扭蛋');
     const rarity = rollWithPity();
     const tpl = drawFromPool(rarity, true);
@@ -3020,8 +3021,10 @@ ACT.gacha = () => {
     await sleep(800);
     const from = tpl.by && tpl.by !== 'sys' && tpl.by !== me() ? tpl.by : (partner() || 'sys');
     const id = await giveCard(me(), tpl, { from, scratched: true });
-    await col('gacha').add({ uid: me(), rarity, title: tpl.title, how: 'gacha', at: now() });
-    if (tpl.mystery && partner()) await notify(partner(), 'mystery', '有一張神秘盲盒等你寫內容 🎁');
+    col('gacha').add({ uid: me(), rarity, title: tpl.title, how: 'gacha', at: now() });
+    if (tpl.mystery && partner()) notify(partner(), 'mystery', '有一張神秘盲盒等你寫內容 🎁');
+    delete m.dataset.busy;
+    if (!document.body.contains(m)) return toast('抽到的卡放進票夾了');
     let rays = null;
     if (rarity === 'SSR') { rays = document.createElement('div'); rays.className = 'ssr-rays'; document.body.appendChild(rays); confetti(150, ['#f6d365', '#fda085', '#f093fb', '#8fd3f4', '#fff']); vibrate([60, 40, 60, 40, 200]); }
     else if (rarity === 'SR') confetti(80, ['#a66bf0', '#d6b4ff', '#fff']);
@@ -3047,6 +3050,7 @@ ACT.gacha = () => {
     if (useTicket) { if (tickets(me()) < 10) return toast('扭蛋券不到 10 張'); }
     else if (balance(me()) < cost) return toast(`點數不夠，十連抽要 ${cost} 點，還差 ${cost - balance(me())} 點`);
     $('#gbtns', m).innerHTML = '';
+    m.dataset.busy = '1';
     if (useTicket) await addTicket(me(), -10); else await addPoints(me(), -cost, '扭蛋：十連抽');
     $('#kn', m).style.transform = 'rotate(1080deg)';
     vibrate(30); await sleep(700);
@@ -3057,10 +3061,12 @@ ACT.gacha = () => {
       const tpl = drawFromPool(rarity, true);
       const from = tpl.by && tpl.by !== 'sys' && tpl.by !== me() ? tpl.by : (partner() || 'sys');
       const id = await giveCard(me(), tpl, { from, scratched: true });
-      await col('gacha').add({ uid: me(), rarity, title: tpl.title, how: 'gacha', at: t0 + i });
-      if (tpl.mystery && partner()) await notify(partner(), 'mystery', '有一張神秘盲盒等你寫內容 🎁');
+      col('gacha').add({ uid: me(), rarity, title: tpl.title, how: 'gacha', at: t0 + i });
+      if (tpl.mystery && partner()) notify(partner(), 'mystery', '有一張神秘盲盒等你寫內容 🎁');
       batch.unshift(rarity); got.push({ id, tpl, rarity, gift: i === 10 });
     }
+    delete m.dataset.busy;
+    if (!document.body.contains(m)) return toast('十連抽的卡都放進票夾了');
     const best = got.reduce((b, x) => (rarityRank(x.rarity) > rarityRank(b) ? x.rarity : b), 'N');
     let rays = null;
     if (best === 'SSR') { rays = document.createElement('div'); rays.className = 'ssr-rays'; document.body.appendChild(rays); confetti(150, ['#f6d365', '#fda085', '#f093fb', '#8fd3f4', '#fff']); vibrate([60, 40, 60, 40, 200]); }
@@ -7880,6 +7886,25 @@ setInterval(() => {
   catStroll();
 }, 10000);
 
+
+// 跳出視窗時，後面的頁面固定不動（iPhone 上 overflow:hidden 不夠，要把 body 釘住）
+(() => {
+  let lockedY = null;
+  const sync = () => {
+    const open = !!document.querySelector('.modal-back');
+    const b = document.body;
+    if (open && lockedY === null) {
+      lockedY = window.scrollY;
+      Object.assign(b.style, { position: 'fixed', top: `-${lockedY}px`, left: '0', right: '0', width: '100%' });
+    } else if (!open && lockedY !== null) {
+      const y = lockedY; lockedY = null;
+      Object.assign(b.style, { position: '', top: '', left: '', right: '', width: '' });
+      window.scrollTo(0, y);
+    }
+  };
+  new MutationObserver(sync).observe(document.body, { childList: true });
+})();
+window.__toast = toast;
 
 // ============================================================
 //  收藏冊：兌換卡（扭蛋卡池裡的卡）

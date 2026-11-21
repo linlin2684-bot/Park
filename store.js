@@ -76,7 +76,8 @@ async function firebaseStore(config) {
       const c = F.collection(db, 'couples', cid, name);
       return {
         watch: (cb) => F.onSnapshot(c, (qs) => cb(qs.docs.map((d) => ({ id: d.id, ...d.data() })))),
-        add: async (data) => (await F.addDoc(c, data)).id,
+        // 先在本機產生 id、不等雲端回覆（畫面馬上更新，網路慢也不會卡）
+        add: async (data) => { const ref = F.doc(c); F.setDoc(ref, data).catch((e) => { console.error('寫入失敗', e); window.__toast && window.__toast('沒有存到，等一下再試'); }); return ref.id; },
         set: (id, data, merge = true) => F.setDoc(F.doc(c, id), data, { merge }),
         update: (id, patch) => F.updateDoc(F.doc(c, id), patch),
         remove: (id) => F.deleteDoc(F.doc(c, id)),

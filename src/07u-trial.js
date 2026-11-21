@@ -25,3 +25,22 @@ setInterval(() => {
   catStroll();
 }, 10000);
 
+
+// 跳出視窗時，後面的頁面固定不動（iPhone 上 overflow:hidden 不夠，要把 body 釘住）
+(() => {
+  let lockedY = null;
+  const sync = () => {
+    const open = !!document.querySelector('.modal-back');
+    const b = document.body;
+    if (open && lockedY === null) {
+      lockedY = window.scrollY;
+      Object.assign(b.style, { position: 'fixed', top: `-${lockedY}px`, left: '0', right: '0', width: '100%' });
+    } else if (!open && lockedY !== null) {
+      const y = lockedY; lockedY = null;
+      Object.assign(b.style, { position: '', top: '', left: '', right: '', width: '' });
+      window.scrollTo(0, y);
+    }
+  };
+  new MutationObserver(sync).observe(document.body, { childList: true });
+})();
+window.__toast = toast;
