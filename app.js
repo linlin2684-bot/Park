@@ -1344,7 +1344,10 @@ function renderOnboard() {
     $$('[data-role]').forEach((b) => b.onclick = () => {
       p.nick = $('#nk').value; p.role = b.dataset.role;
       p.emoji = p.role === 'him' ? '👦' : '👧'; p.av = p.role === 'him' ? 'boy' : 'girl';
-      p.bday = p.role === 'him' ? D.DEFAULT_DATES.hisBirthday : D.DEFAULT_DATES.herBirthday;
+      // 生日：自己改過就保留，還是預設值才換成另一個人的預設生日
+      const typed = $('#bd').value.trim();
+      const defs = [D.DEFAULT_DATES.hisBirthday, D.DEFAULT_DATES.herBirthday, ''];
+      p.bday = defs.includes(typed) ? (p.role === 'him' ? D.DEFAULT_DATES.hisBirthday : D.DEFAULT_DATES.herBirthday) : typed;
       draw();
     });
     const collect = () => {
