@@ -51,6 +51,8 @@ const _hotEnter = ACT.hot;
 ACT.hot = async () => {
   const wasOpen = now() < hotUntil;
   await _hotEnter();
+  // 好寶加入前的測試期間：每次進來約 10 秒就來，趕走後 10 秒又來，不限次數
+  if (trialOpen() && now() < hotUntil) { pestDone = false; clearTimeout(pestTimer); pestTimer = setTimeout(pestTry, 8000 + Math.random() * 4000); return; }
   if (wasOpen || now() >= hotUntil) return;
   pestDone = false; clearTimeout(pestTimer);
   if (!(S.couple.drops || {})[`pest-${dkey()}`] && Math.random() < PEST_ODDS) pestTimer = setTimeout(pestTry, 20000 + Math.random() * 70000);
@@ -61,6 +63,7 @@ function pestTry() {
   if (!hotOpen || document.visibilityState === 'hidden' || now() >= hotUntil) return;
   // 正在輸密碼、正在倒數計時的時候不吵，晚一點再來
   if (document.querySelector('.pin-wrap, .pest')) { pestTimer = setTimeout(pestTry, 15000); return; }
+  if (trialOpen()) return showPest();
   // 兩個人一天最多被搗亂一次
   S.store.coupleTx(S.cid, (c) => ((c.drops || {})[`pest-${dkey()}`] ? null : { [`drops.pest-${dkey()}`]: true }))
     .then((ok) => { if (ok && document.querySelector('.modal-back.hot-zone')) showPest(); }).catch(() => {});
@@ -80,7 +83,11 @@ function showPest(k = pick(PEST_KEYS)) {
     if (gone) return; gone = true; clearTimeout(idle);
     say(t); el.classList.add(chased ? 'chased' : 'wander');
     if (chased) { const r = $('.pest-body', el).getBoundingClientRect(); floaty(r.left + r.width / 2, r.top, k === 'orange' ? ['#c9773a', '#ffd45c'] : ['#ff9fb4', '#ffd45c', '#e2b56a']); sfx('chime'); }
-    setTimeout(() => el.remove(), 1900);
+    setTimeout(() => {
+      el.remove();
+      // 測試期間：走了 10 秒左右再來一隻
+      if (trialOpen() && document.querySelector('.modal-back.hot-zone')) { pestDone = false; clearTimeout(pestTimer); pestTimer = setTimeout(pestTry, 8000 + Math.random() * 4000); }
+    }, 1900);
   };
   // 不理牠的話，45 秒後自己走掉
   const idle = setTimeout(() => leave(P.idle, false), 45000);
