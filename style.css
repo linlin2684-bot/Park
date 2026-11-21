@@ -2042,7 +2042,6 @@ html[data-theme="night"] .emb-HOT { --e-bg: #2a0f1c; --e-ink: #e9c27a; --e-acc: 
 .hz-main small { font-size: 12px; color: #d9b3a4; }
 .hz-arr { font-size: 22px; color: #e9c27a; }
 .hz-top .grow { text-align: left; }
-<<<<<<< Updated upstream
 .sc-roles2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 12px; }
 .sc-role { text-align: left; padding: 10px; border-radius: 12px; background: #2e111e; box-shadow: inset 0 0 0 1px rgba(233, 194, 122, .3); }
 .sc-role.mine { box-shadow: inset 0 0 0 1.5px #e9c27a; background: linear-gradient(160deg, #4a1a2e, #2e111e); }
@@ -2056,7 +2055,6 @@ html[data-theme="night"] .emb-HOT { --e-bg: #2a0f1c; --e-ink: #e9c27a; --e-acc: 
 .sc-acts li span { flex: none; font-size: 11px; color: #e9c27a; border: 1px solid rgba(233, 194, 122, .5); border-radius: 6px; padding: 0 5px; height: 20px; line-height: 18px; margin-top: 3px; }
 .sc-sec.safe { box-shadow: inset 0 0 0 1px rgba(233, 194, 122, .5); }
 .sc-sec.safe .link { margin-left: 6px; font-size: 13px; }
-=======
 /* 小劇場：點一下繼續 */
 .fr-next { display: block; margin-top: 4px; font-size: 11px; font-weight: 700; opacity: .55; text-align: right; font-style: normal; }
 /* 票夾排序 */
@@ -2066,4 +2064,3 @@ html[data-theme="night"] .emb-HOT { --e-bg: #2a0f1c; --e-ink: #e9c27a; --e-acc: 
 .fr-bubble.tappable { pointer-events: auto; cursor: pointer; }
 .g10-card { cursor: pointer; }
 .g10-card.canned { opacity: .45; }
->>>>>>> Stashed changes
