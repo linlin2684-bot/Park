@@ -8,7 +8,7 @@ import { createStore } from './store.js';
 
 const S = {
   store: null, me: null, cid: null, couple: null, d: {},
-  tab: localStorage.getItem('park-tab') || 'home',
+  tab: 'home',   // 每次打開都從首頁開始
   sub: { wallet: 'mine', travel: 'plan', memory: 'goals' },
   unsubs: [], started: Date.now(), seenEvents: new Set(), deferRender: false,
 };
@@ -1463,7 +1463,7 @@ function renderNav() {
 ACT.tab = (el) => {
   const t = el.dataset.tab;
   if (S.tab === t) { window.scrollTo({ top: 0, behavior: 'smooth' }); return; }
-  S.tab = t; localStorage.setItem('park-tab', t);
+  S.tab = t;
   window.scrollTo(0, 0);
   render();
 };

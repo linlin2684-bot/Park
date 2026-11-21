@@ -8,7 +8,7 @@ import { createStore } from './store.js';
 
 const S = {
   store: null, me: null, cid: null, couple: null, d: {},
-  tab: localStorage.getItem('park-tab') || 'home',
+  tab: 'home',   // 每次打開都從首頁開始
   sub: { wallet: 'mine', travel: 'plan', memory: 'goals' },
   unsubs: [], started: Date.now(), seenEvents: new Set(), deferRender: false,
 };

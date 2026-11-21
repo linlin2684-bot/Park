@@ -382,7 +382,7 @@ function renderNav() {
 ACT.tab = (el) => {
   const t = el.dataset.tab;
   if (S.tab === t) { window.scrollTo({ top: 0, behavior: 'smooth' }); return; }
-  S.tab = t; localStorage.setItem('park-tab', t);
+  S.tab = t;
   window.scrollTo(0, 0);
   render();
 };
