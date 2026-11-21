@@ -429,7 +429,7 @@ async function joinFreshStart() {
   for (const name of COLS) {
     if (name === 'pool') continue;
     for (const d of list(name)) {
-      if (name === 'cards' && d.series === bSeries && d.owner !== c.creator) continue;   // 好寶的生日卡組
+      if (name === 'cards' && d.series === bSeries) continue;   // 生日系列都留著（11/22 晽晽說她票夾裡的也要留）
       await col(name).remove(d.id);
     }
   }

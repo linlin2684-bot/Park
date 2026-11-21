@@ -464,11 +464,12 @@ function walletBook() {
   // 節日、旅行卡兩人各一張，只看自己那份
   const all = list('cards').filter((c) => c.series && !((c.series === '節日系列' || c.series === '旅行系列' || SERIES_SLOTS[c.series]) && c.owner !== me()));
   // 許願系列依「誰許的願」分成兩本
-  const keyOf = (c) => (c.series === WISH_SERIES ? `wish:${c.owner}` : c.series);
+  const keyOf = (c) => (c.series === WISH_SERIES ? `wish:${c.owner}` : c.series === D.BIRTHDAY_SERIES ? `bday:${c.owner}` : c.series);
   const groups = {};
   all.forEach((c) => (groups[keyOf(c)] ||= []).push(c));
   const books = [
-    { key: D.BIRTHDAY_SERIES, series: D.BIRTHDAY_SERIES, title: D.BIRTHDAY_SERIES },
+    // 生日系列：誰的票夾裡的就分成誰的一本（11/22 晽晽要求）；都還沒有時留一本空的
+    ...(() => { const who = ms.filter((u) => groups[`bday:${u}`]); return who.length ? who.map((u) => ({ key: `bday:${u}`, series: D.BIRTHDAY_SERIES, title: `${nick(u)}的生日卡`, owner: u })) : [{ key: 'bday:none', series: D.BIRTHDAY_SERIES, title: D.BIRTHDAY_SERIES }]; })(),
     ...ms.map((u) => ({ key: `wish:${u}`, series: WISH_SERIES, title: `${nick(u)}的許願卡`, owner: u })),
     { key: '節日系列', series: '節日系列', title: '節日系列' },
     { key: '旅行系列', series: '旅行系列', title: '旅行系列' },
@@ -476,7 +477,7 @@ function walletBook() {
     { key: '小小黑系列', series: '小小黑系列', title: '小小黑系列' },
     { key: '想你系列', series: '想你系列', title: '想你系列' },
     { key: '成就系列', series: '成就系列', title: '成就系列' },
-    ...Object.keys(groups).filter((k) => !k.startsWith('wish:') && !BOOK_META[k]).map((k) => ({ key: k, series: k, title: k })),
+    ...Object.keys(groups).filter((k) => !k.startsWith('wish:') && !k.startsWith('bday:') && !BOOK_META[k]).map((k) => ({ key: k, series: k, title: k })),
   ];
   const toc = [];
   const html = books.map((b, bi) => {
@@ -490,14 +491,14 @@ function walletBook() {
     const shut = S.bookShut[b.key];
     const svg = bookCoverSVG(meta, {
       title: b.title, sub: meta.sub, got, total: allSlots ? allSlots.length : cs.length, empty: empty && !slots.length,
-      slogan: isB ? `「${D.BIRTHDAY_SLOGAN}」` : '', sloganOn: isB && cs.length && got === cs.length,
+      slogan: isB ? `「${D.BIRTHDAY_SLOGAN}」` : '', sloganOn: isB && cs.length >= D.BIRTHDAY_CARDS.length + D.BIRTHDAY_COLLECTIBLES.length,   // 整套到齊才亮標語
     });
     // 拿到的照稀有度排前面，沒拿到的空卡套照稀有度排後面
     const rk = (x) => (x.kind === 'collect' ? 99 : rarityRank(x.rarity));
     S.bookData[b.key] = { title: b.title, pal: meta.pal, isB, wish: b.series === WISH_SERIES,
       cards: [...cs].sort((a, c) => rk(a) - rk(c) || a.at - c.at), slots: [...slots].sort((a, c) => rk(a) - rk(c)) };
     const canOpen = !(empty && !slots.length);
-    toc.push({ bi, pal: meta.pal, motif: meta.motif, name: b.title.replace('系列', '').replace('的許願卡', ' 許願'), got, total: allSlots ? allSlots.length : cs.length });
+    toc.push({ bi, pal: meta.pal, motif: meta.motif, name: b.title.replace('系列', '').replace('的許願卡', ' 許願').replace('的生日卡', ' 生日'), got, total: allSlots ? allSlots.length : cs.length });
     return `<div class="book emb-${meta.pal}" id="bk-${bi}">
       <button class="book-cover2" ${canOpen ? `data-act="bookOpen" data-k="${esc(b.key)}"` : ''}>${svg}</button>
       <div class="book-note">${!canOpen ? esc(meta.how) : `已收集 ${got} 張・點封面翻開`}</div>
