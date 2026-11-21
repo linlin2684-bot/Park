@@ -224,8 +224,8 @@ ACT.hotPlay = () => {
       const el = $(`.hdie[data-k="${k}"]`, m), faces = hotFaces(lv, k), b = $('b', el);
       el.classList.remove('spin'); void el.offsetWidth; el.classList.add('spin');
       const stop = now() + 700 + i * 260;
-      while (now() < stop) { b.textContent = who(pick(faces)); b.classList.toggle('long', b.textContent.length > 4); await sleep(70); }
-      out[k] = who(raw[k]); b.textContent = out[k]; b.classList.toggle('long', out[k].length > 4);
+      while (now() < stop) { b.textContent = who(pick(faces)); b.classList.toggle('long', b.textContent.length > 4); b.classList.toggle('xlong', b.textContent.length > 8); await sleep(70); }
+      out[k] = who(raw[k]); b.textContent = out[k]; b.classList.toggle('long', out[k].length > 4); b.classList.toggle('xlong', out[k].length > 8);
       el.classList.remove('spin'); el.classList.add('land'); setTimeout(() => el.classList.remove('land'), 400);
     }));
     sfx('chime');
