@@ -156,9 +156,11 @@ function hotHub() {
     <div class="game-tiles hz-tiles">
       <button class="game-tile wide" data-act="hotPose"><span class="gi"><i data-ic="star" data-medal></i></span><div class="grow"><b>今天的姿勢</b><br><span>${hotPoseToday() ? '今天的牌已經抽好了' : '每天一組，抽到幾張就照順序來'}</span></div><span style="font-size:22px">›</span></button>
       <button class="game-tile wide" data-act="hotPlay"><span class="gi"><i data-ic="dice" data-medal></i></span><div class="grow"><b>前戲遊戲</b><br><span>真心話、大冒險、骰子，輪流來</span></div><span style="font-size:22px">›</span></button>
+      <button class="game-tile" data-act="hotTease"><span class="gi"><i data-ic="letter" data-medal></i></span><b>撩撥任務</b><span>${hotTeaseBadge() ? '<span class="badge-dot">!</span>' : ''}早上互派，晚上驗收</span></button>
+      <button class="game-tile" data-act="hotWallet"><span class="gi"><i data-ic="stamp" data-medal></i></span><b>火辣票夾</b><span>印章 ${hotStamps(me()).length} 個</span></button>
       <button class="game-tile wide" data-act="hotList"><span class="gi"><i data-ic="heart" data-medal></i></span><div class="grow"><b>想試清單</b><br><span>各自偷偷勾，兩個人都想的才會配對</span></div>${hotNewMatch() ? '<span class="badge-dot">!</span>' : ''}<span style="font-size:22px">›</span></button>
     </div>
-    <div class="center hz-links"><button class="link" data-act="hotTimer"><i data-ic="hourglass"></i> 計時器</button><button class="link" data-act="hotPoseBook"><i data-ic="book"></i> 姿勢圖鑑</button><button class="link" id="hz-lock"><i data-ic="lock"></i> 鎖上離開</button></div>`;
+    <div class="center hz-links"><button class="link" data-act="hotSignal"><i data-ic="moon"></i> 今晚的暗號</button><button class="link" data-act="hotTimer"><i data-ic="hourglass"></i> 計時器</button><button class="link" data-act="hotPoseBook"><i data-ic="book"></i> 姿勢圖鑑</button><button class="link" id="hz-lock"><i data-ic="lock"></i> 鎖上離開</button></div>`;
   const m = openModal(draw(), { center: true, cls: 'hot-zone hz-hub' });
   const wire = () => {
     $$('#hz-lv button', m).forEach((b) => b.onclick = () => { localStorage.setItem('park-hot-lv', b.dataset.l); $$('#hz-lv button', m).forEach((x) => x.classList.toggle('on', x === b)); });
@@ -657,5 +659,183 @@ function hotPosePicker(idx, done) {
       fire(col('hot').update(d.id, { cards }));
       closeModal(v); closeModal(m); sfx('chime'); toast(`換成「${p.name}」`); setTimeout(() => done && done(), 150);
     };
+  });
+}
+
+
+// ============================================================
+//  今晚的暗號：首頁右上角的小月亮（兩人都火辣才出現），有暗號時會亮
+// ============================================================
+const sigToday = () => hotDocs('signal').filter((d) => d.day === dkey());
+const sigIn = () => sigToday().filter((d) => d.to === me()).sort((a, b) => b.at - a.at)[0];
+const sigOut = () => sigToday().filter((d) => d.from === me()).sort((a, b) => b.at - a.at)[0];
+function hotMoonLit() {
+  const i = sigIn(), o = sigOut();
+  return (i && i.status === 'pending') || (o && o.status !== 'pending' && !o.seen);
+}
+function hotMoonHTML() {
+  if (!hotOn() || S.tab !== 'home' || (S.couple.members || []).length < 2) return '';
+  return `<button class="icon-btn hot-moon ${hotMoonLit() ? 'lit' : ''}" data-act="hotSignal" aria-label="月亮"><svg viewBox="0 0 24 24" class="ic"><path d="M15 3.5 A8.5 8.5 0 1 0 20.5 15 A6.8 6.8 0 0 1 15 3.5 Z" fill="currentColor" stroke="none"/><path d="M19 4 l.6 1.4 l1.4 .6 l-1.4 .6 l-.6 1.4 l-.6 -1.4 l-1.4 -.6 l1.4 -.6 z" fill="currentColor"/></svg></button>`;
+}
+// 從首頁按月亮也要先解鎖
+ACT.hotSignal = async () => {
+  if (!hotOn()) return;
+  if (now() >= hotUntil) {
+    if (!S.couple.hot?.pin) { if (!(await hotSetPin())) return; }
+    else if (!(await pinPad({ title: '輸入密碼', sub: '只有我們兩個知道', check: hotCheck }))) return;
+    hotUntil = now() + HOT_UNLOCK_MS;
+  }
+  hotSignalModal();
+};
+function hotSignalModal() {
+  const m = openModal('', { center: true, cls: 'hot-zone hz-sig' });
+  const p = partner();
+  const draw = () => {
+    const i = sigIn(), o = sigOut();
+    let body = '';
+    if (i) {
+      body += `<div class="sig-card in"><div class="sig-h">${esc(nick(i.from))} 傳來的暗號</div>
+        <div class="sig-big">今晚？</div>
+        <div class="sig-meta">${i.time ? `<span>${esc(i.time)}</span>` : ''}${i.lv ? `<span>${spiceIc(i.lv)} ${D.SPICE[i.lv].label}</span>` : ''}</div>
+        ${i.msg ? `<div class="sig-msg">「${esc(i.msg)}」</div>` : ''}
+        ${i.status === 'pending' ? `<input id="sg-r" maxlength="40" placeholder="回一句話（可以不寫）">
+          <div class="btn-row"><button class="btn ghost" data-ans="no">改天</button><button class="btn hot-btn" data-ans="yes">好</button></div>`
+        : `<div class="sig-ans ${i.status}">你回了：${i.status === 'yes' ? '好' : '改天'}${i.reply ? `「${esc(i.reply)}」` : ''}</div>`}</div>`;
+    }
+    if (o) {
+      if (o.status !== 'pending' && !o.seen) fire(col('hot').update(o.id, { seen: true }));
+      body += `<div class="sig-card out"><div class="sig-h">你傳給 ${esc(nick(o.to))} 的暗號</div>
+        <div class="sig-meta">${o.time ? `<span>${esc(o.time)}</span>` : ''}${o.lv ? `<span>${spiceIc(o.lv)} ${D.SPICE[o.lv].label}</span>` : ''}</div>
+        ${o.msg ? `<div class="sig-msg">「${esc(o.msg)}」</div>` : ''}
+        <div class="sig-ans ${o.status}">${o.status === 'pending' ? '還沒回⋯⋯' : `${esc(nick(o.to))}：${o.status === 'yes' ? '好' : '改天'}${o.reply ? `「${esc(o.reply)}」` : ''}`}</div></div>`;
+    }
+    if (!o) {
+      let lv = hotLv();
+      body += `<div class="sig-card new"><div class="sig-h">傳一個暗號給 ${esc(nick(p))}</div>
+        <div class="sig-big">今晚？</div>
+        <label>幾點</label><div class="seg" id="sg-t">${['不說', '9 點', '10 點', '11 點', '12 點'].map((t, k) => `<button data-t="${k ? t : ''}" class="${k === 0 ? 'on' : ''}">${t}</button>`).join('')}</div>
+        <label>熱度</label><div class="seg" id="sg-lv">${[2, 3].map((l) => `<button data-l="${l}" class="${lv === l ? 'on' : ''}">${spiceIc(l)} ${D.SPICE[l].label}</button>`).join('')}</div>
+        <label>一句悄悄話（可以不寫）</label><input id="sg-m" maxlength="40" placeholder="例如：今天想你一整天">
+        <button class="btn block hot-btn mt" id="sg-go">送出暗號</button>
+        <p class="small muted center" style="margin:8px 0 0">對方首頁的小月亮會亮起來，別人看不懂</p></div>`;
+    }
+    m.querySelector('.modal').innerHTML = `${mhead('<i data-ic="moon"></i> 今晚的暗號')}${body}`;
+    let time = '', lvv = hotLv();
+    $$('#sg-t button', m).forEach((b) => b.onclick = () => { time = b.dataset.t; $$('#sg-t button', m).forEach((x) => x.classList.toggle('on', x === b)); });
+    $$('#sg-lv button', m).forEach((b) => b.onclick = () => { lvv = +b.dataset.l; $$('#sg-lv button', m).forEach((x) => x.classList.toggle('on', x === b)); });
+    $('#sg-go', m) && ($('#sg-go', m).onclick = () => {
+      fire(col('hot').add({ type: 'signal', day: dkey(), from: me(), to: p, time, lv: lvv, msg: $('#sg-m', m).value.trim(), status: 'pending', at: now() }));
+      sfx('chime'); vibrate([20, 40, 20]); toast('暗號送出去了'); setTimeout(draw, 150);
+    });
+    $$('[data-ans]', m).forEach((b) => b.onclick = () => {
+      const i = sigIn();
+      fire(col('hot').update(i.id, { status: b.dataset.ans, reply: ($('#sg-r', m)?.value || '').trim(), repliedAt: now() }));
+      sfx(b.dataset.ans === 'yes' ? 'sparkle' : 'pop'); if (b.dataset.ans === 'yes') confetti(50, ['#e9c27a', '#d9485f', '#fff4e6']);
+      setTimeout(draw, 150);
+    });
+  };
+  draw();
+  m._onClose = () => render();
+}
+
+// ============================================================
+//  白天撩撥任務＋火辣印章＋火辣票夾
+// ============================================================
+const teaseToday = () => hotDocs('tease').filter((d) => d.day === dkey());
+const teaseForMe = () => teaseToday().find((d) => d.to === me());
+const teaseBy = () => teaseToday().find((d) => d.from === me());
+const hotStamps = (uid) => hotDocs('stamp').filter((d) => d.uid === uid && !d.used);
+function hotTeaseBadge() { const f = teaseForMe(), b = teaseBy(); return (f && f.status === 'sent') || (b && b.status === 'done') || !b; }
+ACT.hotTease = () => {
+  const m = openModal('', { center: true, cls: 'hot-zone hz-tease' });
+  const p = partner();
+  let pickT = pick(D.HOT_TEASE), rerolls = 2;
+  const draw = () => {
+    const f = teaseForMe(), b = teaseBy();
+    const mine = f ? `<div class="tz-card"><div class="sig-h">${esc(nick(f.from))} 派給你的</div><div class="tz-t">${esc(f.text)}</div>
+        ${f.status === 'sent' ? '<button class="btn block hot-btn" id="tz-did">我做了</button><p class="small muted center" style="margin:6px 0 0">晚上等對方驗收，通過就蓋一個火辣印章</p>'
+        : f.status === 'done' ? `<div class="sig-ans pending">等 ${esc(nick(f.from))} 驗收⋯⋯</div>` : `<div class="tz-ok">${hotStampSVG()}<span>驗收通過，蓋章了</span></div>`}</div>`
+      : `<div class="tz-card dim"><div class="sig-h">今天 ${esc(nick(p))} 還沒派任務給你</div></div>`;
+    const theirs = b ? `<div class="tz-card"><div class="sig-h">你派給 ${esc(nick(p))} 的</div><div class="tz-t">${esc(b.text)}</div>
+        ${b.status === 'checked' ? `<div class="tz-ok">${hotStampSVG()}<span>已經驗收</span></div>`
+        : `<button class="btn block ${b.status === 'done' ? 'hot-btn' : 'ghost'}" id="tz-check">${b.status === 'done' ? `${esc(nick(p))} 說做了，驗收通過` : '他做到了，驗收通過'}</button>`}</div>`
+      : `<div class="tz-card new"><div class="sig-h">派一張給 ${esc(nick(p))}</div><div class="tz-t" id="tz-pick">${esc(pickT)}</div>
+        <div class="btn-row"><button class="btn ghost" id="tz-re" ${rerolls ? '' : 'disabled'}>換一張${rerolls ? `（還可以換 ${rerolls} 次）` : ''}</button><button class="btn hot-btn" id="tz-send">就派這張</button></div></div>`;
+    keepScroll(m, () => {
+      m.querySelector('.modal').innerHTML = `${mhead('<i data-ic="letter"></i> 撩撥任務')}<p class="small muted" style="margin:0 0 8px">早上互相派一張，白天偷偷做，晚上派的人驗收。做到的人蓋一個火辣印章</p>${mine}${theirs}
+        <div class="center hz-links"><button class="link" data-act="hotWallet"><i data-ic="stamp"></i> 火辣票夾（印章 ${hotStamps(me()).length} 個）</button></div>`;
+    });
+    $('#tz-re', m) && ($('#tz-re', m).onclick = () => { if (!rerolls) return; rerolls--; let n = pickT; while (n === pickT) n = pick(D.HOT_TEASE); pickT = n; sfx('pop'); draw(); });
+    $('#tz-send', m) && ($('#tz-send', m).onclick = () => { fire(col('hot').add({ type: 'tease', day: dkey(), from: me(), to: p, text: pickT, status: 'sent', at: now() })); sfx('chime'); toast('派出去了'); setTimeout(draw, 150); });
+    $('#tz-did', m) && ($('#tz-did', m).onclick = () => { fire(col('hot').update(teaseForMe().id, { status: 'done', doneAt: now() })); sfx('pop'); setTimeout(draw, 150); });
+    $('#tz-check', m) && ($('#tz-check', m).onclick = () => {
+      const t = teaseBy();
+      fire(col('hot').update(t.id, { status: 'checked', checkedAt: now() }));
+      fire(col('hot').add({ type: 'stamp', uid: t.to, why: t.text, used: false, at: now() }));
+      sfx('stamp'); vibrate(30); toast(`幫 ${nick(t.to)} 蓋了一個火辣印章`); setTimeout(draw, 150);
+    });
+  };
+  draw();
+  m._onClose = hotRedrawHub;
+};
+const hotStampSVG = () => `<svg class="hstamp" viewBox="-30 -30 60 60" aria-hidden="true"><circle r="27" class="hs-r"/><circle r="22" class="hs-r2" stroke-dasharray="1.2 2.2"/><g transform="translate(-14.5 -16) scale(1.2)"><path d="M12 21 C8 21 6 18.5 6 15.5 C6 12 9 10.5 9 7 C11.5 8.5 12 10.5 11.8 12.2 C13 11.4 13.6 10 13.6 8.5 C16.5 10.5 18 13 18 15.5 C18 18.5 16 21 12 21 Z" class="hs-f"/></g></svg>`;
+
+ACT.hotWallet = () => {
+  const m = openModal('', { center: true, cls: 'hot-zone hz-wallet' });
+  const draw = () => {
+    const st = hotStamps(me());
+    const tix = hotDocs('hticket').filter((d) => d.uid === me() && !d.used);
+    const vouchers = hotDocs('voucher').filter((d) => d.uid === me() && d.status !== 'redeemed').sort((a, b) => b.at - a.at);
+    const toMe = hotDocs('voucher').filter((d) => d.uid !== me() && d.status === 'asked');
+    const used = hotDocs('voucher').filter((d) => d.status === 'redeemed').sort((a, b) => b.at - a.at).slice(0, 6);
+    const filled = Math.min(st.length, D.HOT_STAMP.lottery);
+    const slots = Array.from({ length: D.HOT_STAMP.lottery }, (_, i) => `<span class="hw-slot ${i < filled ? 'on' : ''}">${i < filled ? hotStampSVG() : ''}</span>`).join('');
+    const tName = (k) => (k === 'wish' ? '許願券' : '抽獎券');
+    keepScroll(m, () => { m.querySelector('.modal').innerHTML = `${mhead('<i data-ic="stamp"></i> 火辣票夾')}
+      <div class="hw-sec"><div class="hl-grp">火辣印章 · ${st.length} 個</div><div class="hw-slots">${slots}</div>
+        <div class="btn-row"><button class="btn ${st.length >= D.HOT_STAMP.lottery ? 'hot-btn' : 'ghost'}" id="hw-l" ${st.length >= D.HOT_STAMP.lottery ? '' : 'disabled'}>用 ${D.HOT_STAMP.lottery} 個抽獎</button><button class="btn ${st.length >= D.HOT_STAMP.wish ? 'gold' : 'ghost'}" id="hw-w" ${st.length >= D.HOT_STAMP.wish ? '' : 'disabled'}>用 ${D.HOT_STAMP.wish} 個許願</button></div>
+        <p class="small muted" style="margin:4px 0 0">撩撥任務被驗收通過就會拿到印章。集滿 ${D.HOT_STAMP.lottery} 個可以抽火辣獎，${D.HOT_STAMP.wish} 個可以從想試清單許一個願</p></div>
+      ${tix.length ? `<div class="hw-sec"><div class="hl-grp">我的券</div>${tix.map((t) => `<div class="hw-row"><span class="hw-tk ${t.kind}">${tName(t.kind)}</span><span class="grow small muted">${t.kind === 'wish' ? '從想試清單挑一項，要對方兌現' : '抽一個火辣小獎'}</span><button class="btn sm hot-btn" data-use="${t.id}">${t.kind === 'wish' ? '挑一項' : '抽獎'}</button></div>`).join('')}</div>` : ''}
+      ${toMe.length ? `<div class="hw-sec"><div class="hl-grp">${esc(nick(partner()))} 要兌現的</div>${toMe.map((v) => `<div class="hw-row"><span class="grow"><b>${esc(v.title)}</b><br><span class="small muted">${esc(v.desc || '')}</span></span><button class="btn sm hot-btn" data-ok="${v.id}">兌現了</button></div>`).join('')}</div>` : ''}
+      <div class="hw-sec"><div class="hl-grp">我的火辣獎勵</div>${vouchers.length ? vouchers.map((v) => `<div class="hw-row"><span class="hw-tk ${v.kind}">${v.kind === 'wish' ? '許願' : v.rare ? '★ 稀有' : '獎'}</span><span class="grow"><b>${esc(v.title)}</b><br><span class="small muted">${esc(v.desc || '')}</span></span>${v.status === 'asked' ? '<span class="small muted">等對方兌現</span>' : `<button class="btn sm ghost" data-ask="${v.id}">要兌現</button>`}</div>`).join('') : '<p class="small muted" style="margin:4px 0">還沒有，先去做撩撥任務吧</p>'}</div>
+      ${used.length ? `<div class="hw-sec"><div class="hl-grp">兌現過的</div>${used.map((v) => `<div class="hw-row done"><span class="grow small">${esc(v.title)} · ${esc(nick(v.uid))}</span><span class="small muted">${fmtDate(v.redeemedAt || v.at)}</span></div>`).join('')}</div>` : ''}`; });
+    const spend = (n) => { hotStamps(me()).sort((a, b) => a.at - b.at).slice(0, n).forEach((d) => fire(col('hot').update(d.id, { used: true }))); };
+    $('#hw-l', m).onclick = () => { if (hotStamps(me()).length < D.HOT_STAMP.lottery) return; spend(D.HOT_STAMP.lottery); hotLottery(null, () => setTimeout(draw, 150)); };
+    $('#hw-w', m).onclick = () => { if (hotStamps(me()).length < D.HOT_STAMP.wish) return; hotWishPick(null, () => setTimeout(draw, 150), () => spend(D.HOT_STAMP.wish)); };
+    $$('[data-use]', m).forEach((b) => b.onclick = () => {
+      const t = hotDocs('hticket').find((x) => x.id === b.dataset.use); if (!t) return;
+      if (t.kind === 'lottery') hotLottery(t, () => setTimeout(draw, 150));
+      else hotWishPick(t, () => setTimeout(draw, 150));
+    });
+    $$('[data-ask]', m).forEach((b) => b.onclick = () => { fire(col('hot').update(b.dataset.ask, { status: 'asked', askedAt: now() })); sfx('pop'); toast('跟對方說要兌現了'); setTimeout(draw, 150); });
+    $$('[data-ok]', m).forEach((b) => b.onclick = () => { fire(col('hot').update(b.dataset.ok, { status: 'redeemed', redeemedAt: now() })); sfx('stamp'); setTimeout(draw, 150); });
+  };
+  draw();
+  m._onClose = hotRedrawHub;
+};
+function hotLottery(t, done) {
+  const role = prof(me()).role === 'him' ? 'him' : 'her';
+  const pool = D.HOT_REWARDS.filter((r) => r.who === 'both' || r.who === role);
+  const tot = pool.reduce((a, r) => a + r.w, 0);
+  let x = Math.random() * tot, r = pool[0];
+  for (const y of pool) { x -= y.w; if (x <= 0) { r = y; break; } }
+  const m = openModal(`${mhead('火辣抽獎')}<div class="lt-box"><div class="lt-em">${hotEmblem()}</div><div class="lt-t" id="lt-t">⋯⋯</div><div class="lt-d small muted" id="lt-d"></div></div>
+    <div class="btn-row"><button class="btn hot-btn" data-act="close">收進火辣票夾</button></div>`, { center: true, cls: 'hot-zone' });
+  if (t) fire(col('hot').update(t.id, { used: true }));
+  fire(col('hot').add({ type: 'voucher', uid: me(), kind: 'lottery', title: r.t, desc: r.d, rare: !!r.rare, status: 'new', at: now() }));
+  (async () => { const el = $('#lt-t', m); for (let i = 0; i < 14; i++) { el.textContent = pick(pool).t; await sleep(60 + i * 12); } el.textContent = r.t; $('#lt-d', m).textContent = (r.rare ? '★ 稀有 · ' : '') + r.d; sfx('sparkle'); confetti(70, ['#e9c27a', '#d9485f', '#fff4e6']); vibrate([30, 40, 80]); })();
+  m._onClose = done;
+}
+function hotWishPick(t, done, pay) {
+  const items = hotItems();
+  const m = openModal(`${mhead('許願券：挑一項')}<p class="small muted" style="margin:0 0 8px">從想試清單挑一項，${esc(nick(partner()))} 要兌現</p>
+    <div class="hl-body">${[2, 3].map((lv) => `<div class="hl-grp">${spiceIc(lv)} ${D.SPICE[lv].label}</div>${items.filter((x) => x.lv === lv).map((x) => `<button class="hl-row" data-wk="${esc(x.k)}"><span class="hl-chk">${ic('heart')}</span><span class="grow">${esc(x.t)}</span></button>`).join('')}`).join('')}</div>`, { center: true, cls: 'hot-zone' });
+  $$('[data-wk]', m).forEach((b) => b.onclick = async () => {
+    const it = items.find((x) => x.k === b.dataset.wk);
+    if (!(await confirmBox(`用許願券兌換「${it.t}」？`, '就這個'))) return;
+    if (t) fire(col('hot').update(t.id, { used: true }));
+    pay && pay();
+    fire(col('hot').add({ type: 'voucher', uid: me(), kind: 'wish', title: it.t, desc: '許願券', status: 'asked', askedAt: now(), at: now() }));
+    sfx('sparkle'); toast('許願成功，等對方兌現'); closeModal(m); done && done();
   });
 }
