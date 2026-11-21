@@ -674,7 +674,7 @@ function hotMoonLit() {
   return (i && i.status === 'pending') || (o && o.status !== 'pending' && !o.seen);
 }
 function hotMoonHTML() {
-  if (!hotOn() || S.tab !== 'home' || (S.couple.members || []).length < 2) return '';
+  if (!hotOn() || S.tab !== 'home' || (S.couple.members || []).length < (trialOpen() ? 1 : 2)) return '';   // 測試期間一個人也看得到
   return `<button class="icon-btn hot-moon ${hotMoonLit() ? 'lit' : ''}" data-act="hotSignal" aria-label="月亮"><svg viewBox="0 0 24 24" class="ic"><path d="M15 3.5 A8.5 8.5 0 1 0 20.5 15 A6.8 6.8 0 0 1 15 3.5 Z" fill="currentColor" stroke="none"/><path d="M19 4 l.6 1.4 l1.4 .6 l-1.4 .6 l-.6 1.4 l-.6 -1.4 l-1.4 -.6 l1.4 -.6 z" fill="currentColor"/></svg></button>`;
 }
 // 從首頁按月亮也要先解鎖
@@ -689,7 +689,7 @@ ACT.hotSignal = async () => {
 };
 function hotSignalModal() {
   const m = openModal('', { center: true, cls: 'hot-zone hz-sig' });
-  const p = partner();
+  const p = partner() || (trialOpen() ? me() : null);   // 測試期間：自己派給自己、自己回自己
   const draw = () => {
     const i = sigIn(), o = sigOut();
     let body = '';
@@ -748,7 +748,7 @@ const hotStamps = (uid) => hotDocs('stamp').filter((d) => d.uid === uid && !d.us
 function hotTeaseBadge() { const f = teaseForMe(), b = teaseBy(); return (f && f.status === 'sent') || (b && b.status === 'done') || !b; }
 ACT.hotTease = () => {
   const m = openModal('', { center: true, cls: 'hot-zone hz-tease' });
-  const p = partner();
+  const p = partner() || (trialOpen() ? me() : null);   // 測試期間：自己派給自己、自己回自己
   let pickT = pick(D.HOT_TEASE), rerolls = 2;
   const draw = () => {
     const f = teaseForMe(), b = teaseBy();
