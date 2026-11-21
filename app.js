@@ -7758,23 +7758,40 @@ function hotWishPick(t, done, pay) {
 // ---------- 今晚的劇本（角色扮演） ----------
 const scriptToday = () => hotDocs('script-day').filter((d) => d.day === dkey()).sort((a, b) => a.at - b.at)[0];
 const newScript = (exceptI) => { let i; do { i = Math.floor(Math.random() * D.HOT_SCRIPTS.length); } while (D.HOT_SCRIPTS.length > 1 && i === exceptI); return { i, rule: pick(D.HOT_SCRIPT_RULES) }; };
+const hotSafeWord = () => (S.couple.hot && S.couple.hot.safe) || '鳳梨';
 function scriptFullHTML(sc) {
   const x = D.HOT_SCRIPTS[sc.i % D.HOT_SCRIPTS.length];
+  const mineHer = prof(me()).role !== 'him';
   const lines = (arr) => arr.map((l) => `<li>「${esc(l)}」</li>`).join('');
+  const card = (who, role, p, secret, mine) => `<div class="sc-role ${mine ? 'mine' : ''}"><div class="sc-h">${who}${mine ? '（你）' : ''}</div><b>${esc(role)}</b>
+    <p>${esc(p)}</p><div class="sc-secret">${mine ? `<span>秘密目的</span>${esc(secret)}` : '<span>秘密目的</span>只有對方看得到'}</div></div>`;
+  const her = card('她', x.her, x.herP, x.herS, mineHer), him = card('他', x.him, x.himP, x.himS, !mineHer);
   return `<div class="sc-card"><div class="sc-em">${hotEmblem()}</div>
     <div class="sc-t">${esc(x.t)}</div>
-    <div class="sc-roles"><div><span>她是</span><b>${esc(x.her)}</b></div><div><span>他是</span><b>${esc(x.him)}</b></div></div>
     <div class="sc-sec"><div class="sc-h">開場</div><p>${esc(x.set)}</p></div>
+    <div class="sc-roles2">${mineHer ? her + him : him + her}</div>
+    <div class="sc-sec"><div class="sc-h">事前準備</div><p>${esc(x.prep)}</p></div>
+    <div class="sc-sec"><div class="sc-h">怎麼進場</div><p>${esc(x.entry)}</p></div>
+    <div class="sc-sec"><div class="sc-h">劇情三段</div><ol class="sc-acts">${x.acts.map((a, i) => `<li><span>${['試探', '升溫', '越線'][i]}</span>${esc(a)}</li>`).join('')}</ol></div>
     <div class="sc-sec"><div class="sc-h">她一定要說的台詞</div><ul>${lines(x.herLines)}</ul></div>
     <div class="sc-sec"><div class="sc-h">他一定要說的台詞</div><ul>${lines(x.himLines)}</ul></div>
-    <div class="sc-sec rule"><div class="sc-h">今晚的規則</div><p>${esc(sc.rule)}</p></div></div>`;
+    <div class="sc-sec rule"><div class="sc-h">今晚的規則</div><p>${esc(sc.rule)}</p></div>
+    <div class="sc-sec safe"><div class="sc-h">安全詞</div><p>任何時候說「<b>${esc(hotSafeWord())}</b>」就立刻出戲，不用解釋。<button class="link" id="sc-safe">改安全詞</button></p></div>
+    <div class="sc-sec"><div class="sc-h">出戲</div><p>演完抱一下，說說剛剛哪一段最好玩、下次想演什麼。</p></div></div>`;
 }
 function scriptModal(sc, onReroll) {
   const m = openModal(`${mhead('<i data-ic="film"></i> 今晚的劇本')}<div id="sc-body">${scriptFullHTML(sc)}</div>
     ${onReroll ? '<div class="btn-row"><button class="btn ghost" id="sc-re">換一個劇本</button><button class="btn hot-btn" data-act="close">就演這個</button></div><p class="small muted center" style="margin:6px 0 0">兩個人看到的是同一個劇本</p>' : ''}`, { center: true, cls: 'hot-zone hz-script' });
+  const wireSafe = () => $('#sc-safe', m) && ($('#sc-safe', m).onclick = async () => {
+    const v = await promptBox('安全詞（兩個人共用）', { value: hotSafeWord(), placeholder: '例如：鳳梨' });
+    if (!v) return;
+    await S.store.updateCouple(S.cid, { 'hot.safe': v.slice(0, 10) });
+    setTimeout(() => keepScroll(m, () => { $('#sc-body', m).innerHTML = scriptFullHTML(cur); wireSafe(); }), 150);
+  });
+  let cur = sc; wireSafe();
   $('#sc-re', m) && ($('#sc-re', m).onclick = async () => {
-    const nsc = await onReroll();
-    keepScroll(m, () => { $('#sc-body', m).innerHTML = scriptFullHTML(nsc); });
+    const nsc = await onReroll(); cur = nsc;
+    keepScroll(m, () => { $('#sc-body', m).innerHTML = scriptFullHTML(nsc); }); wireSafe();
     m.querySelector('.modal').scrollTop = 0; sfx('pop');
   });
   return m;

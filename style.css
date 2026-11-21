@@ -2042,3 +2042,16 @@ html[data-theme="night"] .emb-HOT { --e-bg: #2a0f1c; --e-ink: #e9c27a; --e-acc: 
 .hz-main small { font-size: 12px; color: #d9b3a4; }
 .hz-arr { font-size: 22px; color: #e9c27a; }
 .hz-top .grow { text-align: left; }
+.sc-roles2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 12px; }
+.sc-role { text-align: left; padding: 10px; border-radius: 12px; background: #2e111e; box-shadow: inset 0 0 0 1px rgba(233, 194, 122, .3); }
+.sc-role.mine { box-shadow: inset 0 0 0 1.5px #e9c27a; background: linear-gradient(160deg, #4a1a2e, #2e111e); }
+.sc-role b { display: block; font-family: var(--serif); font-size: 15px; color: #fff4e6; margin: 2px 0 4px; }
+.sc-role p { margin: 0; font-size: 12.5px; line-height: 1.6; color: #d9b3a4; }
+.sc-secret { margin-top: 8px; padding-top: 6px; border-top: 1px dashed rgba(233, 194, 122, .35); font-size: 12.5px; line-height: 1.6; color: #fff4e6; }
+.sc-secret span { display: block; font-size: 10.5px; color: #e9c27a; letter-spacing: .15em; }
+.sc-role:not(.mine) .sc-secret { color: var(--muted); font-style: italic; }
+.sc-acts { margin: 4px 0 0; padding: 0; list-style: none; }
+.sc-acts li { font-size: 14.5px; line-height: 1.7; color: #f7e3d0; display: flex; gap: 8px; }
+.sc-acts li span { flex: none; font-size: 11px; color: #e9c27a; border: 1px solid rgba(233, 194, 122, .5); border-radius: 6px; padding: 0 5px; height: 20px; line-height: 18px; margin-top: 3px; }
+.sc-sec.safe { box-shadow: inset 0 0 0 1px rgba(233, 194, 122, .5); }
+.sc-sec.safe .link { margin-left: 6px; font-size: 13px; }
