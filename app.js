@@ -7059,17 +7059,21 @@ document.addEventListener('visibilitychange', () => {
 
 // ---------- 火辣區大廳 ----------
 function hotHub() {
-  const draw = () => `${mhead('火辣區')}
-    <div class="hz-hero">${hotEmblem()}<div class="small">今晚的熱度</div>
-      <div class="seg hz-lv" id="hz-lv">${[2, 3].map((l) => `<button data-l="${l}" class="${hotLv() === l ? 'on' : ''}">${spiceIc(l)} ${D.SPICE[l].label}</button>`).join('')}</div></div>
-    <div class="game-tiles hz-tiles">
-      <button class="game-tile wide" data-act="hotPose"><span class="gi"><i data-ic="star" data-medal></i></span><div class="grow"><b>今天的姿勢</b><br><span>${hotPoseToday() ? '今天的牌已經抽好了' : '每天一組，抽到幾張就照順序來'}</span></div><span style="font-size:22px">›</span></button>
-      <button class="game-tile wide" data-act="hotPlay"><span class="gi"><i data-ic="dice" data-medal></i></span><div class="grow"><b>前戲遊戲</b><br><span>真心話、大冒險、骰子，輪流來</span></div><span style="font-size:22px">›</span></button>
-      <button class="game-tile" data-act="hotTease"><span class="gi"><i data-ic="letter" data-medal></i></span><b>撩撥任務</b><span>${hotTeaseBadge() ? '<span class="badge-dot">!</span>' : ''}早上互派，晚上驗收</span></button>
-      <button class="game-tile" data-act="hotWallet"><span class="gi"><i data-ic="stamp" data-medal></i></span><b>火辣票夾</b><span>印章 ${hotStamps(me()).length} 個</span></button>
-      <button class="game-tile wide" data-act="hotList"><span class="gi"><i data-ic="heart" data-medal></i></span><div class="grow"><b>想試清單</b><br><span>各自偷偷勾，兩個人都想的才會配對</span></div>${hotNewMatch() ? '<span class="badge-dot">!</span>' : ''}<span style="font-size:22px">›</span></button>
-    </div>
-    <div class="center hz-links"><button class="link" data-act="hotSignal"><i data-ic="moon"></i> 今晚的暗號</button><button class="link" data-act="hotTimer"><i data-ic="hourglass"></i> 計時器</button><button class="link" data-act="hotPoseBook"><i data-ic="book"></i> 姿勢圖鑑</button><button class="link" id="hz-lock"><i data-ic="lock"></i> 鎖上離開</button></div>`;
+  const draw = () => {
+    const tz = hotTeaseBadge(), sig = hotMoonLit();
+    const sm = (act, icn, name, sub, dot) => `<button class="hz-t" data-act="${act}"><span class="hz-ti"><i data-ic="${icn}"></i></span><b>${name}</b>${sub ? `<small>${sub}</small>` : ''}${dot ? '<span class="badge-dot">!</span>' : ''}</button>`;
+    return `${mhead('火辣區')}
+    <div class="hz-top"><span class="hz-top-em">${hotEmblem()}</span><div class="grow"><div class="small">今晚的熱度</div>
+      <div class="seg hz-lv" id="hz-lv">${[2, 3].map((l) => `<button data-l="${l}" class="${hotLv() === l ? 'on' : ''}">${spiceIc(l)} ${D.SPICE[l].label}</button>`).join('')}</div></div></div>
+    <div class="hz-sec">白天</div>
+    <div class="hz-g2">${sm('hotTease', 'letter', '撩撥任務', '早上互派，晚上驗收', tz)}${sm('hotSignal', 'moon', '今晚的暗號', '偷偷約今晚', sig)}</div>
+    <div class="hz-sec">今晚</div>
+    <div class="hz-g2">${sm('hotScript', 'film', '今晚的劇本', '角色扮演')}${sm('hotPlay', 'dice', '前戲遊戲', '真心話・大冒險・骰子')}</div>
+    <button class="hz-main" data-act="hotPose"><span class="hz-ti big"><i data-ic="star"></i></span><div class="grow"><b>今天的姿勢</b><small>${hotPoseToday() ? '今天的 5 張已經抽好了' : '每天 5 張，照順序來'}</small></div><span class="hz-arr">›</span></button>
+    <div class="hz-sec">收藏</div>
+    <div class="hz-g3">${sm('hotList', 'heart', '想試清單', '', hotNewMatch())}${sm('hotWallet', 'stamp', '火辣票夾', `印章 ${hotStamps(me()).length}`)}${sm('hotPoseBook', 'book', '姿勢圖鑑', '')}</div>
+    <div class="center hz-links"><button class="link" data-act="hotTimer"><i data-ic="hourglass"></i> 計時器</button><button class="link" id="hz-lock"><i data-ic="lock"></i> 鎖上離開</button></div>`;
+  };
   const m = openModal(draw(), { center: true, cls: 'hot-zone hz-hub' });
   const wire = () => {
     $$('#hz-lv button', m).forEach((b) => b.onclick = () => { localStorage.setItem('park-hot-lv', b.dataset.l); $$('#hz-lv button', m).forEach((x) => x.classList.toggle('on', x === b)); });
@@ -7458,7 +7462,7 @@ ACT.hotPose = () => {
         const cards = all.filter((x) => (x.c.round || 1) === round);
         return `<div class="pz-count">${round === 2 ? '<span class="pz-r2">Round 2</span> · ' : ''}照順序來，試過的就按「試過了」</div>
         <div class="pz-row ${deal === round ? 'deal' : ''}">${cards.map(({ c, i, p }, j) => `<div class="pz-slot" style="--i:${j}">${poseCardHTML(p, { order: j + 1, r: c.r, sc: c.s, done: (day.doneKeys || []).includes(poseKey(p)) })}
-          <div class="pz-btns">${p.scene ? `<button class="btn sm ghost" data-swap="${i}">換一張</button>` : ''}${p.rare && round === 1 && !has2 ? `<button class="btn sm gold" id="pz-r2">開始 Round 2</button>` : ''}${p.pick ? `<button class="btn sm gold" data-pick="${i}">${esc(p.no === 64 ? '她' : p.no === 66 ? '他' : (c.r || ''))}從圖鑑挑一張</button>` : ''}${p.rare || p.pick || (day.doneKeys || []).includes(poseKey(p)) ? '' : `<button class="btn sm hot-btn" data-done="${i}">試過了</button>`}</div></div>`).join('')}</div>`;
+          <div class="pz-btns">${p.scene ? `<button class="btn sm ghost" data-swap="${i}">換一張</button>` : ''}${p.rare && round === 1 && !has2 ? `<button class="btn sm gold" id="pz-r2">開始 Round 2</button>` : ''}${c.s ? `<button class="btn sm gold" data-script="${i}">看完整劇本</button>` : ''}${p.pick ? `<button class="btn sm gold" data-pick="${i}">${esc(p.no === 64 ? '她' : p.no === 66 ? '他' : (c.r || ''))}從圖鑑挑一張</button>` : ''}${p.rare || p.pick || (day.doneKeys || []).includes(poseKey(p)) ? '' : `<button class="btn sm hot-btn" data-done="${i}">試過了</button>`}</div></div>`).join('')}</div>`;
       };
       body = row(1) + (has2 ? row(2) : '') + (all.length > 1 ? '<p class="small muted center" style="margin:6px 0 0">左右滑動看每一張</p>' : '');
     }
@@ -7466,6 +7470,7 @@ ACT.hotPose = () => {
       <div class="center hz-links"><button class="link" data-act="hotPoseBook"><i data-ic="book"></i> 姿勢圖鑑</button><button class="link" id="pz-add"><i data-ic="plus"></i> 自己加一張</button></div>`;
     deal = false;
     wireFlip(m);
+    $$('[data-script]', m).forEach((b) => b.onclick = () => { const c = hotPoseToday().cards[+b.dataset.script]; scriptModal(c.s, null); });
     $$('[data-pick]', m).forEach((b) => b.onclick = () => hotPosePicker(+b.dataset.pick, () => keepScroll(m, draw)));
     $('#pz-r2', m) && ($('#pz-r2', m).onclick = async () => {
       const day = hotPoseToday();
@@ -7748,6 +7753,43 @@ function hotWishPick(t, done, pay) {
     sfx('sparkle'); toast('許願成功，等對方兌現'); closeModal(m); done && done();
   });
 }
+
+
+// ---------- 今晚的劇本（角色扮演） ----------
+const scriptToday = () => hotDocs('script-day').filter((d) => d.day === dkey()).sort((a, b) => a.at - b.at)[0];
+const newScript = (exceptI) => { let i; do { i = Math.floor(Math.random() * D.HOT_SCRIPTS.length); } while (D.HOT_SCRIPTS.length > 1 && i === exceptI); return { i, rule: pick(D.HOT_SCRIPT_RULES) }; };
+function scriptFullHTML(sc) {
+  const x = D.HOT_SCRIPTS[sc.i % D.HOT_SCRIPTS.length];
+  const lines = (arr) => arr.map((l) => `<li>「${esc(l)}」</li>`).join('');
+  return `<div class="sc-card"><div class="sc-em">${hotEmblem()}</div>
+    <div class="sc-t">${esc(x.t)}</div>
+    <div class="sc-roles"><div><span>她是</span><b>${esc(x.her)}</b></div><div><span>他是</span><b>${esc(x.him)}</b></div></div>
+    <div class="sc-sec"><div class="sc-h">開場</div><p>${esc(x.set)}</p></div>
+    <div class="sc-sec"><div class="sc-h">她一定要說的台詞</div><ul>${lines(x.herLines)}</ul></div>
+    <div class="sc-sec"><div class="sc-h">他一定要說的台詞</div><ul>${lines(x.himLines)}</ul></div>
+    <div class="sc-sec rule"><div class="sc-h">今晚的規則</div><p>${esc(sc.rule)}</p></div></div>`;
+}
+function scriptModal(sc, onReroll) {
+  const m = openModal(`${mhead('<i data-ic="film"></i> 今晚的劇本')}<div id="sc-body">${scriptFullHTML(sc)}</div>
+    ${onReroll ? '<div class="btn-row"><button class="btn ghost" id="sc-re">換一個劇本</button><button class="btn hot-btn" data-act="close">就演這個</button></div><p class="small muted center" style="margin:6px 0 0">兩個人看到的是同一個劇本</p>' : ''}`, { center: true, cls: 'hot-zone hz-script' });
+  $('#sc-re', m) && ($('#sc-re', m).onclick = async () => {
+    const nsc = await onReroll();
+    keepScroll(m, () => { $('#sc-body', m).innerHTML = scriptFullHTML(nsc); });
+    m.querySelector('.modal').scrollTop = 0; sfx('pop');
+  });
+  return m;
+}
+ACT.hotScript = () => {
+  let d = scriptToday(), sc;
+  if (d) sc = d.s;
+  else { sc = newScript(-1); fire(col('hot').add({ type: 'script-day', day: dkey(), s: sc, by: me(), at: now() })); sfx('sparkle'); }
+  scriptModal(sc, async () => {
+    const cur = scriptToday();
+    const n = newScript(cur ? cur.s.i : -1);
+    if (cur) fire(col('hot').update(cur.id, { s: n })); else fire(col('hot').add({ type: 'script-day', day: dkey(), s: n, by: me(), at: now() }));
+    return n;
+  });
+};
 
 // ============================================================
 //  火辣區的搗蛋鬼：晽晽貓貓、還好、阿扁有時候會跑來湊熱鬧
