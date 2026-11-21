@@ -740,7 +740,7 @@ function hotSignalModal() {
     });
   };
   draw();
-  m._onClose = () => render();
+  m._onClose = () => { render(); hotRedrawHub(); };   // 關掉後大廳的「!」也要跟著更新
 }
 
 // ============================================================
