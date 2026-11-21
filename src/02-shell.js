@@ -384,6 +384,9 @@ ACT.tab = (el) => {
   const t = el.dataset.tab;
   if (S.tab === t) { window.scrollTo({ top: 0, behavior: 'smooth' }); return; }
   S.tab = t;
+  // 切到別的分頁再回來，小分頁回到第一個
+  Object.assign(S.sub, { wallet: 'mine', travel: 'plan', memory: 'goals' });
+  S.walletFilter = 'ok'; S.hallTab = 'ach';
   window.scrollTo(0, 0);
   render();
 };

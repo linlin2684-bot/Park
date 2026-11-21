@@ -3,8 +3,8 @@
 //  （這個檔案是由 src/ 資料夾裡的分段檔合併而成）
 // ============================================================
 import { firebaseConfig } from './config.js';
-import * as D from './data.js?v=11211356';
-import { createStore } from './store.js?v=11211356';
+import * as D from './data.js?v=11211635';
+import { createStore } from './store.js?v=11211635';
 
 const S = {
   store: null, me: null, cid: null, couple: null, d: {},
@@ -1483,6 +1483,9 @@ ACT.tab = (el) => {
   const t = el.dataset.tab;
   if (S.tab === t) { window.scrollTo({ top: 0, behavior: 'smooth' }); return; }
   S.tab = t;
+  // 切到別的分頁再回來，小分頁回到第一個
+  Object.assign(S.sub, { wallet: 'mine', travel: 'plan', memory: 'goals' });
+  S.walletFilter = 'ok'; S.hallTab = 'ach';
   window.scrollTo(0, 0);
   render();
 };
@@ -1746,6 +1749,8 @@ function homeTodos() {
   if (ns) t.push({ icon: '<i data-ic="ticket"></i>', text: `有 ${ns} 張新票券等你刮開`, act: 'goScratch', btn: '去刮' });
   const wl = list('wishes').filter((w) => w.status === 'pending' && w.by !== me()).length;
   if (wl) t.push({ icon: '<i data-ic="shooting"></i>', text: `${nick(p)} 在許願池許了 ${wl} 個願`, act: 'wishes', btn: '看看' });
+  // 測試期間（好寶還沒加入）：自己抽到的盲盒自己寫，才能測完整流程
+  if (trialOpen()) for (const c of list('cards').filter((c) => c.mystery && !c.secret && c.owner === me())) t.push({ icon: '<i data-ic="gift"></i>', text: '測試：幫自己抽到的神秘盲盒寫內容', act: 'writeSecret', id: c.id, btn: '去寫' });
   for (const c of list('cards').filter((c) => c.mystery && !c.secret && c.from === me() && c.owner !== me())) {
     t.push({ icon: '<i data-ic="gift"></i>', text: `${nick(c.owner)} 扭到了神秘盲盒，換你偷偷寫內容`, act: 'writeSecret', id: c.id, btn: '去寫' });
   }
@@ -2775,7 +2780,7 @@ function walletCraft() {
       <div class="row"><div class="grow"><b style="font-family:var(--serif);font-size:17px">已選 ${total} / ${n}</b>${r ? ` <span class="chip" style="color:var(--r-${r.toLowerCase()})">${r}</span>` : ''}
         <div class="small muted">${r ? `合成後得到 1 張 ${to} 刮刮卡` : '先點一張卡開始選'}</div></div>
         ${total ? '<button class="small muted" data-act="craftClear">清除</button>' : ''}</div>
-      <button class="btn block mt" data-act="craft" ${total === n && partner() ? '' : 'disabled'}>${total === n ? `合成 1 張 ${to}` : `還要選 ${n - total} 張`}</button>
+      <button class="btn block mt" data-act="craft" ${total === n && (partner() || trialOpen()) ? '' : 'disabled'}>${total === n ? `合成 1 張 ${to}` : `還要選 ${n - total} 張`}</button>
     </div>
     ${groups.length ? groups.map(([rr, arr]) => `<h3 class="craft-h" style="color:var(--r-${rr.toLowerCase()})">${rr} · ${D.RARITY[rr].label}</h3>
       ${arr.map((c) => {
@@ -2983,7 +2988,7 @@ PAGES.play = {
       <button class="game-tile" data-act="food"><span class="gi"><i data-ic="dining" data-medal></i></span><b>今天吃什麼</b><span>選擇障礙救星</span></button>
       <button class="game-tile" data-act="tod"><span class="gi"><i data-ic="dice" data-medal></i></span><b>真心話大冒險</b><span>輪流抽題，誰都逃不掉</span></button>
       <button class="game-tile" data-act="quiz"><span class="gi"><i data-ic="minds" data-medal></i></span><b>默契問答</b><span>${quizNew ? '今天的題目來了' : (q && p && q.answers[p] ? '看結果' : '等對方作答')}</span>${quizNew ? '<span class="badge-dot">!</span>' : ''}</button>
-      <button class="game-tile wide" data-act="hall" data-t="dex"><span class="gi"><i data-ic="book" data-medal></i></span><div class="grow"><b>小動物圖鑑</b><br><span>已經遇到 ${dexCount()} 位朋友，牠們會偶爾路過首頁</span></div><span style="font-size:22px">›</span></button>
+      <button class="game-tile wide" data-act="dex"><span class="gi"><i data-ic="book" data-medal></i></span><div class="grow"><b>小動物圖鑑</b><br><span>已經遇到 ${dexCount()} 位朋友，牠們會偶爾路過首頁</span></div><span style="font-size:22px">›</span></button>
       <button class="game-tile wide" data-act="battle"><span class="gi"><i data-ic="swords" data-medal></i></span><div class="grow"><b>對戰挑戰</b><br><span>${bt ? `進行中：${esc(bt.task)}` : '一週內誰先完成？輸的人發卡'}</span></div><span style="font-size:22px">›</span></button>
     </div>
     ${stampCardHTML()}
@@ -4082,7 +4087,6 @@ function timelineItems() {
   for (const t of list('trips')) it.push({ at: t.date ? parseD(t.date).getTime() : t.at, icon: '<i data-ic="map"></i>', text: `一起去了 ${t.name}`, sub: t.note });
   for (const g of list('goals')) if (g.done) it.push({ at: g.doneAt, icon: '<i data-ic="target"></i>', text: `完成目標「${g.title}」` });
   for (const b of list('battles')) if (b.status === 'done') it.push({ at: b.doneAt || b.at, icon: '<i data-ic="swords"></i>', text: `${nick(b.winner)} 贏了挑戰「${b.task}」` });
-  for (const g of list('gacha')) if (g.rarity === 'SSR') it.push({ at: g.at, icon: '<i data-ic="star"></i>', text: `${nick(g.uid)} ${g.how === 'craft' ? '合成' : '扭'}到 SSR「${g.title}」` });
   for (const w of list('wishes')) if (w.status === 'ok') it.push({ at: w.doneAt || w.at, icon: '<i data-ic="shooting"></i>', text: `${nick(w.by)} 的願望「${w.title}」實現了` });
   for (const c of list('capsules')) if (c.firstOpenAt) it.push({ at: c.firstOpenAt, icon: '<i data-ic="hourglass"></i>', text: `打開了時光膠囊「${c.title}」` });
   for (const n of list('notes')) if (n.found) it.push({ at: n.foundAt, icon: '<i data-ic="letter"></i>', text: `${nick(n.to)} 找到了一張小紙條` });

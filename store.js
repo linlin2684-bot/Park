@@ -25,6 +25,9 @@ const rid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 
 // ------------------------------------------------------------
 //  Firebase
 // ------------------------------------------------------------
+// 背景寫入：失敗時提示一下
+const bg = (p) => { p.catch((e) => { console.error("寫入失敗", e); window.__toast && window.__toast("沒有存到，等一下再試"); }); };
+
 async function firebaseStore(config) {
   const [{ initializeApp }, A, F] = await Promise.all([
     import(FB + 'firebase-app.js'),
@@ -60,7 +63,8 @@ async function firebaseStore(config) {
     },
     createCouple: (cid, data) => F.setDoc(coupleRef(cid), data),
     watchCouple: (cid, cb) => F.onSnapshot(coupleRef(cid), (s) => cb(s.exists() ? s.data() : null)),
-    updateCouple: (cid, patch) => F.updateDoc(coupleRef(cid), patch),
+    // 不等雲端回覆（本機馬上更新，Firestore 會照順序送出）
+    updateCouple: async (cid, patch) => { bg(F.updateDoc(coupleRef(cid), patch)); },
     DEL: () => F.deleteField(),
     // fn(data) 回傳要更新的欄位（物件）或 null；回傳值代表有沒有更新
     async coupleTx(cid, fn) {
@@ -77,10 +81,10 @@ async function firebaseStore(config) {
       return {
         watch: (cb) => F.onSnapshot(c, (qs) => cb(qs.docs.map((d) => ({ id: d.id, ...d.data() })))),
         // 先在本機產生 id、不等雲端回覆（畫面馬上更新，網路慢也不會卡）
-        add: async (data) => { const ref = F.doc(c); F.setDoc(ref, data).catch((e) => { console.error('寫入失敗', e); window.__toast && window.__toast('沒有存到，等一下再試'); }); return ref.id; },
-        set: (id, data, merge = true) => F.setDoc(F.doc(c, id), data, { merge }),
-        update: (id, patch) => F.updateDoc(F.doc(c, id), patch),
-        remove: (id) => F.deleteDoc(F.doc(c, id)),
+        add: async (data) => { const ref = F.doc(c); bg(F.setDoc(ref, data)); return ref.id; },
+        set: async (id, data, merge = true) => { bg(F.setDoc(F.doc(c, id), data, { merge })); },
+        update: async (id, patch) => { bg(F.updateDoc(F.doc(c, id), patch)); },
+        remove: async (id) => { bg(F.deleteDoc(F.doc(c, id))); },
       };
     },
   };

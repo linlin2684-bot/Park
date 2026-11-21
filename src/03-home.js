@@ -41,6 +41,8 @@ function homeTodos() {
   if (ns) t.push({ icon: '<i data-ic="ticket"></i>', text: `有 ${ns} 張新票券等你刮開`, act: 'goScratch', btn: '去刮' });
   const wl = list('wishes').filter((w) => w.status === 'pending' && w.by !== me()).length;
   if (wl) t.push({ icon: '<i data-ic="shooting"></i>', text: `${nick(p)} 在許願池許了 ${wl} 個願`, act: 'wishes', btn: '看看' });
+  // 測試期間（好寶還沒加入）：自己抽到的盲盒自己寫，才能測完整流程
+  if (trialOpen()) for (const c of list('cards').filter((c) => c.mystery && !c.secret && c.owner === me())) t.push({ icon: '<i data-ic="gift"></i>', text: '測試：幫自己抽到的神秘盲盒寫內容', act: 'writeSecret', id: c.id, btn: '去寫' });
   for (const c of list('cards').filter((c) => c.mystery && !c.secret && c.from === me() && c.owner !== me())) {
     t.push({ icon: '<i data-ic="gift"></i>', text: `${nick(c.owner)} 扭到了神秘盲盒，換你偷偷寫內容`, act: 'writeSecret', id: c.id, btn: '去寫' });
   }
