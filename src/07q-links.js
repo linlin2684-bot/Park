@@ -142,7 +142,7 @@ async function pruneOld() {
   const up = {}, X = S.store.DEL ? S.store.DEL() : null;
   for (const key of Object.keys(S.couple.drops || {})) {
     const d = (key.match(/(\d{4}-\d{2}-\d{2})/) || [])[1], w = (key.match(/^(?:task|tk-week)-(\d{4}-W\d{2})/) || [])[1];
-    if (/^(dmatch|care)-/.test(key) && d && d < cut) up[`drops.${key}`] = X;
+    if (/^(dmatch|care|pest)-/.test(key) && d && d < cut) up[`drops.${key}`] = X;
     if (w && w < cutWk) up[`drops.${key}`] = X;
     if (S.couple.drops[key] === null) up[`drops.${key}`] = X;
   }

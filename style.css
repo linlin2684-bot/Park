@@ -1097,7 +1097,9 @@ html[data-theme="night"] .jar-svg .jar-glass { fill: rgba(255, 255, 255, .06); }
 @keyframes sharkBob { 0%, 100% { transform: scaleX(-1) translateY(0) rotate(0); } 50% { transform: scaleX(-1) translateY(-6px) rotate(-3deg); } }
 .shark-swim .shark-tail { transform-origin: 104px 36px; animation: sharkTail .5s ease-in-out infinite alternate; }
 @keyframes sharkTail { to { transform: rotate(14deg); } }
-.cat-stroll.swim.off { animation: none; transition: bottom .55s cubic-bezier(.5, 0, .9, .4); bottom: calc(var(--nav-h) + env(safe-area-inset-bottom) - 2px); }
+/* 關機：整隻往下掉到導覽列上面（用 transform，iPhone 上比較穩） */
+.cat-stroll.swim.off { animation: sharkDrop .6s cubic-bezier(.5, 0, .9, .4) forwards; }
+@keyframes sharkDrop { from { transform: translateY(0); } 70% { transform: translateY(74px); } 85% { transform: translateY(64px); } to { transform: translateY(72px); } }
 .cat-stroll.swim.off .cat-svg { animation: sharkFall .55s ease-in forwards; }
 @keyframes sharkFall { to { transform: scaleX(-1) rotate(178deg); } }
 .cat-stroll.swim.wake .cat-svg { animation: sharkWake .35s ease-out forwards; }
@@ -1212,10 +1214,10 @@ html[data-theme="night"] .dc-ani.locked .cat-svg, html[data-theme="night"] .da-s
 .cat-stroll.paused { animation-play-state: paused !important; }
 .cat-stroll.duo { pointer-events: auto; }
 .cat-stroll.talk .cat-svg { animation: catJump .4s ease-in-out 1 !important; }
-.fr-bubble { position: fixed; z-index: 45; max-width: 230px; padding: 8px 12px; border-radius: 14px; font-size: 13px; line-height: 1.5; font-weight: 600;
+.fr-bubble { position: fixed; z-index: 45; max-width: 240px; padding: 9px 13px; border-radius: 14px; font-size: 14px; line-height: 1.5; font-weight: 600;
   background: var(--card); color: var(--ink); box-shadow: 0 6px 18px rgba(40, 10, 20, .16); border: 1px solid var(--line); animation: pop .3s cubic-bezier(.3, 1.5, .5, 1); transition: opacity .25s; pointer-events: none; }
 .fr-bubble::after { content: ''; position: absolute; left: var(--tail, 50%); bottom: -6px; width: 11px; height: 11px; margin-left: -6px; background: inherit; border-right: 1px solid var(--line); border-bottom: 1px solid var(--line); transform: rotate(45deg); }
-.fr-bubble.narr { background: color-mix(in srgb, var(--ink) 82%, transparent); color: var(--bg); font-weight: 500; font-style: italic; border: 0; }
+.fr-bubble.narr { background: color-mix(in srgb, var(--ink) 92%, transparent); color: var(--bg); font-weight: 500; font-style: italic; border: 0; }
 .fr-bubble.narr::after { display: none; }
 .fr-bubble.out { opacity: 0; }
 
@@ -1917,3 +1919,7 @@ html[data-theme="night"] .emb-F-pet { --e-bg: #18141c; --e-ink: #ece4ef; --e-acc
 @keyframes pestInR { from { opacity: 0; translate: 140px 0; } to { opacity: 1; translate: 0 0; } }
 @keyframes pestPop { from { transform: scale(.85); } to { transform: scale(1); } }
 .pest.from-r.chased .pest-body svg, .pest.from-r.wander .pest-body svg { transform: scaleX(-1); }
+
+/* 禁止雙擊放大（iPhone 連點按鈕時畫面不會被放大） */
+html, body { touch-action: manipulation; }
+button, a, .game-tile, .cat-stroll, .pest-body { touch-action: manipulation; }

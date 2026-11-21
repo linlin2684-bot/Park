@@ -24,3 +24,4 @@ setInterval(() => {
   trialTopUp();
   catStroll();
 }, 10000);
+

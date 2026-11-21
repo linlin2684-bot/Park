@@ -65,7 +65,7 @@ function bubble(text, x, top, cls = '') {
 }
 
 function duoStroll(sc) {
-  if (!sc || S.tab !== 'home') return;
+  if (!sc || document.querySelector('.modal-back')) return;
   document.querySelectorAll('.cat-stroll').forEach((x) => x.remove());
   const other = sc.lead === sc.a ? sc.b : sc.a;
   const dur = 12, lead = walker(sc.lead, 'duo'), back = walker(other, 'duo');

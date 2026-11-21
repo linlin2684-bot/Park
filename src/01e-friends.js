@@ -168,7 +168,7 @@ function friendArt(k, opts) {
 
 // ---------- 圖鑑紀錄（兩個人共用） ----------
 async function dexNote(k, idx) {
-  if (!S.couple || !S.cid || (S.couple.members || []).length < 2) return;
+  if (!S.couple || !S.cid || (S.couple.members || []).length < (trialOpen() ? 1 : 2)) return;
   const D0 = (S.couple.dex || {})[k] || {};
   const first = !D0.met, newLine = idx != null && !(D0.l || {})[idx];
   if (!first && !newLine) return;
@@ -178,18 +178,29 @@ async function dexNote(k, idx) {
   await S.store.updateCouple(S.cid, up);
   if (first) setTimeout(() => toast(`圖鑑新增：${FRIENDS[k].name}！也解鎖了牠的頭像`), 1600);
 }
+// 小動物說話：有指定牠本人（路過時被點到），就在牠頭上冒對話框；不然才用上面的提示
+let sayAt = null;
+function speak(text) {
+  const el = sayAt; sayAt = null;
+  if (!el || !document.body.contains(el) || typeof bubble !== 'function') return toast(text);
+  document.querySelectorAll('.fr-bubble.solo').forEach((b) => b.remove());
+  const r = el.getBoundingClientRect();
+  const narr = !/^[^：]{1,8}：/.test(text);   // 「名字：…」是說話，其他是旁白
+  const b = bubble(text, r.left + r.width / 2, r.top + 4, `solo ${narr ? 'narr' : ''}`);
+  setTimeout(() => { b.classList.add('out'); setTimeout(() => b.remove(), 400); }, 3000);
+}
 function sayLine(k, idx) {
   const L = friendLines(k);
   if (idx === undefined && typeof maybeAnimalCan === 'function') maybeAnimalCan(k);
   if (idx === undefined) {
     // 節日／心情限定台詞優先；偶爾說你們幫牠加的台詞
     const sp = typeof specialNow === 'function' ? specialNow(k) : [];
-    if (sp.length && Math.random() < .55) { const [j, x] = sp[Math.floor(Math.random() * sp.length)]; toast(x.t); dexNote(k, 's' + j); return x.t; }
+    if (sp.length && Math.random() < .55) { const [j, x] = sp[Math.floor(Math.random() * sp.length)]; speak(x.t); dexNote(k, 's' + j); return x.t; }
     const cu = typeof customLines === 'function' ? customLines(k) : [];
-    if (cu.length && Math.random() < .3) { const t = withName(k, cu[Math.floor(Math.random() * cu.length)].t); toast(t); dexNote(k, null); return t; }
+    if (cu.length && Math.random() < .3) { const t = withName(k, cu[Math.floor(Math.random() * cu.length)].t); speak(t); dexNote(k, null); return t; }
   }
   const i = idx === undefined ? pickLineIdx(k, L.length) : idx;
-  toast(L[i]); dexNote(k, i); return L[i];
+  speak(L[i]); dexNote(k, i); return L[i];
 }
 // 台詞不要解鎖太快：大多時候說已經聽過的；新台詞每人每天最多 3 句，而且要碰運氣
 const DEX_NEW_PER_DAY = 3, DEX_NEW_CHANCE = .3;
@@ -220,7 +231,7 @@ function walker(k, cls = '') {
 }
 function catStroll(force) {
   // 週年動畫、回顧故事、新手導覽進行中不打擾
-  if (S.tab !== 'home' || (S.couple?.members || []).length < (trialOpen() ? 1 : 2) || document.querySelector('.cat-stroll, .anniv-intro, .story, .tour, .modal-back')) return;
+  if ((S.couple?.members || []).length < (trialOpen() ? 1 : 2) || document.querySelector('.cat-stroll, .anniv-intro, .story, .tour, .modal-back')) return;
   if (!force && typeof carryStroll === 'function' && carryStroll()) return;
   const key = 'park-stroll-at';
   // 好寶加入前的測試期間：每 10 秒就來一隻
@@ -238,12 +249,12 @@ function catStroll(force) {
     if (k === 'shark') {
       if (!el.classList.contains('off')) {
         el.classList.add('off'); el.style.left = r.left + 'px'; el.innerHTML = withHat('shark', sharkArt({ off: true }));
-        sfx('flip'); sayLine('shark', 0);
+        sfx('flip'); sayAt = el; sayLine('shark', 0);
         clearTimeout(timer); timer = setTimeout(() => el.remove(), 25000);
       } else {
         el.classList.remove('off'); el.classList.add('wake'); el.innerHTML = withHat('shark', sharkArt());
-        sfx('heart'); sayLine('shark', Math.random() < .6 ? 1 : 2);
-        clearTimeout(timer); setTimeout(() => el.remove(), 2200);
+        sfx('heart'); sayAt = el; sayLine('shark', Math.random() < .6 ? 1 : 2);
+        clearTimeout(timer); setTimeout(() => el.remove(), 3400);
       }
       return;
     }
@@ -261,8 +272,8 @@ function catStroll(force) {
       el.innerHTML = catPose('jump');
       blackPatXP();
     }
-    sayLine(k);
-    clearTimeout(timer); setTimeout(() => el.remove(), 1500);
+    sayAt = el; sayLine(k);
+    clearTimeout(timer); setTimeout(() => el.remove(), 3400);
   };
   document.body.appendChild(el);
 }
