@@ -353,7 +353,7 @@ function refreshBook(m) {
 function localFreshStart(ts, force) {
   const fk = `park-fresh-${S.cid}`;
   if (!force && (localStorage.getItem(fk) === String(ts) || now() - ts > 7 * 86400000)) return;
-  Object.keys(localStorage).filter((k) => /^park-(ach|miss-seen|redeem-pop|duty|stroll-pat|carry|dexreset|dexnew|petxp|fundpet|mreview|poke)/.test(k)).forEach((k) => localStorage.removeItem(k));
+  Object.keys(localStorage).filter((k) => /^park-(ach|miss-seen|redeem-pop|duty|stroll-pat|carry|dexreset|dexnew|petxp|fundpet|mreview|poke|hot)/.test(k)).forEach((k) => localStorage.removeItem(k));
   localStorage.setItem(fk, String(ts));
 }
 const uid8 = () => Math.random().toString(36).slice(2, 10);

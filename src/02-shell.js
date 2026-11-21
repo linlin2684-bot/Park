@@ -438,6 +438,7 @@ ACT.settings = () => {
       <label>尺度上限（兩人都打開才會出現更高的等級）</label>
       <div class="seg" id="s-sp">${[1, 2, 3].map((l) => `<button data-l="${l}" class="${(p.spice || 1) === l ? 'on' : ''}">${spiceIc(l)} ${D.SPICE[l].label}</button>`).join('')}</div>
       <p class="small muted" style="margin:0" id="s-lv">目前兩人共同等級：${spiceIc(spiceLevel())} ${D.SPICE[spiceLevel()].label}</p>
+      ${(p.spice || 1) >= 3 ? `<div class="list-row" data-act="hotPin" style="margin-top:6px"><span class="lr-i"><i data-ic="lock"></i></span><span class="grow">火辣區密碼<div class="small muted">${c.hot?.pin ? '已設定，兩個人共用' : '還沒設定'}</div></span>›</div>` : ''}
     </div></details>
     <details class="card set-sec"><summary><h3><i data-ic="sparkle"></i> 配色主題</h3><span class="set-ch">›</span></summary><div class="set-body">
       <p class="small muted" style="margin:0 0 10px">只會改變你這支手機的樣子，每個分頁會有自己的主色</p>

@@ -51,11 +51,12 @@ PAGES.play = {
     const bt = activeBattle();
     return `<div class="page-title"><h2><i data-ic="gacha"></i> 遊樂區</h2><span><i data-ic="coin"></i> ${balance(me())} 點${tickets(me()) ? ` · <i data-ic="ticket"></i> ${tickets(me())}` : ''}</span></div>
     <div class="game-tiles">
+      ${hotTileHTML()}
       <button class="game-tile wide" data-act="gacha" style="background:linear-gradient(135deg,color-mix(in srgb,var(--accent) 22%,var(--card)),var(--card))">
         <span class="gi" style="font-size:44px"><i data-ic="gacha" data-medal></i></span><div class="grow"><b>扭蛋機</b><br><span>${D.POINTS.gachaCost} 點扭一次 · SSR 機率 ${D.RARITY.SSR.weight}%</span></div><span style="font-size:22px">›</span></button>
       <button class="game-tile" data-act="fate"><span class="gi"><i data-ic="ferris" data-medal></i></span><b>命運轉盤</b><span>${fateUsed ? '這週轉過了' : '每週免費一次！'}</span>${fateUsed ? '' : '<span class="badge-dot">1</span>'}</button>
       <button class="game-tile" data-act="food"><span class="gi"><i data-ic="dining" data-medal></i></span><b>今天吃什麼</b><span>選擇障礙救星</span></button>
-      <button class="game-tile" data-act="tod"><span class="gi"><i data-ic="dice" data-medal></i></span><b>真心話大冒險</b><span>${spiceIc(spiceLevel())} 目前：${D.SPICE[spiceLevel()].label}</span></button>
+      <button class="game-tile" data-act="tod"><span class="gi"><i data-ic="dice" data-medal></i></span><b>真心話大冒險</b><span>輪流抽題，誰都逃不掉</span></button>
       <button class="game-tile" data-act="quiz"><span class="gi"><i data-ic="minds" data-medal></i></span><b>默契問答</b><span>${quizNew ? '今天的題目來了' : (q && p && q.answers[p] ? '看結果' : '等對方作答')}</span>${quizNew ? '<span class="badge-dot">!</span>' : ''}</button>
       <button class="game-tile wide" data-act="dex"><span class="gi"><i data-ic="book" data-medal></i></span><div class="grow"><b>小動物圖鑑</b><br><span>已經遇到 ${dexCount()} 位朋友，牠們會偶爾路過首頁</span></div><span style="font-size:22px">›</span></button>
       <button class="game-tile wide" data-act="battle"><span class="gi"><i data-ic="swords" data-medal></i></span><div class="grow"><b>對戰挑戰</b><br><span>${bt ? `進行中：${esc(bt.task)}` : '一週內誰先完成？輸的人發卡'}</span></div><span style="font-size:22px">›</span></button>
@@ -227,21 +228,22 @@ function personalize(text, asker, answerer) {
     : seg.replace(/對方/g, asker).replace(/他(?!們)/g, asker).replace(/我(?!們)/g, asker))).join('');
   return `${answerer}，${out}`;
 }
-ACT.tod = () => {
-  const max = spiceLevel();
+// levels：這副牌有哪幾級（遊樂區只有甜蜜；曖昧、火辣在火辣區）
+ACT.tod = () => todModal({ levels: [1] });
+function todModal({ levels, cls = '', key = 'park-tod-lv' }) {
   const ms = (S.couple.members || []).slice();
   let turn = ms.includes(localStorage.getItem('park-tod-turn')) ? localStorage.getItem('park-tod-turn') : me();
   const other = (u) => ms.find((x) => x !== u) || u;
-  let lv = Math.min(+(localStorage.getItem('park-tod-lv') || 1), max);
+  let lv = +(localStorage.getItem(key) || levels[levels.length - 1]);
+  if (!levels.includes(lv)) lv = levels[0];
   const m = openModal(`${mhead('<i data-ic="dice"></i> 真心話大冒險')}
-    <div class="seg" id="tlv">${[1, 2, 3].map((l) => `<button data-l="${l}" class="${l === lv ? 'on' : ''}" ${l > max ? 'disabled style="opacity:.4"' : ''}>${spiceIc(l)} ${D.SPICE[l].label}${l > max ? ' <i data-ic="lock"></i>' : ''}</button>`).join('')}</div>
-    ${max < 3 ? `<p class="small muted" style="margin:0">想解鎖更高等級？兩人都要到設定裡打開</p>` : ''}
+    ${levels.length > 1 ? `<div class="seg" id="tlv">${levels.map((l) => `<button data-l="${l}" class="${l === lv ? 'on' : ''}">${spiceIc(l)} ${D.SPICE[l].label}</button>`).join('')}</div>` : ''}
     ${ms.length > 1 ? `<div class="row" style="justify-content:center;gap:8px;margin-top:10px"><span class="small muted">輪到</span>
       <div class="seg" id="tturn" style="padding:0">${ms.map((u) => `<button data-u="${u}" class="${u === turn ? 'on' : ''}">${avatar(u)} ${esc(nick(u))}</button>`).join('')}</div></div>` : ''}
     <div class="dice" id="dc"><i data-ic="dice"></i></div>
     <div id="tres"></div>
-    <div class="btn-row"><button class="btn ghost" data-k="truth">真心話</button><button class="btn" data-k="rand">讓骰子決定</button><button class="btn ghost" data-k="dare">大冒險</button></div>`, { center: true });
-  $$('#tlv button', m).forEach((b) => b.onclick = () => { if (+b.dataset.l > max) return; lv = +b.dataset.l; localStorage.setItem('park-tod-lv', lv); $$('#tlv button', m).forEach((x) => x.classList.toggle('on', x === b)); });
+    <div class="btn-row"><button class="btn ghost" data-k="truth">真心話</button><button class="btn" data-k="rand">讓骰子決定</button><button class="btn ghost" data-k="dare">大冒險</button></div>`, { center: true, cls });
+  $$('#tlv button', m).forEach((b) => b.onclick = () => { lv = +b.dataset.l; localStorage.setItem(key, lv); $$('#tlv button', m).forEach((x) => x.classList.toggle('on', x === b)); });
   const setTurn = (u) => { turn = u; localStorage.setItem('park-tod-turn', u); $$('#tturn button', m).forEach((x) => x.classList.toggle('on', x.dataset.u === u)); };
   $$('#tturn button', m).forEach((b) => b.onclick = () => setTurn(b.dataset.u));
   $$('[data-k]', m).forEach((b) => b.onclick = async () => {
@@ -253,7 +255,7 @@ ACT.tod = () => {
     $('#tres', m).innerHTML = '';
     await sleep(900);
     const pool = [];
-    for (let l = 1; l <= lv; l++) pool.push(...(k === 'truth' ? D.TRUTH : D.DARE)[l].map((t) => ({ t, l })));
+    for (const l of levels) if (l <= lv) pool.push(...(k === 'truth' ? D.TRUTH : D.DARE)[l].map((t) => ({ t, l })));
     const pref = pool.filter((x) => x.l === lv);
     const x = Math.random() < .65 && pref.length ? pick(pref) : pick(pool);
     dc.innerHTML = ic(k === 'truth' ? 'chat' : 'w_fire');

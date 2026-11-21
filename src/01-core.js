@@ -13,7 +13,7 @@ const S = {
   unsubs: [], started: Date.now(), seenEvents: new Set(), deferRender: false,
 };
 const COLS = ['cards', 'events', 'points', 'pool', 'wishes', 'taskDone', 'battles', 'quiz', 'daily',
-  'deposits', 'trips', 'goals', 'capsules', 'notes', 'misses', 'gacha', 'memories', 'photos', 'deep', 'dates', 'ideas', 'watch'];
+  'deposits', 'trips', 'goals', 'capsules', 'notes', 'misses', 'gacha', 'memories', 'photos', 'deep', 'dates', 'ideas', 'watch', 'hot'];
 
 // ---------- 小工具 ----------
 const $ = (s, r = document) => r.querySelector(s);
