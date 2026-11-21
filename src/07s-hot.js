@@ -5,7 +5,8 @@
 //  資料放在 hot 集合（type: want / item / done / dice），會備份、好寶加入時會清空
 //  密碼放在空間的 hot.pin，加入時不會被清掉
 // ============================================================
-const hotOn = () => { const ms = S.couple?.members || []; return ms.length === 2 && ms.every((u) => (prof(u).spice || 1) >= 3); };
+// 好寶加入前（空間只有一個人）：自己是火辣就看得到，方便先測試；加入後自動變回兩個人都要火辣
+const hotOn = () => { const ms = S.couple?.members || []; return ms.length >= 1 && ms.every((u) => (prof(u).spice || 1) >= 3); };
 const HOT_UNLOCK_MS = 10 * 60000;   // 解鎖後 10 分鐘內再進來不用重打
 let hotUntil = 0, hotIntroShown = false;
 const hotSeenKey = () => `park-hot-seen-${S.cid}-${me()}`;
