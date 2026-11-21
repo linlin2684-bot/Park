@@ -49,16 +49,20 @@ function walletMine() {
   let cards = mine.filter((c) => c.scratched && c.kind !== 'collect');
   if (filter === 'ok') cards = cards.filter((c) => remaining(c) > 0 && !isExpired(c));
   if (filter === 'used') cards = cards.filter((c) => remaining(c) === 0 || isExpired(c));
-  cards.sort((a, b) => (filter === 'ok' ? rarityRank(b.rarity) - rarityRank(a.rarity) : 0) || b.at - a.at);
+  // 排序：稀有度（高到低）／拿到的日期新到舊／舊到新，記在這台手機
+  const sort = localStorage.getItem('park-wsort') || 'rarity';
+  cards.sort((a, b) => sort === 'old' ? a.at - b.at : sort === 'new' ? b.at - a.at : (rarityRank(b.rarity) - rarityRank(a.rarity) || b.at - a.at));
   return `
     ${fresh.length ? `<div class="card"><h3><i data-ic="sparkle"></i> 新票券 <span class="sub">刮開看看是什麼</span></h3>
       <div class="new-tickets">${fresh.map((c) => `<button class="scratch-thumb" data-act="scratch" data-id="${c.id}"><span class="q">?</span>刮刮卡<span class="small">${c.from === 'sys' ? '遊樂園送的' : '來自 ' + esc(nick(c.from))}</span></button>`).join('')}</div></div>` : ''}
     <button class="btn block" data-act="giveCard" style="margin-bottom:14px"><i data-ic="letter"></i> 發一張卡給 ${esc(nick(partner()))}</button>
     ${typeof mySched === 'function' && mySched().length ? `<div class="sched-list"><div class="small muted">預約中的卡（對方還看不到）</div>${mySched().map((x) => `<div class="sched-i"><b>${esc(x.t.title)}</b><span>${+x.day.slice(5, 7)}/${+x.day.slice(8)} 送到</span></div>`).join('')}</div>` : ''}
     <div class="seg">${[['ok', '可以用'], ['used', '用過的'], ['all', '全部']].map(([k, n]) => `<button class="${filter === k ? 'on' : ''}" data-act="walletFilter" data-f="${k}">${n}</button>`).join('')}</div>
+    <div class="wsort"><span class="small muted">排序</span>${[['rarity', '稀有度'], ['new', '最新拿到'], ['old', '最早拿到']].map(([k, n]) => `<button class="${sort === k ? 'on' : ''}" data-act="walletSort" data-s="${k}">${n}</button>`).join('')}</div>
     ${cards.length ? cards.map((c) => ticketHTML(c)).join('') : `<div class="empty"><span class="big"><i data-ic="ticket"></i></span>${filter === 'ok' ? '目前沒有可以用的票券<br>去遊樂區扭蛋，或許個願吧' : '這裡空空的'}</div>`}`;
 }
 ACT.walletFilter = (el) => { S.walletFilter = el.dataset.f; render(); };
+ACT.walletSort = (el) => { localStorage.setItem('park-wsort', el.dataset.s); render(); };
 
 function walletSent() {
   const sent = list('cards').filter((c) => c.from === me() && c.owner !== me() && c.kind !== 'collect').sort((a, b) => b.at - a.at);

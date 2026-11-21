@@ -262,6 +262,8 @@ function catStroll(force) {
       }
       return;
     }
+    // 一次路過只說一句：已經被點過就不再說（鯊魚另外處理）
+    if (el.dataset.said) return; el.dataset.said = '1';
     el.classList.add('caught'); sfx('heart');
     const fx = { orange: ['#c9773a', '#ffd45c'], white: ['#ffd45c', '#9fd3ff', '#ff8fab'], calico: ['#ff9db4', '#ffc2d1'], tuxedo: ['#ffd1dc', '#ffd45c', '#7cc488'], haohao: ['#ff9fb4', '#ffd45c', '#e2b56a'], doggy: ['#ff9fb4', '#efd9ac'], abian: ['#ffd45c', '#9fd3ff', '#ff9fb4'], gungun: ['#e9573f', '#ffd45c'] }[k] || ['#2b2633', '#ff9db4', '#ffd970'];
     floaty(r.left + r.width / 2, r.top, fx);

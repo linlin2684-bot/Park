@@ -87,13 +87,27 @@ function duoStroll(sc) {
     [lead, back].forEach((e) => e.classList.add('paused'));
     sfx('heart');
     const ra = byKey[sc.a].getBoundingClientRect(), rb = byKey[sc.b].getBoundingClientRect();
-    for (const [who, t] of sc.lines) {
+    // 點一下才講下一句（12 秒都沒點就自己結束）
+    let quit = false;
+    for (const [i, [who, t]] of sc.lines.entries()) {
       let b;
       if (who === 'n') b = bubble(t, (ra.left + ra.right + rb.left + rb.right) / 4, Math.min(ra.top, rb.top) - 34, 'narr');
       else { const r = who === 'a' ? ra : rb; b = bubble(t, r.left + r.width * .55, r.top + 6); byKey[sc[who]].classList.add('talk'); }
-      await new Promise((r) => setTimeout(r, 1900));
+      b.insertAdjacentHTML('beforeend', `<span class="fr-next">${i < sc.lines.length - 1 ? '點一下繼續' : '點一下結束'}</span>`);
+      await sleep(350);   // 避免同一下點擊直接跳過
+      // 只有點對話框或牠們才會繼續，點畫面其他地方照常（不會被吃掉）
+      b.classList.add('tappable');
+      const tapped = await new Promise((res) => {
+        const els = [b, lead, back];
+        const done = (v) => { clearTimeout(tm); els.forEach((x) => x.removeEventListener('click', on, true)); res(v); };
+        const tm = setTimeout(() => done(false), 12000);
+        function on(e) { e.stopPropagation(); e.preventDefault(); done(true); }
+        els.forEach((x) => x.addEventListener('click', on, true));
+      });
       b.classList.add('out'); setTimeout(() => b.remove(), 300);
       [lead, back].forEach((e) => e.classList.remove('talk'));
+      if (!tapped) { quit = true; break; }
+      sfx('pop');
     }
     [lead, back].forEach((e) => e.classList.remove('paused'));
     timer = setTimeout(() => { lead.remove(); back.remove(); }, dur * 1000);

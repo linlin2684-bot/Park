@@ -1071,6 +1071,8 @@ function catStroll(force) {
       }
       return;
     }
+    // 一次路過只說一句：已經被點過就不再說（鯊魚另外處理）
+    if (el.dataset.said) return; el.dataset.said = '1';
     el.classList.add('caught'); sfx('heart');
     const fx = { orange: ['#c9773a', '#ffd45c'], white: ['#ffd45c', '#9fd3ff', '#ff8fab'], calico: ['#ff9db4', '#ffc2d1'], tuxedo: ['#ffd1dc', '#ffd45c', '#7cc488'], haohao: ['#ff9fb4', '#ffd45c', '#e2b56a'], doggy: ['#ff9fb4', '#efd9ac'], abian: ['#ffd45c', '#9fd3ff', '#ff9fb4'], gungun: ['#e9573f', '#ffd45c'] }[k] || ['#2b2633', '#ff9db4', '#ffd970'];
     floaty(r.left + r.width / 2, r.top, fx);
@@ -2422,16 +2424,20 @@ function walletMine() {
   let cards = mine.filter((c) => c.scratched && c.kind !== 'collect');
   if (filter === 'ok') cards = cards.filter((c) => remaining(c) > 0 && !isExpired(c));
   if (filter === 'used') cards = cards.filter((c) => remaining(c) === 0 || isExpired(c));
-  cards.sort((a, b) => (filter === 'ok' ? rarityRank(b.rarity) - rarityRank(a.rarity) : 0) || b.at - a.at);
+  // 排序：稀有度（高到低）／拿到的日期新到舊／舊到新，記在這台手機
+  const sort = localStorage.getItem('park-wsort') || 'rarity';
+  cards.sort((a, b) => sort === 'old' ? a.at - b.at : sort === 'new' ? b.at - a.at : (rarityRank(b.rarity) - rarityRank(a.rarity) || b.at - a.at));
   return `
     ${fresh.length ? `<div class="card"><h3><i data-ic="sparkle"></i> 新票券 <span class="sub">刮開看看是什麼</span></h3>
       <div class="new-tickets">${fresh.map((c) => `<button class="scratch-thumb" data-act="scratch" data-id="${c.id}"><span class="q">?</span>刮刮卡<span class="small">${c.from === 'sys' ? '遊樂園送的' : '來自 ' + esc(nick(c.from))}</span></button>`).join('')}</div></div>` : ''}
     <button class="btn block" data-act="giveCard" style="margin-bottom:14px"><i data-ic="letter"></i> 發一張卡給 ${esc(nick(partner()))}</button>
     ${typeof mySched === 'function' && mySched().length ? `<div class="sched-list"><div class="small muted">預約中的卡（對方還看不到）</div>${mySched().map((x) => `<div class="sched-i"><b>${esc(x.t.title)}</b><span>${+x.day.slice(5, 7)}/${+x.day.slice(8)} 送到</span></div>`).join('')}</div>` : ''}
     <div class="seg">${[['ok', '可以用'], ['used', '用過的'], ['all', '全部']].map(([k, n]) => `<button class="${filter === k ? 'on' : ''}" data-act="walletFilter" data-f="${k}">${n}</button>`).join('')}</div>
+    <div class="wsort"><span class="small muted">排序</span>${[['rarity', '稀有度'], ['new', '最新拿到'], ['old', '最早拿到']].map(([k, n]) => `<button class="${sort === k ? 'on' : ''}" data-act="walletSort" data-s="${k}">${n}</button>`).join('')}</div>
     ${cards.length ? cards.map((c) => ticketHTML(c)).join('') : `<div class="empty"><span class="big"><i data-ic="ticket"></i></span>${filter === 'ok' ? '目前沒有可以用的票券<br>去遊樂區扭蛋，或許個願吧' : '這裡空空的'}</div>`}`;
 }
 ACT.walletFilter = (el) => { S.walletFilter = el.dataset.f; render(); };
+ACT.walletSort = (el) => { localStorage.setItem('park-wsort', el.dataset.s); render(); };
 
 function walletSent() {
   const sent = list('cards').filter((c) => c.from === me() && c.owner !== me() && c.kind !== 'collect').sort((a, b) => b.at - a.at);
@@ -3085,19 +3091,41 @@ ACT.gacha = () => {
     const dups = got.filter((x) => x.dup);
     const R = D.RARITY[best];
     $('#gres', m).innerHTML = `<div class="center" style="font-family:var(--serif);font-weight:900;font-size:22px;color:${R.color}">十連抽 · 最高 ${best}${best === 'SSR' ? ' ✦' : ''}</div>
-      <div class="g10-grid">${got.map((x, i) => { const C = D.RARITY[x.rarity]; return `<div class="g10-card r-${x.rarity} ${x.gift ? 'gift' : ''} ${(x.tpl.spice || 1) >= 3 ? 'hot' : ''}" style="--rc:${C.color};animation-delay:${i * 70}ms">
+      <div class="g10-grid">${got.map((x, i) => { const C = D.RARITY[x.rarity]; return `<div class="g10-card r-${x.rarity} ${x.gift ? 'gift' : ''} ${(x.tpl.spice || 1) >= 3 ? 'hot' : ''}" data-i="${i}" style="--rc:${C.color};animation-delay:${i * 70}ms">
         <div class="g10-r">${x.rarity}</div><div class="g10-t">${esc(x.tpl.mystery ? '神秘盲盒' : x.tpl.title)}</div>
         ${x.gift ? '<span class="g10-tag">送</span>' : x.dup ? '<span class="g10-tag dup">重複</span>' : ''}</div>`; }).join('')}</div>
       ${bonus ? `<div class="bonus-acc"><span class="ba-cat">${petSVG(2, 'happy', bonus.id, { blink: false })}</span><div><b>額外掉落！</b><div class="small">${esc(petState().name)}的限定配件「${bonus.name}」</div></div></div>` : ''}
       ${dups.length ? `<button class="btn ghost block mt" id="g10-can">重複的 ${dups.length} 張全部換成罐罐</button>` : ''}
       <div class="btn-row"><button class="btn ghost" id="g-again">再十連</button><button class="btn" data-act="close">收下</button></div>
       <p class="center small muted">卡都放進票夾了，到票夾刮開看看</p>`;
-    $('#g10-can', m) && ($('#g10-can', m).onclick = async (e) => {
-      e.currentTarget.disabled = true;
+    // 換罐罐：一張一張換（點卡片看說明，裡面有按鈕），或重複的全部一次換
+    const toCan = async (x) => {
+      const c = list('cards').find((y) => y.id === x.id); if (!c || c.used || x.canned) return false;
+      x.canned = true;
+      await col('cards').remove(c.id); await giveCan(me(), '', true);
+      const t = $(`.g10-card[data-i="${got.indexOf(x)}"] .g10-tag`, m); if (t) t.textContent = '換罐罐';
+      $(`.g10-card[data-i="${got.indexOf(x)}"]`, m)?.classList.add('canned');
+      return true;
+    };
+    const refreshAll = () => {
+      const left = dups.filter((x) => !x.canned).length, b = $('#g10-can', m);
+      if (b) { b.textContent = left ? `重複的 ${left} 張全部換成罐罐` : `換好了，${petState().name}的罐罐變多了`; b.disabled = !left; }
+    };
+    $('#g10-can', m) && ($('#g10-can', m).onclick = async () => {
       let n = 0;
-      for (const x of dups) { const c = list('cards').find((y) => y.id === x.id); if (!c || c.used) continue; await col('cards').remove(c.id); await giveCan(me(), '', true); n++; }
-      e.currentTarget.textContent = `換好了，${petState().name}多了 ${n} 個罐罐`; sfx('pop');
-      $$('.g10-tag.dup', m).forEach((t) => { t.textContent = '換罐罐'; });
+      for (const x of dups) if (await toCan(x)) n++;
+      sfx('pop'); toast(`換了 ${n} 個罐罐`); refreshAll();
+    });
+    $$('.g10-card', m).forEach((el) => el.onclick = () => {
+      const x = got[+el.dataset.i]; if (!x) return;
+      const card = list('cards').find((y) => y.id === x.id) || { ...cardDoc(x.tpl, me(), 'sys'), id: x.id };
+      const v = openModal(`${mhead(esc(x.tpl.mystery ? '神秘盲盒' : x.tpl.title))}
+        <div style="margin:4px 0 10px">${ticketHTML({ ...card, scratched: true }, { act: '' })}</div>
+        ${x.canned ? '<p class="center small muted">這張已經換成罐罐了</p>'
+          : x.dup ? `<p class="center small muted">你已經有一張還沒用的「${esc(x.tpl.title)}」了</p><button class="btn block" id="g1-can">這張換成罐罐</button>`
+          : '<p class="center small muted">已經放進票夾了</p>'}
+        <button class="btn ghost block mt" data-act="close">回到十連抽</button>`, { center: true });
+      $('#g1-can', v) && ($('#g1-can', v).onclick = async () => { if (await toCan(x)) { sfx('pop'); toast('換成一個罐罐了'); } refreshAll(); closeModal(v); });
     });
     $('#g-again', m).onclick = () => { rays && rays.remove(); closeModal(m); ACT.gacha(); setTimeout(() => { const b = $(useTicket ? '#g-10t' : '#g-10'); b && b.click(); }, 400); };
     m._onClose = () => rays && rays.remove();
@@ -5210,13 +5238,27 @@ function duoStroll(sc) {
     [lead, back].forEach((e) => e.classList.add('paused'));
     sfx('heart');
     const ra = byKey[sc.a].getBoundingClientRect(), rb = byKey[sc.b].getBoundingClientRect();
-    for (const [who, t] of sc.lines) {
+    // 點一下才講下一句（12 秒都沒點就自己結束）
+    let quit = false;
+    for (const [i, [who, t]] of sc.lines.entries()) {
       let b;
       if (who === 'n') b = bubble(t, (ra.left + ra.right + rb.left + rb.right) / 4, Math.min(ra.top, rb.top) - 34, 'narr');
       else { const r = who === 'a' ? ra : rb; b = bubble(t, r.left + r.width * .55, r.top + 6); byKey[sc[who]].classList.add('talk'); }
-      await new Promise((r) => setTimeout(r, 1900));
+      b.insertAdjacentHTML('beforeend', `<span class="fr-next">${i < sc.lines.length - 1 ? '點一下繼續' : '點一下結束'}</span>`);
+      await sleep(350);   // 避免同一下點擊直接跳過
+      // 只有點對話框或牠們才會繼續，點畫面其他地方照常（不會被吃掉）
+      b.classList.add('tappable');
+      const tapped = await new Promise((res) => {
+        const els = [b, lead, back];
+        const done = (v) => { clearTimeout(tm); els.forEach((x) => x.removeEventListener('click', on, true)); res(v); };
+        const tm = setTimeout(() => done(false), 12000);
+        function on(e) { e.stopPropagation(); e.preventDefault(); done(true); }
+        els.forEach((x) => x.addEventListener('click', on, true));
+      });
       b.classList.add('out'); setTimeout(() => b.remove(), 300);
       [lead, back].forEach((e) => e.classList.remove('talk'));
+      if (!tapped) { quit = true; break; }
+      sfx('pop');
     }
     [lead, back].forEach((e) => e.classList.remove('paused'));
     timer = setTimeout(() => { lead.remove(); back.remove(); }, dur * 1000);

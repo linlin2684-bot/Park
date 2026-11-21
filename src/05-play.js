@@ -168,19 +168,41 @@ ACT.gacha = () => {
     const dups = got.filter((x) => x.dup);
     const R = D.RARITY[best];
     $('#gres', m).innerHTML = `<div class="center" style="font-family:var(--serif);font-weight:900;font-size:22px;color:${R.color}">十連抽 · 最高 ${best}${best === 'SSR' ? ' ✦' : ''}</div>
-      <div class="g10-grid">${got.map((x, i) => { const C = D.RARITY[x.rarity]; return `<div class="g10-card r-${x.rarity} ${x.gift ? 'gift' : ''} ${(x.tpl.spice || 1) >= 3 ? 'hot' : ''}" style="--rc:${C.color};animation-delay:${i * 70}ms">
+      <div class="g10-grid">${got.map((x, i) => { const C = D.RARITY[x.rarity]; return `<div class="g10-card r-${x.rarity} ${x.gift ? 'gift' : ''} ${(x.tpl.spice || 1) >= 3 ? 'hot' : ''}" data-i="${i}" style="--rc:${C.color};animation-delay:${i * 70}ms">
         <div class="g10-r">${x.rarity}</div><div class="g10-t">${esc(x.tpl.mystery ? '神秘盲盒' : x.tpl.title)}</div>
         ${x.gift ? '<span class="g10-tag">送</span>' : x.dup ? '<span class="g10-tag dup">重複</span>' : ''}</div>`; }).join('')}</div>
       ${bonus ? `<div class="bonus-acc"><span class="ba-cat">${petSVG(2, 'happy', bonus.id, { blink: false })}</span><div><b>額外掉落！</b><div class="small">${esc(petState().name)}的限定配件「${bonus.name}」</div></div></div>` : ''}
       ${dups.length ? `<button class="btn ghost block mt" id="g10-can">重複的 ${dups.length} 張全部換成罐罐</button>` : ''}
       <div class="btn-row"><button class="btn ghost" id="g-again">再十連</button><button class="btn" data-act="close">收下</button></div>
       <p class="center small muted">卡都放進票夾了，到票夾刮開看看</p>`;
-    $('#g10-can', m) && ($('#g10-can', m).onclick = async (e) => {
-      e.currentTarget.disabled = true;
+    // 換罐罐：一張一張換（點卡片看說明，裡面有按鈕），或重複的全部一次換
+    const toCan = async (x) => {
+      const c = list('cards').find((y) => y.id === x.id); if (!c || c.used || x.canned) return false;
+      x.canned = true;
+      await col('cards').remove(c.id); await giveCan(me(), '', true);
+      const t = $(`.g10-card[data-i="${got.indexOf(x)}"] .g10-tag`, m); if (t) t.textContent = '換罐罐';
+      $(`.g10-card[data-i="${got.indexOf(x)}"]`, m)?.classList.add('canned');
+      return true;
+    };
+    const refreshAll = () => {
+      const left = dups.filter((x) => !x.canned).length, b = $('#g10-can', m);
+      if (b) { b.textContent = left ? `重複的 ${left} 張全部換成罐罐` : `換好了，${petState().name}的罐罐變多了`; b.disabled = !left; }
+    };
+    $('#g10-can', m) && ($('#g10-can', m).onclick = async () => {
       let n = 0;
-      for (const x of dups) { const c = list('cards').find((y) => y.id === x.id); if (!c || c.used) continue; await col('cards').remove(c.id); await giveCan(me(), '', true); n++; }
-      e.currentTarget.textContent = `換好了，${petState().name}多了 ${n} 個罐罐`; sfx('pop');
-      $$('.g10-tag.dup', m).forEach((t) => { t.textContent = '換罐罐'; });
+      for (const x of dups) if (await toCan(x)) n++;
+      sfx('pop'); toast(`換了 ${n} 個罐罐`); refreshAll();
+    });
+    $$('.g10-card', m).forEach((el) => el.onclick = () => {
+      const x = got[+el.dataset.i]; if (!x) return;
+      const card = list('cards').find((y) => y.id === x.id) || { ...cardDoc(x.tpl, me(), 'sys'), id: x.id };
+      const v = openModal(`${mhead(esc(x.tpl.mystery ? '神秘盲盒' : x.tpl.title))}
+        <div style="margin:4px 0 10px">${ticketHTML({ ...card, scratched: true }, { act: '' })}</div>
+        ${x.canned ? '<p class="center small muted">這張已經換成罐罐了</p>'
+          : x.dup ? `<p class="center small muted">你已經有一張還沒用的「${esc(x.tpl.title)}」了</p><button class="btn block" id="g1-can">這張換成罐罐</button>`
+          : '<p class="center small muted">已經放進票夾了</p>'}
+        <button class="btn ghost block mt" data-act="close">回到十連抽</button>`, { center: true });
+      $('#g1-can', v) && ($('#g1-can', v).onclick = async () => { if (await toCan(x)) { sfx('pop'); toast('換成一個罐罐了'); } refreshAll(); closeModal(v); });
     });
     $('#g-again', m).onclick = () => { rays && rays.remove(); closeModal(m); ACT.gacha(); setTimeout(() => { const b = $(useTicket ? '#g-10t' : '#g-10'); b && b.click(); }, 400); };
     m._onClose = () => rays && rays.remove();
