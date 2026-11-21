@@ -456,11 +456,8 @@ ACT.craft = async () => {
 };
 
 // ---------- 收藏冊 ----------
-// 生日系列：每張卡兌換過一次才算收集到（集滿解鎖封面標語）；其他限定系列：收到就算收藏
-function seriesCollected(c) {
-  if (c.series && c.series !== D.BIRTHDAY_SERIES) return true;
-  return c.kind === 'collect' || (c.log || []).some((l) => l.how !== 'craft');
-}
+// 收藏冊：拿到就算收集到，不用兌換（11/22 晽晽要求；生日系列集滿就解鎖封面標語）
+function seriesCollected(c) { return true; }
 function walletBook() {
   S.bookShut ||= {}; S.bookData = {};
   const ms = S.couple.members || [me()];
@@ -503,7 +500,7 @@ function walletBook() {
     toc.push({ bi, pal: meta.pal, motif: meta.motif, name: b.title.replace('系列', '').replace('的許願卡', ' 許願'), got, total: allSlots ? allSlots.length : cs.length });
     return `<div class="book emb-${meta.pal}" id="bk-${bi}">
       <button class="book-cover2" ${canOpen ? `data-act="bookOpen" data-k="${esc(b.key)}"` : ''}>${svg}</button>
-      <div class="book-note">${!canOpen ? esc(meta.how) : isB && got < cs.length ? '每張生日卡至少兌換一次，就會解鎖封面標語・點封面翻開' : `已收集 ${got} 張・點封面翻開`}</div>
+      <div class="book-note">${!canOpen ? esc(meta.how) : `已收集 ${got} 張・點封面翻開`}</div>
     </div>`;
   }).join('');
   // 最上面的目錄：一排小徽章，點了跳到那一本

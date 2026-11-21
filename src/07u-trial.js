@@ -73,3 +73,27 @@ setInterval(() => {
   if (hotPinChecked === k) return;
   hotPinChecked = k; hotPinMirror();
 }, 4000);
+
+// 11/22：關測試時把票夾裡的生日系列卡也清掉了 → 從關測試前的雲端備份拿回來（只做一次）
+let bdayBackBusy = false;
+async function bdayBackOnce() {
+  const c = S.couple;
+  if (bdayBackBusy || !c || !S.cid || !c.trialOff || c.bdayBack || (c.members || []).length !== 1) return;
+  if (!COLS.every((n) => S.d[n])) return;
+  bdayBackBusy = true;
+  try {
+    const all = await listCloudBackups();
+    const cand = all.filter((b) => b.at <= c.trialOff + 5 * 60000).sort((a, b) => b.at - a.at);
+    const b = cand.find((x) => x.at >= c.trialOff - 10 * 60000) || cand[0];
+    if (!b) return;
+    const ok = await S.store.coupleTx(S.cid, (x) => (x.bdayBack ? null : { bdayBack: now() }));
+    if (!ok) return;
+    const data = await loadCloudBackup(b);
+    const have = new Set(list('cards').map((d) => d.id));
+    const back = ((data.cols && data.cols.cards) || []).filter((d) => d.series === D.BIRTHDAY_SERIES && d.id && !have.has(d.id));
+    for (const d of back) { const { id, ...rest } = d; await col('cards').set(id, rest, false); }
+    if (back.length) { toast(`找回 ${back.length} 張生日系列的卡`); render(); }
+  } catch (e) { console.warn('找回生日卡', e); }
+  finally { bdayBackBusy = false; }
+}
+setInterval(() => { if (document.visibilityState !== 'hidden') bdayBackOnce(); }, 3500);

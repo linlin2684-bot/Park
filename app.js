@@ -2925,11 +2925,8 @@ ACT.craft = async () => {
 };
 
 // ---------- 收藏冊 ----------
-// 生日系列：每張卡兌換過一次才算收集到（集滿解鎖封面標語）；其他限定系列：收到就算收藏
-function seriesCollected(c) {
-  if (c.series && c.series !== D.BIRTHDAY_SERIES) return true;
-  return c.kind === 'collect' || (c.log || []).some((l) => l.how !== 'craft');
-}
+// 收藏冊：拿到就算收集到，不用兌換（11/22 晽晽要求；生日系列集滿就解鎖封面標語）
+function seriesCollected(c) { return true; }
 function walletBook() {
   S.bookShut ||= {}; S.bookData = {};
   const ms = S.couple.members || [me()];
@@ -2972,7 +2969,7 @@ function walletBook() {
     toc.push({ bi, pal: meta.pal, motif: meta.motif, name: b.title.replace('系列', '').replace('的許願卡', ' 許願'), got, total: allSlots ? allSlots.length : cs.length });
     return `<div class="book emb-${meta.pal}" id="bk-${bi}">
       <button class="book-cover2" ${canOpen ? `data-act="bookOpen" data-k="${esc(b.key)}"` : ''}>${svg}</button>
-      <div class="book-note">${!canOpen ? esc(meta.how) : isB && got < cs.length ? '每張生日卡至少兌換一次，就會解鎖封面標語・點封面翻開' : `已收集 ${got} 張・點封面翻開`}</div>
+      <div class="book-note">${!canOpen ? esc(meta.how) : `已收集 ${got} 張・點封面翻開`}</div>
     </div>`;
   }).join('');
   // 最上面的目錄：一排小徽章，點了跳到那一本
@@ -8216,6 +8213,30 @@ setInterval(() => {
   if (hotPinChecked === k) return;
   hotPinChecked = k; hotPinMirror();
 }, 4000);
+
+// 11/22：關測試時把票夾裡的生日系列卡也清掉了 → 從關測試前的雲端備份拿回來（只做一次）
+let bdayBackBusy = false;
+async function bdayBackOnce() {
+  const c = S.couple;
+  if (bdayBackBusy || !c || !S.cid || !c.trialOff || c.bdayBack || (c.members || []).length !== 1) return;
+  if (!COLS.every((n) => S.d[n])) return;
+  bdayBackBusy = true;
+  try {
+    const all = await listCloudBackups();
+    const cand = all.filter((b) => b.at <= c.trialOff + 5 * 60000).sort((a, b) => b.at - a.at);
+    const b = cand.find((x) => x.at >= c.trialOff - 10 * 60000) || cand[0];
+    if (!b) return;
+    const ok = await S.store.coupleTx(S.cid, (x) => (x.bdayBack ? null : { bdayBack: now() }));
+    if (!ok) return;
+    const data = await loadCloudBackup(b);
+    const have = new Set(list('cards').map((d) => d.id));
+    const back = ((data.cols && data.cols.cards) || []).filter((d) => d.series === D.BIRTHDAY_SERIES && d.id && !have.has(d.id));
+    for (const d of back) { const { id, ...rest } = d; await col('cards').set(id, rest, false); }
+    if (back.length) { toast(`找回 ${back.length} 張生日系列的卡`); render(); }
+  } catch (e) { console.warn('找回生日卡', e); }
+  finally { bdayBackBusy = false; }
+}
+setInterval(() => { if (document.visibilityState !== 'hidden') bdayBackOnce(); }, 3500);
 
 // ============================================================
 //  收藏冊：兌換卡（扭蛋卡池裡的卡）
