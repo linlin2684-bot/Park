@@ -286,6 +286,21 @@ function hotDiceEditor(lv) {
   $('#de-reset', m).onclick = async () => { if (await confirmBox('三顆骰子都換回預設的字？', '換回預設')) save(true); };
 }
 
+
+// 重畫時保留捲動位置（不要跳回第一張／最上面）
+function keepScroll(m, fn) {
+  const md = m.querySelector('.modal');
+  const top = md ? md.scrollTop : 0;
+  const rows = $$('.pz-row', m).map((r) => r.scrollLeft);
+  const lists = $$('.hl-body, .pb-grid', m).map((r) => r.scrollTop);
+  fn();
+  const md2 = m.querySelector('.modal'); if (md2) md2.scrollTop = top;
+  $$('.pz-row', m).forEach((r, i) => { if (rows[i] != null) r.scrollLeft = rows[i]; });
+  $$('.hl-body, .pb-grid', m).forEach((r, i) => { if (lists[i] != null) r.scrollTop = lists[i]; });
+}
+// 寫入雲端不用等回應（Firestore 本機會先更新），畫面先反應
+const fire = (pr) => { Promise.resolve(pr).catch((e) => { console.error(e); toast('沒有存到，等一下再試'); }); };
+
 // ---------- 想試清單 ----------
 ACT.hotList = () => {
   let tab = hotNewMatch() ? 'match' : 'mine';
@@ -319,22 +334,24 @@ ACT.hotList = () => {
       if (del) {
         if (!(await confirmBox('刪掉這一項？', '刪掉'))) return;
         const it = hotDocs('item').find((x) => x.id === del.dataset.del);
-        if (it) { for (const w of hotDocs('want').filter((w) => w.k === it.k)) await col('hot').remove(w.id); await col('hot').remove(it.id); }
-        return draw();
+        if (it) { for (const w of hotDocs('want').filter((w) => w.k === it.k)) fire(col('hot').remove(w.id)); fire(col('hot').remove(it.id)); }
+        return setTimeout(() => keepScroll(m, draw), 150);
       }
-      await hotToggle(b.dataset.k); draw();
+      b.classList.toggle('on'); $('.hl-chk', b).innerHTML = b.classList.contains('on') ? ic('check') : '';
+      hotToggle(b.dataset.k);
+      setTimeout(() => keepScroll(m, draw), 150);
     });
-    $('#hl-add', m) && ($('#hl-add', m).onclick = async () => { await hotAddItem(); draw(); });
-    $$('[data-done]', m).forEach((b) => b.onclick = async () => { await col('hot').add({ type: 'done', k: b.dataset.done, by: me(), at: now() }); sfx('stamp'); vibrate(30); draw(); });
-    $$('[data-undone]', m).forEach((b) => b.onclick = async () => { if (await confirmBox('把「已解鎖」的章拿掉？', '拿掉')) { await col('hot').remove(b.dataset.undone); draw(); } });
+    $('#hl-add', m) && ($('#hl-add', m).onclick = async () => { await hotAddItem(); keepScroll(m, draw); });
+    $$('[data-done]', m).forEach((b) => b.onclick = () => { b.disabled = true; fire(col('hot').add({ type: 'done', k: b.dataset.done, by: me(), at: now() })); sfx('stamp'); vibrate(30); setTimeout(() => keepScroll(m, draw), 150); });
+    $$('[data-undone]', m).forEach((b) => b.onclick = async () => { if (await confirmBox('把「已解鎖」的章拿掉？', '拿掉')) { fire(col('hot').remove(b.dataset.undone)); setTimeout(() => keepScroll(m, draw), 150); } });
   };
   draw();
   m._onClose = hotRedrawHub;
 };
-async function hotToggle(k) {
+function hotToggle(k) {
   const mineDoc = hotDocs('want').find((d) => d.uid === me() && d.k === k);
-  if (mineDoc) { await col('hot').remove(mineDoc.id); return; }
-  await col('hot').add({ type: 'want', uid: me(), k, at: now() });
+  if (mineDoc) { fire(col('hot').remove(mineDoc.id)); return; }
+  fire(col('hot').add({ type: 'want', uid: me(), k, at: now() }));
   vibrate(10);
   const p = partner();
   if (p && hotDocs('want').some((d) => d.uid === p && d.k === k)) {
@@ -504,10 +521,9 @@ function wireFlip(root, redraw) {
   $$('.pcard', root).forEach((c) => c.onclick = (e) => { if (e.target.closest('button')) return; c.classList.toggle('flipped'); sfx('pop'); });
   $$('[data-like]', root).forEach((b) => b.onclick = async () => {
     const mine = poseLikes(b.dataset.like).find((d) => d.uid === me());
-    if (mine) await col('hot').remove(mine.id);
-    else { await col('hot').add({ type: 'pose-like', key: b.dataset.like, uid: me(), at: now() }); sfx('heart'); vibrate(10); toast('喜歡！之後比較容易抽到'); }
+    if (mine) fire(col('hot').remove(mine.id));
+    else { fire(col('hot').add({ type: 'pose-like', key: b.dataset.like, uid: me(), at: now() })); sfx('heart'); vibrate(10); toast('喜歡！之後比較容易抽到'); }
     b.classList.toggle('on', !mine);
-    redraw && redraw();
   });
 }
 
@@ -518,7 +534,7 @@ ACT.hotPose = () => {
     const day = hotPoseToday(), done = poseDone();
     let body;
     if (!day) {
-      body = `<div class="pz-intro">${hotEmblem()}<p>今天還沒抽<br><span class="small muted">張數也是抽的，1～5 張。抽到的牌兩個人看到的都一樣，今天不能重抽</span></p>
+      body = `<div class="pz-intro">${hotEmblem()}<p>今天還沒抽<br><span class="small muted">每天 5 張，照順序來，試過的就按「試過了」。抽到的牌兩個人看到的都一樣，今天不能重抽</span></p>
         <div class="seg hz-lv" id="pz-lv">${[2, 3].map((l) => `<button data-l="${l}" class="${hotLv() === l ? 'on' : ''}">${spiceIc(l)} ${D.SPICE[l].label}</button>`).join('')}</div>
         <p class="small muted" style="margin:0">曖昧只抽曖昧的牌；火辣兩種都會抽到</p>
         <button class="btn block hot-btn" id="pz-go">抽今天的姿勢</button></div>`;
@@ -528,7 +544,7 @@ ACT.hotPose = () => {
       const rare = all.find((x) => x.p.rare && (x.c.round || 1) === 1);
       const row = (round) => {
         const cards = all.filter((x) => (x.c.round || 1) === round);
-        return `<div class="pz-count">${round === 2 ? '<span class="pz-r2">Round 2</span> ' : '今天'}抽到 <b>${cards.length}</b> 張，照順序來</div>
+        return `<div class="pz-count">${round === 2 ? '<span class="pz-r2">Round 2</span> · ' : ''}照順序來，試過的就按「試過了」</div>
         <div class="pz-row ${deal === round ? 'deal' : ''}">${cards.map(({ c, i, p }, j) => `<div class="pz-slot" style="--i:${j}">${poseCardHTML(p, { order: j + 1, r: c.r, sc: c.s, done: (day.doneKeys || []).includes(poseKey(p)) })}
           <div class="pz-btns">${p.scene ? `<button class="btn sm ghost" data-swap="${i}">換一張</button>` : ''}${p.rare && round === 1 && !has2 ? `<button class="btn sm gold" id="pz-r2">開始 Round 2</button>` : ''}${p.pick ? `<button class="btn sm gold" data-pick="${i}">${esc(p.no === 64 ? '她' : p.no === 66 ? '他' : (c.r || ''))}從圖鑑挑一張</button>` : ''}${p.rare || p.pick || (day.doneKeys || []).includes(poseKey(p)) ? '' : `<button class="btn sm hot-btn" data-done="${i}">試過了</button>`}</div></div>`).join('')}</div>`;
       };
@@ -537,12 +553,12 @@ ACT.hotPose = () => {
     m.querySelector('.modal').innerHTML = `${mhead('<i data-ic="star"></i> 今天的姿勢')}${body}
       <div class="center hz-links"><button class="link" data-act="hotPoseBook"><i data-ic="book"></i> 姿勢圖鑑</button><button class="link" id="pz-add"><i data-ic="plus"></i> 自己加一張</button></div>`;
     deal = false;
-    wireFlip(m, () => {});
-    $$('[data-pick]', m).forEach((b) => b.onclick = () => hotPosePicker(+b.dataset.pick, () => draw()));
+    wireFlip(m);
+    $$('[data-pick]', m).forEach((b) => b.onclick = () => hotPosePicker(+b.dataset.pick, () => keepScroll(m, draw)));
     $('#pz-r2', m) && ($('#pz-r2', m).onclick = async () => {
       const day = hotPoseToday();
       if (day.cards.some((c) => (c.round || 1) === 2)) return draw();
-      const n = 1 + Math.floor(Math.random() * 5);
+      const n = 5;
       const add = drawPoses(n, day.lv || 3, new Set(day.cards.map((c) => c.key)), true).map((p) => poseEntry(p, 2));
       await col('hot').update(day.id, { cards: [...day.cards, ...add] });
       sfx('sparkle'); confetti(70, ['#e9c27a', '#d9485f', '#fff4e6']); deal = 2; draw();
@@ -550,7 +566,7 @@ ACT.hotPose = () => {
     $$('#pz-lv button', m).forEach((b) => b.onclick = () => { localStorage.setItem('park-hot-lv', b.dataset.l); $$('#pz-lv button', m).forEach((x) => x.classList.toggle('on', x === b)); });
     $('#pz-go', m) && ($('#pz-go', m).onclick = async () => {
       if (hotPoseToday()) return draw();
-      const lv = hotLv(), n = 1 + Math.floor(Math.random() * 5);
+      const lv = hotLv(), n = 5;
       const cards = drawPoses(n, lv).map((p) => poseEntry(p, 1));
       $('#pz-go', m).disabled = true; vibrate([20, 40, 20]); sfx('sparkle');
       await col('hot').add({ type: 'pose-day', day: dkey(), lv, cards, doneKeys: [], by: me(), at: now() });
@@ -563,13 +579,16 @@ ACT.hotPose = () => {
       if (!cand.length) return toast('沒有可以換的牌了');
       const p = pick(cand);
       const cards = day.cards.map((c, j) => (j === i ? poseEntry(p, c.round || 1) : c));
-      await col('hot').update(day.id, { cards }); sfx('pop'); toast(`換成「${p.name}」`); draw();
+      fire(col('hot').update(day.id, { cards })); sfx('pop'); toast(`換成「${p.name}」`); setTimeout(() => keepScroll(m, draw), 150);
     });
-    $$('[data-done]', m).forEach((b) => b.onclick = async () => {
+    $$('[data-done]', m).forEach((b) => b.onclick = () => {
       const day = hotPoseToday(), c = day.cards[+b.dataset.done];
-      await col('hot').update(day.id, { doneKeys: [...(day.doneKeys || []), c.key] });
-      if (!poseDone().has(c.key)) await col('hot').add({ type: 'pose-done', key: c.key, at: now() });
-      sfx('stamp'); vibrate(30); draw();
+      const front = b.closest('.pz-slot').querySelector('.pc-front');
+      if (front && !front.querySelector('.pc-stamp')) front.insertAdjacentHTML('beforeend', '<div class="pc-stamp"><b>已解鎖</b></div>');
+      b.remove();
+      fire(col('hot').update(day.id, { doneKeys: [...new Set([...(day.doneKeys || []), c.key])] }));
+      if (!poseDone().has(c.key)) fire(col('hot').add({ type: 'pose-done', key: c.key, at: now() }));
+      sfx('stamp'); vibrate(30);
     });
     $('#pz-add', m).onclick = () => hotPoseEditor();
   };
@@ -634,8 +653,8 @@ function hotPosePicker(idx, done) {
     $('#pk-ok', v).onclick = async () => {
       const d = hotPoseToday();
       const cards = d.cards.map((c, j) => (j === idx ? poseEntry(p, c.round || 1) : c));
-      await col('hot').update(d.id, { cards });
-      closeModal(v); closeModal(m); sfx('chime'); toast(`換成「${p.name}」`); done && done();
+      fire(col('hot').update(d.id, { cards }));
+      closeModal(v); closeModal(m); sfx('chime'); toast(`換成「${p.name}」`); setTimeout(() => done && done(), 150);
     };
   });
 }
