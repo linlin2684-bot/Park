@@ -156,6 +156,7 @@ function hotHub() {
     return `${mhead('火辣區')}
     <div class="hz-top"><span class="hz-top-em">${hotEmblem()}</span><div class="grow"><div class="small">今晚的熱度</div>
       <div class="seg hz-lv" id="hz-lv">${[2, 3].map((l) => `<button data-l="${l}" class="${hotLv() === l ? 'on' : ''}">${spiceIc(l)} ${D.SPICE[l].label}</button>`).join('')}</div></div></div>
+    ${typeof hotFestToday === 'function' && (hotFestToday() || tripNow()) ? `<div class="hz-lim">✦ 今天有${HOT_FEST_NAME[hotFestToday() || 'trip']}的劇本和姿勢卡</div>` : ''}
     <div class="hz-sec">白天</div>
     <div class="hz-g2">${sm('hotTease', 'letter', '撩撥任務', '早上互派，晚上驗收', tz)}${sm('hotSignal', 'moon', '今晚的暗號', '偷偷約今晚', sig)}</div>
     <div class="hz-sec">今晚</div>
@@ -327,7 +328,7 @@ ACT.hotList = () => {
         <button class="btn ghost block mt" id="hl-add"><i data-ic="plus"></i> 加一個自己想的</button>`;
     } else {
       const row = (x) => { const d = done.get(x.k); return `<div class="hl-row match ${d ? 'done' : ''}"><span class="hl-chk">${ic('heart')}</span><span class="grow">${esc(x.t)}${x.at > seen ? ' <span class="hl-new">新配對</span>' : ''}</span>
-        ${d ? `<button class="hl-stamp" data-undone="${d.id}"><b>已解鎖</b><small>${fmtDate(d.at)}</small></button>` : `<button class="btn sm ghost" data-done="${esc(x.k)}">試過了</button>`}</div>`; };
+        ${typeof hotOutingBtn === 'function' ? hotOutingBtn(x.k) : ''}${d ? `<button class="hl-stamp" data-undone="${d.id}"><b>已解鎖</b><small>${fmtDate(d.at)}</small></button>` : `<button class="btn sm ghost" data-done="${esc(x.k)}">試過了</button>`}</div>`; };
       body = matches.length ? `<p class="small muted" style="margin:0 0 6px">你們兩個都想試的。試過了就蓋一個章。</p>
         ${group(2, matches.filter((x) => x.lv === 2).map(row))}${group(3, matches.filter((x) => x.lv === 3).map(row))}`
         : `<div class="hl-empty">${hotEmblem()}<p>還沒有配對<br><span class="small muted">兩個人都去勾勾看，說不定很有默契</span></p></div>`;
@@ -452,7 +453,7 @@ const poseLikes = (key) => hotDocs('pose-like').filter((d) => d.key === key);
 // 一次抽到的牌裡，「有人喜歡的」最多佔一半（無條件進位），讓新卡一定有位置
 function drawPoses(n, lv, exclude = new Set(), noRare = false) {
   const done = poseDone();
-  let pool = hotPoses().filter((p) => (p.lv || 3) <= lv && !exclude.has(poseKey(p)) && !(noRare && p.rare));
+  let pool = hotPoses().filter((p) => (p.lv || 3) <= lv && !exclude.has(poseKey(p)) && !(noRare && p.rare) && (typeof specialOK !== 'function' || specialOK(p)));
   const weight = (p) => {
     if (p.rare) return 0.2;
     let w = 1;
@@ -462,6 +463,9 @@ function drawPoses(n, lv, exclude = new Set(), noRare = false) {
   const maxLiked = Math.ceil(n / 2);
   const out = [];
   let liked = 0;
+  // 節日／旅行限定的那天，第 1 張一定是限定卡
+  const sp = pool.filter((p) => p.fest || p.trip);
+  if (sp.length && n > 0) { const c = pick(sp); out.push(c); pool = pool.filter((p) => p !== c); }
   while (out.length < n && pool.length) {
     const cand = liked >= maxLiked ? pool.filter((p) => !poseLikes(poseKey(p)).length) : pool;
     const use = cand.length ? cand : pool;
@@ -476,7 +480,7 @@ function drawPoses(n, lv, exclude = new Set(), noRare = false) {
 }
 const poseEntry = (p, round = 1) => {
   const e = { key: poseKey(p), r: /【隨機】/.test(p.how) ? pick(['她', '他']) : '', round };
-  if (p.script) e.s = { i: Math.floor(Math.random() * D.HOT_SCRIPTS.length), rule: pick(D.HOT_SCRIPT_RULES) };
+  if (p.script) e.s = newScript(-1, true);
   return e;
 };
 function scriptHTML(sc) {
@@ -513,7 +517,7 @@ function poseCardHTML(p, { order = 0, r = '', done = false, small = false, sc = 
   const no = p.no ? `No.${pad(p.no)}` : '自訂';
   return `<div class="pcard ${small ? 'sm' : ''}" data-key="${esc(poseKey(p))}"><div class="pc-in">
     <div class="pc-face pc-front">${order ? `<div class="pc-order">第 ${order} 張</div>` : ''}<div class="pc-no">${no}</div>
-      <button class="pc-like ${liked ? 'on' : ''}" data-like="${esc(poseKey(p))}" aria-label="喜歡">${ic('heart')}</button>${p.rare ? '<div class="pc-rare">稀有</div>' : ''}
+      <button class="pc-like ${liked ? 'on' : ''}" data-like="${esc(poseKey(p))}" aria-label="喜歡">${ic('heart')}</button>${p.rare ? '<div class="pc-rare">稀有</div>' : p.fest || p.trip ? `<div class="pc-rare lim">${HOT_FEST_NAME[p.fest || 'trip']}</div>` : ''}
       <div class="pc-em">${poseEmblem(p)}</div><div class="pc-name">${esc(p.name)}</div>
       <div class="pc-lv">${flames(p.lv || 3)}${p.scene ? '<span class="pc-scene">場景</span>' : ''}</div>
       ${done ? '<div class="pc-stamp"><b>已解鎖</b></div>' : ''}<div class="pc-hint">點一下看說明</div></div>
@@ -553,7 +557,7 @@ ACT.hotPose = () => {
         const cards = all.filter((x) => (x.c.round || 1) === round);
         return `<div class="pz-count">${round === 2 ? '<span class="pz-r2">Round 2</span> · ' : ''}照順序來，試過的就按「試過了」</div>
         <div class="pz-row ${deal === round ? 'deal' : ''}">${cards.map(({ c, i, p }, j) => `<div class="pz-slot" style="--i:${j}">${poseCardHTML(p, { order: j + 1, r: c.r, sc: c.s, done: (day.doneKeys || []).includes(poseKey(p)) })}
-          <div class="pz-btns">${p.scene ? `<button class="btn sm ghost" data-swap="${i}">換一張</button>` : ''}${p.rare && round === 1 && !has2 ? `<button class="btn sm gold" id="pz-r2">開始 Round 2</button>` : ''}${c.s ? `<button class="btn sm gold" data-script="${i}">看完整劇本</button>` : ''}${p.pick ? `<button class="btn sm gold" data-pick="${i}">${esc(p.no === 64 ? '她' : p.no === 66 ? '他' : (c.r || ''))}從圖鑑挑一張</button>` : ''}${p.rare || p.pick || (day.doneKeys || []).includes(poseKey(p)) ? '' : `<button class="btn sm hot-btn" data-done="${i}">試過了</button>`}</div></div>`).join('')}</div>`;
+          <div class="pz-btns">${p.scene ? `<button class="btn sm ghost" data-swap="${i}">換一張</button>` : ''}${p.rare && round === 1 && !has2 ? `<button class="btn sm gold" id="pz-r2">開始 Round 2</button>` : ''}${c.s ? `<button class="btn sm gold" data-script="${i}">看完整劇本</button>` : ''}${!p.pick && typeof isBday === 'function' && isBday() ? `<button class="btn sm gold" data-pick="${i}">🎂 壽星指定</button>` : ''}${p.pick ? `<button class="btn sm gold" data-pick="${i}">${esc(p.no === 64 ? '她' : p.no === 66 ? '他' : (c.r || ''))}從圖鑑挑一張</button>` : ''}${p.rare || p.pick || (day.doneKeys || []).includes(poseKey(p)) ? '' : `<button class="btn sm hot-btn" data-done="${i}">試過了</button>`}</div></div>`).join('')}</div>`;
       };
       body = row(1) + (has2 ? row(2) : '') + (all.length > 1 ? '<p class="small muted center" style="margin:6px 0 0">左右滑動看每一張</p>' : '');
     }
@@ -647,7 +651,7 @@ function hotPoseEditor() {
 function hotPosePicker(idx, done) {
   const day = hotPoseToday(); if (!day) return;
   const used = new Set(day.cards.map((c) => c.key));
-  const list2 = hotPoses().filter((p) => !p.rare && !p.pick && !used.has(poseKey(p)) && (p.lv || 3) <= (day.lv || 3));
+  const list2 = hotPoses().filter((p) => !p.rare && !p.pick && !used.has(poseKey(p)) && (p.lv || 3) <= (day.lv || 3) && (typeof specialOK !== 'function' || specialOK(p)));
   const m = openModal(`${mhead('<i data-ic="book"></i> 挑一張')}
     <p class="small muted" style="margin:0 0 8px">點一張看說明，確定了就換上去</p>
     <div class="pb-grid">${list2.map((p) => `<button class="pb-cell on" data-key="${esc(poseKey(p))}"><span class="pb-em">${poseEmblem(p)}</span><small>${p.no ? 'No.' + pad(p.no) : '自訂'}</small><b>${esc(p.name)}</b></button>`).join('')}</div>`,
@@ -814,6 +818,7 @@ ACT.hotWallet = () => {
     keepScroll(m, () => { m.querySelector('.modal').innerHTML = `${mhead('<i data-ic="stamp"></i> 火辣票夾')}
       <div class="hw-sec"><div class="hl-grp">火辣印章 · ${st.length} 個</div><div class="hw-slots">${slots}</div>
         <div class="btn-row"><button class="btn ${st.length >= D.HOT_STAMP.lottery ? 'hot-btn' : 'ghost'}" id="hw-l" ${st.length >= D.HOT_STAMP.lottery ? '' : 'disabled'}>用 ${D.HOT_STAMP.lottery} 個抽獎</button><button class="btn ${st.length >= D.HOT_STAMP.wish ? 'gold' : 'ghost'}" id="hw-w" ${st.length >= D.HOT_STAMP.wish ? '' : 'disabled'}>用 ${D.HOT_STAMP.wish} 個許願</button></div>
+        ${typeof isBday === 'function' && isBday() && !bdayLotUsed() ? '<button class="btn block gold mt" id="hw-bday">🎂 壽星特權：免印章抽一次</button>' : ''}
         <p class="small muted" style="margin:4px 0 0">撩撥任務被驗收通過就會拿到印章。集滿 ${D.HOT_STAMP.lottery} 個可以抽火辣獎，${D.HOT_STAMP.wish} 個可以從想試清單許一個願</p></div>
       ${tix.length ? `<div class="hw-sec"><div class="hl-grp">我的券</div>${tix.map((t) => `<div class="hw-row"><span class="hw-tk ${t.kind}">${tName(t.kind)}</span><span class="grow small muted">${t.kind === 'wish' ? '從想試清單挑一項，要對方兌現' : '抽一個火辣小獎'}</span><button class="btn sm hot-btn" data-use="${t.id}">${t.kind === 'wish' ? '挑一項' : '抽獎'}</button></div>`).join('')}</div>` : ''}
       ${toMe.length ? `<div class="hw-sec"><div class="hl-grp">${esc(nick(partner()))} 要兌現的</div>${toMe.map((v) => `<div class="hw-row"><span class="grow"><b>${esc(v.title)}</b><br><span class="small muted">${esc(v.desc || '')}</span></span><button class="btn sm hot-btn" data-ok="${v.id}">兌現了</button></div>`).join('')}</div>` : ''}
@@ -821,6 +826,7 @@ ACT.hotWallet = () => {
       ${used.length ? `<div class="hw-sec"><div class="hl-grp">兌現過的</div>${used.map((v) => `<div class="hw-row done"><span class="grow small">${esc(v.title)} · ${esc(nick(v.uid))}</span><span class="small muted">${fmtDate(v.redeemedAt || v.at)}</span></div>`).join('')}</div>` : ''}`; });
     const spend = (n) => { hotStamps(me()).sort((a, b) => a.at - b.at).slice(0, n).forEach((d) => fire(col('hot').update(d.id, { used: true }))); };
     $('#hw-l', m).onclick = () => { if (hotStamps(me()).length < D.HOT_STAMP.lottery) return; spend(D.HOT_STAMP.lottery); hotLottery(null, () => setTimeout(draw, 150)); };
+    $('#hw-bday', m) && ($('#hw-bday', m).onclick = () => { if (bdayLotUsed()) return; fire(col('hot').add({ type: 'bday-lot', uid: me(), y: new Date().getFullYear(), at: now() })); hotLottery(null, () => setTimeout(draw, 150)); });
     $('#hw-w', m).onclick = () => { if (hotStamps(me()).length < D.HOT_STAMP.wish) return; hotWishPick(null, () => setTimeout(draw, 150), () => spend(D.HOT_STAMP.wish)); };
     $$('[data-use]', m).forEach((b) => b.onclick = () => {
       const t = hotDocs('hticket').find((x) => x.id === b.dataset.use); if (!t) return;
@@ -863,7 +869,11 @@ function hotWishPick(t, done, pay) {
 
 // ---------- 今晚的劇本（角色扮演） ----------
 const scriptToday = () => hotDocs('script-day').filter((d) => d.day === dkey()).sort((a, b) => a.at - b.at)[0];
-const newScript = (exceptI) => { let i; do { i = Math.floor(Math.random() * D.HOT_SCRIPTS.length); } while (D.HOT_SCRIPTS.length > 1 && i === exceptI); return { i, rule: pick(D.HOT_SCRIPT_RULES) }; };
+const newScript = (exceptI, preferSpecial) => {
+  const sp = preferSpecial && typeof scriptSpecialToday === 'function' ? scriptSpecialToday() : [];
+  const pool = sp.length ? sp : (typeof scriptIdxPool === 'function' ? scriptIdxPool() : D.HOT_SCRIPTS.map((_, i) => i));
+  let i; do { i = pick(pool); } while (pool.length > 1 && i === exceptI); return { i, rule: pick(D.HOT_SCRIPT_RULES) };
+};
 const hotSafeWord = () => (S.couple.hot && S.couple.hot.safe) || '鳳梨';
 function scriptFullHTML(sc) {
   const x = D.HOT_SCRIPTS[sc.i % D.HOT_SCRIPTS.length];
@@ -873,7 +883,7 @@ function scriptFullHTML(sc) {
     <p>${esc(p)}</p><div class="sc-secret">${mine ? `<span>秘密目的</span>${esc(secret)}` : '<span>秘密目的</span>只有對方看得到'}</div></div>`;
   const her = card('她', x.her, x.herP, x.herS, mineHer), him = card('他', x.him, x.himP, x.himS, !mineHer);
   return `<div class="sc-card"><div class="sc-em">${hotEmblem()}</div>
-    <div class="sc-t">${esc(x.t)}</div>
+    ${x.fest || x.trip ? `<div class="sc-lim">${HOT_FEST_NAME[x.fest || 'trip']}</div>` : ''}<div class="sc-t">${esc(x.t)}</div>
     <div class="sc-sec"><div class="sc-h">開場</div><p>${esc(x.set)}</p></div>
     <div class="sc-roles2">${mineHer ? her + him : him + her}</div>
     <div class="sc-sec"><div class="sc-h">事前準備</div><p>${esc(x.prep)}</p></div>
@@ -905,7 +915,7 @@ function scriptModal(sc, onReroll) {
 ACT.hotScript = () => {
   let d = scriptToday(), sc;
   if (d) sc = d.s;
-  else { sc = newScript(-1); fire(col('hot').add({ type: 'script-day', day: dkey(), s: sc, by: me(), at: now() })); sfx('sparkle'); }
+  else { sc = newScript(-1, true); fire(col('hot').add({ type: 'script-day', day: dkey(), s: sc, by: me(), at: now() })); sfx('sparkle'); }
   scriptModal(sc, async () => {
     const cur = scriptToday();
     const n = newScript(cur ? cur.s.i : -1);
