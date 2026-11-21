@@ -2922,19 +2922,21 @@ function rollRarity() {
   return 'N';
 }
 // 保底：依照自己扭蛋紀錄，算出連續幾抽沒出某個稀有度以上
-function pitySince(minRarity) {
+// extra：這一輪十連抽裡剛抽到、還沒存進紀錄的（新的在前面）
+function pitySince(minRarity, extra = []) {
   const min = rarityRank(minRarity);
-  const mine = list('gacha').filter((g) => g.uid === me() && g.how === 'gacha').sort((a, b) => b.at - a.at);
+  const mine = [...extra.map((rarity) => ({ rarity })), ...list('gacha').filter((g) => g.uid === me() && g.how === 'gacha').sort((a, b) => b.at - a.at)];
   let n = 0;
   for (const g of mine) { if (rarityRank(g.rarity) >= min) break; n++; }
   return n;
 }
-function rollWithPity() {
+function rollWithPity(extra = []) {
+  const pitySinceX = (m) => pitySince(m, extra);
   let r = rollRarity();
   const pickFrom = (rs) => { const tot = sum(rs, (x) => D.RARITY[x].weight); let v = Math.random() * tot; for (const x of rs) { v -= D.RARITY[x].weight; if (v <= 0) return x; } return rs[0]; };
-  if (pitySince('SSR') + 1 >= D.PITY.SSR) return 'SSR';
-  if (pitySince('SR') + 1 >= D.PITY.SR && rarityRank(r) < rarityRank('SR')) return pickFrom(['SR', 'SSR']);
-  if (pitySince('R') + 1 >= D.PITY.R && r === 'N') return pickFrom(['R', 'SR', 'SSR']);
+  if (pitySinceX('SSR') + 1 >= D.PITY.SSR) return 'SSR';
+  if (pitySinceX('SR') + 1 >= D.PITY.SR && rarityRank(r) < rarityRank('SR')) return pickFrom(['SR', 'SSR']);
+  if (pitySinceX('R') + 1 >= D.PITY.R && r === 'N') return pickFrom(['R', 'SR', 'SSR']);
   return r;
 }
 
@@ -2990,6 +2992,7 @@ ACT.gacha = () => {
     <div id="gres"></div>
     <div id="gbtns">
       <div class="btn-row"><button class="btn" id="g-pt">扭一次（${D.POINTS.gachaCost} 點）</button>${tickets(me()) ? `<button class="btn gold" id="g-tk">用扭蛋券 <i data-ic="ticket"></i>${tickets(me())}</button>` : ''}</div>
+      <button class="btn block g10-btn" id="g-10"><b>十連抽</b>（${D.POINTS.gachaCost * 10} 點）<span class="g10-gift">多送 1 抽</span></button>
       <p class="center small muted">我的點數：<i data-ic="coin"></i> ${balance(me())} · 機率 N ${D.RARITY.N.weight}% / R ${D.RARITY.R.weight}% / SR ${D.RARITY.SR.weight}% / SSR ${D.RARITY.SSR.weight}%</p>
     </div>`, { center: true });
   const go = async (useTicket) => {
@@ -3030,6 +3033,60 @@ ACT.gacha = () => {
     m._onClose = () => rays && rays.remove();
   };
   $('#g-pt', m).onclick = () => go(false);
+  $('#g-10', m).onclick = () => go10();
+  // 十連抽：付 10 抽的點數，抽 11 張
+  const go10 = async () => {
+    const cost = D.POINTS.gachaCost * 10;
+    if (balance(me()) < cost) return toast(`點數不夠，十連抽要 ${cost} 點，還差 ${cost - balance(me())} 點`);
+    $('#gbtns', m).innerHTML = '';
+    await addPoints(me(), -cost, '扭蛋：十連抽');
+    $('#kn', m).style.transform = 'rotate(1080deg)';
+    vibrate(30); await sleep(700);
+    $('#gm', m).classList.add('shake'); vibrate([20, 30, 20, 30, 20, 30, 20]); await sleep(900);
+    const batch = [], got = [], t0 = now();
+    for (let i = 0; i < 11; i++) {
+      const rarity = rollWithPity(batch);
+      const tpl = drawFromPool(rarity, true);
+      const from = tpl.by && tpl.by !== 'sys' && tpl.by !== me() ? tpl.by : (partner() || 'sys');
+      const id = await giveCard(me(), tpl, { from, scratched: true });
+      await col('gacha').add({ uid: me(), rarity, title: tpl.title, how: 'gacha', at: t0 + i });
+      if (tpl.mystery && partner()) await notify(partner(), 'mystery', '有一張神秘盲盒等你寫內容 🎁');
+      batch.unshift(rarity); got.push({ id, tpl, rarity, gift: i === 10 });
+    }
+    const best = got.reduce((b, x) => (rarityRank(x.rarity) > rarityRank(b) ? x.rarity : b), 'N');
+    let rays = null;
+    if (best === 'SSR') { rays = document.createElement('div'); rays.className = 'ssr-rays'; document.body.appendChild(rays); confetti(150, ['#f6d365', '#fda085', '#f093fb', '#8fd3f4', '#fff']); vibrate([60, 40, 60, 40, 200]); }
+    else if (best === 'SR') confetti(80, ['#a66bf0', '#d6b4ff', '#fff']); else confetti(40);
+    sfx(best === 'SSR' ? 'sparkle' : best === 'SR' ? 'chime' : 'pop');
+    const bonus = await petGachaBonus();
+    // 重複：手上已經有一張還沒用的同名卡（這一輪裡第二張以後也算）
+    const ids = new Set(got.map((x) => x.id));
+    const seen = new Set();
+    got.forEach((x) => {
+      if (x.tpl.mystery) return;
+      const before = list('cards').some((c) => !ids.has(c.id) && c.owner === me() && c.title === x.tpl.title && remaining(c) > 0);
+      x.dup = before || seen.has(x.tpl.title); seen.add(x.tpl.title);
+    });
+    const dups = got.filter((x) => x.dup);
+    const R = D.RARITY[best];
+    $('#gres', m).innerHTML = `<div class="center" style="font-family:var(--serif);font-weight:900;font-size:22px;color:${R.color}">十連抽 · 最高 ${best}${best === 'SSR' ? ' ✦' : ''}</div>
+      <div class="g10-grid">${got.map((x, i) => { const C = D.RARITY[x.rarity]; return `<div class="g10-card r-${x.rarity} ${x.gift ? 'gift' : ''}" style="--rc:${C.color};animation-delay:${i * 70}ms">
+        <div class="g10-r">${x.rarity}</div><div class="g10-t">${esc(x.tpl.mystery ? '神秘盲盒' : x.tpl.title)}</div>
+        ${x.gift ? '<span class="g10-tag">送</span>' : x.dup ? '<span class="g10-tag dup">重複</span>' : ''}</div>`; }).join('')}</div>
+      ${bonus ? `<div class="bonus-acc"><span class="ba-cat">${petSVG(2, 'happy', bonus.id, { blink: false })}</span><div><b>額外掉落！</b><div class="small">${esc(petState().name)}的限定配件「${bonus.name}」</div></div></div>` : ''}
+      ${dups.length ? `<button class="btn ghost block mt" id="g10-can">重複的 ${dups.length} 張全部換成罐罐</button>` : ''}
+      <div class="btn-row"><button class="btn ghost" id="g-again">再十連</button><button class="btn" data-act="close">收下</button></div>
+      <p class="center small muted">卡都放進票夾了，到票夾刮開看看</p>`;
+    $('#g10-can', m) && ($('#g10-can', m).onclick = async (e) => {
+      e.currentTarget.disabled = true;
+      let n = 0;
+      for (const x of dups) { const c = list('cards').find((y) => y.id === x.id); if (!c || c.used) continue; await col('cards').remove(c.id); await giveCan(me(), '', true); n++; }
+      e.currentTarget.textContent = `換好了，${petState().name}多了 ${n} 個罐罐`; sfx('pop');
+      $$('.g10-tag.dup', m).forEach((t) => { t.textContent = '換罐罐'; });
+    });
+    $('#g-again', m).onclick = () => { rays && rays.remove(); closeModal(m); ACT.gacha(); setTimeout(() => { const b = $('#g-10'); b && b.click(); }, 400); };
+    m._onClose = () => rays && rays.remove();
+  };
   tapRun(m, '#gm', '#g-pt', '#g-again');   // 點扭蛋機也能扭
   $('#g-tk', m) && ($('#g-tk', m).onclick = () => go(true));
 };
@@ -5070,6 +5127,10 @@ const SCENES = [
     lines: [['n', '吵吵貓送陷阱貓一朵花'], ['b', '哼，我就收下吧'], ['n', '吵吵貓開心到跌倒了']] },
   { id: 'mine', a: 'orange', b: 'calico', lead: 'calico', title: '這是我的！',
     lines: [['n', '晽晽貓貓看到小魚乾走過來'], ['n', '晽晽貓貓直接把小魚乾撞飛'], ['a', '（抱緊自己的小魚乾）這是我的！'], ['b', '……喵？']] },
+  { id: 'sunspot', a: 'orange', b: 'calico', lead: 'calico', title: '搶位子',
+    lines: [['n', '小魚乾在窗邊曬太陽'], ['a', '讓開，這是我的位子'], ['b', '喵！（我先來的）'], ['n', '晽晽貓貓直接坐上去，把小魚乾擠下去了']] },
+  { id: 'snack', a: 'orange', b: 'calico', lead: 'calico', title: '偷吃',
+    lines: [['n', '小魚乾在吃罐罐'], ['a', '（湊過來）你在吃什麼？'], ['b', '嘶——'], ['n', '晽晽貓貓一屁股把小魚乾撞開，把罐罐吃光了']] },
   { id: 'scare', a: 'haohao', b: 'calico', lead: 'calico', title: '嚇一跳',
     lines: [['a', '嗷！'], ['n', '小魚乾嚇到整隻跳起來'], ['b', '（躲到你後面撒嬌）'], ['a', '哈囉貓咪～']] },
   { id: 'smell', a: 'haohao', b: 'doggy', lead: 'doggy', title: '香香',
@@ -5452,7 +5513,7 @@ async function joinFreshStart() {
   await S.store.updateCouple(S.cid, {
     dex: {}, scenes: {}, dexReset: 2, pet: { name: (c.pet && c.pet.name) || '小小黑' }, drops: {}, tickets: {}, cans: {}, canDay: {},
     moods: {}, moodHist: {}, spins: {}, annivLetters: {}, opened: {}, taskOverride: {}, taskSwapReq: null, battleSwaps: {},
-    'fund.rewarded': false, fundsDone: 0, sched: {},
+    'fund.rewarded': false, fundsDone: 0, sched: {}, cardMemo: {},
   });
   // 測試期間補的點數可能剛好晚一步寫進來，再掃一次
   for (const d of list('points')) await col('points').remove(d.id);
@@ -7770,6 +7831,141 @@ setInterval(() => {
   catStroll();
 }, 10000);
 
+
+// ============================================================
+//  收藏冊：兌換卡（扭蛋卡池裡的卡）
+//  抽到就收進來；依稀有度分頁；還沒抽到的是問號徽章（不暴雷）
+//  點開看：第一次拿到、誰送的、兌換過幾次，還可以寫一句當天的回憶
+// ============================================================
+const POOL_BOOK_KEY = '__pool';
+const poolMemoKey = (title) => 'm' + hash(title).toString(36);
+
+// 這張卡池卡拿過的所有紀錄（兩個人一起算）
+function poolGot() {
+  const got = {};
+  const add = (title, at) => { if (!title) return; const g = (got[title] ||= { first: at, cards: [] }); if (at && at < g.first) g.first = at; };
+  list('gacha').forEach((g) => add(g.title, g.at));
+  list('cards').filter((c) => !c.series && c.kind !== 'collect').forEach((c) => { add(c.title, c.at); got[c.title].cards.push(c); });
+  return got;
+}
+function poolBookData() {
+  const got = poolGot();
+  const pool = list('pool').filter((p) => p.title);
+  const byR = {};
+  for (const r of D.RARITY_ORDER) byR[r] = pool.filter((p) => (p.rarity || 'N') === r).sort((a, b) => (got[b.title] ? 1 : 0) - (got[a.title] ? 1 : 0) || (got[a.title]?.first || 0) - (got[b.title]?.first || 0));
+  const n = pool.filter((p) => got[p.title]).length;
+  return { got, byR, n };
+}
+
+// 封面圖騰：一張票
+const _bookMotif1 = bookMotif;
+bookMotif = (kind) => {
+  if (kind !== 'ticket') return _bookMotif1(kind);
+  const notch = 'M-30 -16 L30 -16 L30 -6 A6 6 0 0 0 30 6 L30 16 L-30 16 L-30 6 A6 6 0 0 0 -30 -6 Z';
+  return `<g transform="rotate(-12)">
+    <path d="${notch}" class="e-bg e-ink-s" stroke-width="1.6" stroke-linejoin="round"/>
+    <path d="M-14 -16 L-14 16" class="e-acc-s" stroke-width="1.4" stroke-dasharray="2 3"/>
+    <circle cx="8" cy="0" r="8.5" class="e-acc-f"/><circle cx="8" cy="0" r="8.5" class="e-ink-s" stroke-width="1.1" fill="none"/>
+    <path d="M8 -4.6 L9.4 -1.4 L12.8 -1.2 L10.2 1 L11 4.4 L8 2.6 L5 4.4 L5.8 1 L3.2 -1.2 L6.6 -1.4 Z" class="e-ink-f"/>
+    <path d="M-25 -7 L-19 -7 M-25 0 L-19 0 M-25 7 L-19 7" class="e-ink-s" stroke-width="1.2" stroke-linecap="round"/></g>
+    <circle cx="-26" cy="-26" r="1.6" class="e-ink-f"/><circle cx="27" cy="24" r="1.3" class="e-ink-f"/>`;
+};
+
+// 加進收藏冊：最上面目錄多一個徽章、第一本就是兌換卡
+const _walletBook0 = walletBook;
+walletBook = () => {
+  const html = _walletBook0();
+  const { n } = poolBookData();
+  const meta = { pal: 'R', motif: 'ticket', pat: 'grid', sub: '扭蛋和轉盤抽到的卡' };
+  const svg = bookCoverSVG(meta, { title: '兌換卡', sub: meta.sub, got: n, total: n, empty: !n });
+  const toc = `<button class="bt-item emb-R" data-act="bookJump" data-i="pool">
+      <svg viewBox="-44 -44 88 88" class="bt-medal"><circle r="41" class="e-bg e-ink-s" stroke-width="2"/><circle r="36" class="e-acc-s" stroke-width="1" fill="none"/><g transform="scale(.82)">${bookMotif('ticket')}</g></svg>
+      <b>兌換卡</b><small>${n} 張</small></button>`;
+  const book = `<div class="book emb-R" id="bk-pool">
+      <button class="book-cover2" data-act="poolBookOpen">${svg}</button>
+      <div class="book-note">已收集 ${n} 張・點封面翻開</div></div>`;
+  const i = html.indexOf('<div class="book-toc">');
+  if (i < 0) return book + html;
+  const j = html.indexOf('</div>', i);
+  return html.slice(0, i) + '<div class="book-toc">' + toc + html.slice(i + 22, j) + '</div>' + book + html.slice(j + 6);
+};
+
+ACT.poolBookOpen = () => {
+  const { got, byR } = poolBookData();
+  const PER = 9;
+  const pages = [];
+  for (const r of D.RARITY_ORDER) {
+    const arr = byR[r];
+    if (!arr.length) continue;
+    for (let i = 0; i < arr.length; i += PER) pages.push({ r, items: arr.slice(i, i + PER), part: Math.floor(i / PER) + 1, parts: Math.ceil(arr.length / PER) });
+  }
+  const cell = (p, no) => {
+    if (!got[p.title]) return `<div class="alb-slot"><span class="alb-no">No.${String(no).padStart(2, '0')}</span><b>？</b><small>${esc(D.RARITY[p.rarity || 'N'].label)}</small></div>`;
+    const c = { title: p.title, rarity: p.rarity || 'N', mark: p.mark || '', desc: p.desc || '', spice: p.spice || 1 };
+    const used = got[p.title].cards.reduce((s, x) => s + (x.used || 0), 0);
+    return `<button class="alb-card emb-${embPalette(c)}" data-pt="${esc(p.title)}">${emblemSVG(c)}${used ? `<span class="alb-used">兌換 ${used} 次</span>` : ''}</button>`;
+  };
+  const m = openModal(`<button class="m-close db-close" data-act="close">✕</button>
+    <div class="db-track">${pages.map((pg) => { const R = D.RARITY[pg.r]; return `<section class="db-page alb-page">
+      <div class="alb-head"><b style="color:${R.color}">${pg.r} · ${esc(R.label)}</b><span>${pg.parts > 1 ? `${pg.part} / ${pg.parts}` : ''}</span></div>
+      <div class="alb-grid">${pg.items.map((p, i) => cell(p, (pg.part - 1) * PER + i + 1)).join('')}${Array.from({ length: PER - pg.items.length }, () => '<div class="alb-blank"></div>').join('')}</div>
+    </section>`; }).join('')}</div>
+    ${pages.length > 1 ? `<div class="db-nav"><button class="db-prev" aria-label="上一頁"><i data-ic="chevron"></i></button><div class="db-dots">${pages.map((_, i) => `<i data-p="${i}"></i>`).join('')}</div><button class="db-next" aria-label="下一頁"><i data-ic="chevron"></i></button></div>` : ''}`,
+  { center: true, cls: 'dex-book album emb-R' });
+  const tr = $('.db-track', m), n = pages.length;
+  const cur = () => Math.round(tr.scrollLeft / tr.clientWidth);
+  const go = (p) => tr.scrollTo({ left: Math.max(0, Math.min(n - 1, p)) * tr.clientWidth, behavior: 'smooth' });
+  const dots = () => { if (n < 2) return; const c = cur(); $$('.db-dots i', m).forEach((d, i) => d.classList.toggle('on', i === c)); $('.db-prev', m).disabled = c === 0; $('.db-next', m).disabled = c === n - 1; };
+  tr.addEventListener('scroll', () => { clearTimeout(tr._t); tr._t = setTimeout(dots, 60); }, { passive: true });
+  if (n > 1) { $('.db-prev', m).onclick = () => { sfx('flip'); go(cur() - 1); }; $('.db-next', m).onclick = () => { sfx('flip'); go(cur() + 1); }; $$('.db-dots i', m).forEach((d) => d.onclick = () => go(+d.dataset.p)); }
+  $$('.alb-card', m).forEach((b) => b.onclick = () => poolCardDetail(b.dataset.pt));
+  dots();
+};
+ACT.bookJump = ((orig) => (el) => {
+  if (el.dataset.i !== 'pool') return orig(el);
+  const b = document.getElementById('bk-pool');
+  if (b) window.scrollTo({ top: b.getBoundingClientRect().top + window.scrollY - 70, behavior: 'smooth' });
+})(ACT.bookJump);
+
+// 一張兌換卡的紀念頁
+function poolCardDetail(title) {
+  const p = list('pool').find((x) => x.title === title) || { title };
+  const g = poolGot()[title];
+  if (!g) return;
+  const c = { title, rarity: p.rarity || 'N', mark: p.mark || '', desc: p.desc || '', spice: p.spice || 1 };
+  const draw = () => {
+    const cards = poolGot()[title]?.cards || [];
+    const used = cards.reduce((s, x) => s + (x.used || 0), 0);
+    const redeems = cards.flatMap((x) => (x.log || []).filter((l) => l.how === 'redeem').map((l) => l.at)).sort((a, b) => b - a);
+    const froms = [...new Set(cards.map((x) => x.from))].map((f) => (f === 'sys' || !f ? '遊樂園' : nick(f)));
+    const memo = (S.couple.cardMemo || {})[poolMemoKey(title)];
+    const fmt = (t) => { const d = new Date(t); return `${d.getFullYear()}/${d.getMonth() + 1}/${d.getDate()}`; };
+    return `${mhead(esc(title))}
+      <div class="pc-emb emb-${embPalette(c)}">${emblemSVG(c)}</div>
+      ${p.desc ? `<p class="center muted" style="margin:4px 0 10px">${esc(p.desc)}</p>` : ''}
+      <div class="pc-rows">
+        <div><span>第一次拿到</span><b>${g.first ? fmt(g.first) : '—'}</b></div>
+        <div><span>誰送的</span><b>${froms.length ? froms.map(esc).join('、') : '—'}</b></div>
+        <div><span>兌換過</span><b>${used ? `${used} 次` : '還沒兌換'}</b></div>
+        ${redeems.length ? `<div><span>最近一次兌換</span><b>${fmt(redeems[0])}</b></div>` : ''}
+      </div>
+      <div class="pc-memo">${memo && memo.t ? `<div class="pc-memo-t">「${esc(memo.t)}」</div><div class="small muted">${esc(nick(memo.by))} 寫的 · ${fmt(memo.at)}</div>` : '<div class="small muted">還沒有寫回憶</div>'}
+        <button class="btn ghost block mt" id="pc-edit">${memo && memo.t ? '改這句回憶' : '寫一句當天的回憶'}</button></div>`;
+  };
+  const m = openModal(draw(), { center: true });
+  const wire = () => {
+    $('#pc-edit', m).onclick = async () => {
+      const old = (S.couple.cardMemo || {})[poolMemoKey(title)];
+      const v = await promptBox('寫一句那天的回憶（兩個人都看得到）', { value: old?.t || '', ok: '存起來' });
+      if (v === null || v === undefined) return;
+      const t = String(v).trim().slice(0, 80);
+      await S.store.updateCouple(S.cid, { [`cardMemo.${poolMemoKey(title)}`]: t ? { t, by: me(), at: now() } : S.store.DEL() });
+      sfx('pop'); toast(t ? '回憶存好了' : '回憶刪掉了');
+      m.querySelector('.modal').innerHTML = draw(); wire();
+    };
+  };
+  wire();
+}
 // ============================================================
 //  啟動
 // ============================================================

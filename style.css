@@ -1924,3 +1924,25 @@ html[data-theme="night"] .emb-F-pet { --e-bg: #18141c; --e-ink: #ece4ef; --e-acc
 /* 禁止雙擊放大（iPhone 連點按鈕時畫面不會被放大） */
 html, body { touch-action: manipulation; }
 button, a, .game-tile, .cat-stroll, .pest-body { touch-action: manipulation; }
+
+/* 扭蛋：十連抽 */
+.g10-btn { margin-top: 10px; background: linear-gradient(90deg, var(--accent), color-mix(in srgb, var(--accent) 60%, #f6b04a)); color: #fff; display: flex; align-items: center; justify-content: center; gap: 6px; }
+.g10-gift { font-size: 12px; font-weight: 800; padding: 2px 8px; border-radius: 99px; background: #fff; color: var(--accent); }
+.g10-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin: 12px 0 6px; }
+.g10-card { position: relative; min-height: 74px; padding: 8px 8px 8px 12px; border-radius: 12px; background: var(--card); border: 1.5px solid color-mix(in srgb, var(--rc) 55%, transparent); box-shadow: inset 5px 0 0 var(--rc); animation: g10in .45s cubic-bezier(.3, 1.4, .5, 1) both; overflow: hidden; }
+.g10-card.r-SSR { background: linear-gradient(135deg, color-mix(in srgb, #f6d365 30%, var(--card)), var(--card)); box-shadow: inset 5px 0 0 var(--rc), 0 0 14px color-mix(in srgb, #f6d365 70%, transparent); }
+.g10-card.r-SR { box-shadow: inset 5px 0 0 var(--rc), 0 0 10px color-mix(in srgb, var(--rc) 45%, transparent); }
+.g10-r { font-family: var(--serif); font-weight: 900; font-size: 15px; color: var(--rc); line-height: 1; }
+.g10-t { margin-top: 5px; font-size: 13px; font-weight: 700; line-height: 1.3; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.g10-tag { position: absolute; top: 6px; right: 6px; font-size: 11px; font-weight: 800; padding: 1px 7px; border-radius: 99px; background: var(--accent); color: #fff; }
+.g10-tag.dup { background: color-mix(in srgb, var(--ink) 18%, transparent); color: var(--ink); }
+@keyframes g10in { from { opacity: 0; transform: translateY(10px) scale(.9); } to { opacity: 1; transform: none; } }
+
+/* 收藏冊：兌換卡紀念頁 */
+.pc-emb { width: 150px; margin: 4px auto 8px; }
+.pc-emb svg { width: 100%; height: auto; display: block; }
+.pc-rows { display: grid; gap: 1px; border-radius: 14px; overflow: hidden; background: var(--line); margin: 6px 0 12px; }
+.pc-rows > div { display: flex; justify-content: space-between; gap: 12px; padding: 10px 14px; background: var(--card); font-size: 14px; }
+.pc-rows span { color: var(--muted, #8a7a80); }
+.pc-memo { text-align: center; padding: 12px; border-radius: 14px; border: 1.5px dashed var(--line); }
+.pc-memo-t { font-family: var(--serif); font-size: 17px; font-weight: 800; line-height: 1.5; margin-bottom: 4px; }

@@ -19,6 +19,10 @@ const SCENES = [
     lines: [['n', '吵吵貓送陷阱貓一朵花'], ['b', '哼，我就收下吧'], ['n', '吵吵貓開心到跌倒了']] },
   { id: 'mine', a: 'orange', b: 'calico', lead: 'calico', title: '這是我的！',
     lines: [['n', '晽晽貓貓看到小魚乾走過來'], ['n', '晽晽貓貓直接把小魚乾撞飛'], ['a', '（抱緊自己的小魚乾）這是我的！'], ['b', '……喵？']] },
+  { id: 'sunspot', a: 'orange', b: 'calico', lead: 'calico', title: '搶位子',
+    lines: [['n', '小魚乾在窗邊曬太陽'], ['a', '讓開，這是我的位子'], ['b', '喵！（我先來的）'], ['n', '晽晽貓貓直接坐上去，把小魚乾擠下去了']] },
+  { id: 'snack', a: 'orange', b: 'calico', lead: 'calico', title: '偷吃',
+    lines: [['n', '小魚乾在吃罐罐'], ['a', '（湊過來）你在吃什麼？'], ['b', '嘶——'], ['n', '晽晽貓貓一屁股把小魚乾撞開，把罐罐吃光了']] },
   { id: 'scare', a: 'haohao', b: 'calico', lead: 'calico', title: '嚇一跳',
     lines: [['a', '嗷！'], ['n', '小魚乾嚇到整隻跳起來'], ['b', '（躲到你後面撒嬌）'], ['a', '哈囉貓咪～']] },
   { id: 'smell', a: 'haohao', b: 'doggy', lead: 'doggy', title: '香香',
@@ -401,7 +405,7 @@ async function joinFreshStart() {
   await S.store.updateCouple(S.cid, {
     dex: {}, scenes: {}, dexReset: 2, pet: { name: (c.pet && c.pet.name) || '小小黑' }, drops: {}, tickets: {}, cans: {}, canDay: {},
     moods: {}, moodHist: {}, spins: {}, annivLetters: {}, opened: {}, taskOverride: {}, taskSwapReq: null, battleSwaps: {},
-    'fund.rewarded': false, fundsDone: 0, sched: {},
+    'fund.rewarded': false, fundsDone: 0, sched: {}, cardMemo: {},
   });
   // 測試期間補的點數可能剛好晚一步寫進來，再掃一次
   for (const d of list('points')) await col('points').remove(d.id);

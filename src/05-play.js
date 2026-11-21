@@ -9,19 +9,21 @@ function rollRarity() {
   return 'N';
 }
 // 保底：依照自己扭蛋紀錄，算出連續幾抽沒出某個稀有度以上
-function pitySince(minRarity) {
+// extra：這一輪十連抽裡剛抽到、還沒存進紀錄的（新的在前面）
+function pitySince(minRarity, extra = []) {
   const min = rarityRank(minRarity);
-  const mine = list('gacha').filter((g) => g.uid === me() && g.how === 'gacha').sort((a, b) => b.at - a.at);
+  const mine = [...extra.map((rarity) => ({ rarity })), ...list('gacha').filter((g) => g.uid === me() && g.how === 'gacha').sort((a, b) => b.at - a.at)];
   let n = 0;
   for (const g of mine) { if (rarityRank(g.rarity) >= min) break; n++; }
   return n;
 }
-function rollWithPity() {
+function rollWithPity(extra = []) {
+  const pitySinceX = (m) => pitySince(m, extra);
   let r = rollRarity();
   const pickFrom = (rs) => { const tot = sum(rs, (x) => D.RARITY[x].weight); let v = Math.random() * tot; for (const x of rs) { v -= D.RARITY[x].weight; if (v <= 0) return x; } return rs[0]; };
-  if (pitySince('SSR') + 1 >= D.PITY.SSR) return 'SSR';
-  if (pitySince('SR') + 1 >= D.PITY.SR && rarityRank(r) < rarityRank('SR')) return pickFrom(['SR', 'SSR']);
-  if (pitySince('R') + 1 >= D.PITY.R && r === 'N') return pickFrom(['R', 'SR', 'SSR']);
+  if (pitySinceX('SSR') + 1 >= D.PITY.SSR) return 'SSR';
+  if (pitySinceX('SR') + 1 >= D.PITY.SR && rarityRank(r) < rarityRank('SR')) return pickFrom(['SR', 'SSR']);
+  if (pitySinceX('R') + 1 >= D.PITY.R && r === 'N') return pickFrom(['R', 'SR', 'SSR']);
   return r;
 }
 
@@ -77,6 +79,7 @@ ACT.gacha = () => {
     <div id="gres"></div>
     <div id="gbtns">
       <div class="btn-row"><button class="btn" id="g-pt">扭一次（${D.POINTS.gachaCost} 點）</button>${tickets(me()) ? `<button class="btn gold" id="g-tk">用扭蛋券 <i data-ic="ticket"></i>${tickets(me())}</button>` : ''}</div>
+      <button class="btn block g10-btn" id="g-10"><b>十連抽</b>（${D.POINTS.gachaCost * 10} 點）<span class="g10-gift">多送 1 抽</span></button>
       <p class="center small muted">我的點數：<i data-ic="coin"></i> ${balance(me())} · 機率 N ${D.RARITY.N.weight}% / R ${D.RARITY.R.weight}% / SR ${D.RARITY.SR.weight}% / SSR ${D.RARITY.SSR.weight}%</p>
     </div>`, { center: true });
   const go = async (useTicket) => {
@@ -117,6 +120,60 @@ ACT.gacha = () => {
     m._onClose = () => rays && rays.remove();
   };
   $('#g-pt', m).onclick = () => go(false);
+  $('#g-10', m).onclick = () => go10();
+  // 十連抽：付 10 抽的點數，抽 11 張
+  const go10 = async () => {
+    const cost = D.POINTS.gachaCost * 10;
+    if (balance(me()) < cost) return toast(`點數不夠，十連抽要 ${cost} 點，還差 ${cost - balance(me())} 點`);
+    $('#gbtns', m).innerHTML = '';
+    await addPoints(me(), -cost, '扭蛋：十連抽');
+    $('#kn', m).style.transform = 'rotate(1080deg)';
+    vibrate(30); await sleep(700);
+    $('#gm', m).classList.add('shake'); vibrate([20, 30, 20, 30, 20, 30, 20]); await sleep(900);
+    const batch = [], got = [], t0 = now();
+    for (let i = 0; i < 11; i++) {
+      const rarity = rollWithPity(batch);
+      const tpl = drawFromPool(rarity, true);
+      const from = tpl.by && tpl.by !== 'sys' && tpl.by !== me() ? tpl.by : (partner() || 'sys');
+      const id = await giveCard(me(), tpl, { from, scratched: true });
+      await col('gacha').add({ uid: me(), rarity, title: tpl.title, how: 'gacha', at: t0 + i });
+      if (tpl.mystery && partner()) await notify(partner(), 'mystery', '有一張神秘盲盒等你寫內容 🎁');
+      batch.unshift(rarity); got.push({ id, tpl, rarity, gift: i === 10 });
+    }
+    const best = got.reduce((b, x) => (rarityRank(x.rarity) > rarityRank(b) ? x.rarity : b), 'N');
+    let rays = null;
+    if (best === 'SSR') { rays = document.createElement('div'); rays.className = 'ssr-rays'; document.body.appendChild(rays); confetti(150, ['#f6d365', '#fda085', '#f093fb', '#8fd3f4', '#fff']); vibrate([60, 40, 60, 40, 200]); }
+    else if (best === 'SR') confetti(80, ['#a66bf0', '#d6b4ff', '#fff']); else confetti(40);
+    sfx(best === 'SSR' ? 'sparkle' : best === 'SR' ? 'chime' : 'pop');
+    const bonus = await petGachaBonus();
+    // 重複：手上已經有一張還沒用的同名卡（這一輪裡第二張以後也算）
+    const ids = new Set(got.map((x) => x.id));
+    const seen = new Set();
+    got.forEach((x) => {
+      if (x.tpl.mystery) return;
+      const before = list('cards').some((c) => !ids.has(c.id) && c.owner === me() && c.title === x.tpl.title && remaining(c) > 0);
+      x.dup = before || seen.has(x.tpl.title); seen.add(x.tpl.title);
+    });
+    const dups = got.filter((x) => x.dup);
+    const R = D.RARITY[best];
+    $('#gres', m).innerHTML = `<div class="center" style="font-family:var(--serif);font-weight:900;font-size:22px;color:${R.color}">十連抽 · 最高 ${best}${best === 'SSR' ? ' ✦' : ''}</div>
+      <div class="g10-grid">${got.map((x, i) => { const C = D.RARITY[x.rarity]; return `<div class="g10-card r-${x.rarity} ${x.gift ? 'gift' : ''}" style="--rc:${C.color};animation-delay:${i * 70}ms">
+        <div class="g10-r">${x.rarity}</div><div class="g10-t">${esc(x.tpl.mystery ? '神秘盲盒' : x.tpl.title)}</div>
+        ${x.gift ? '<span class="g10-tag">送</span>' : x.dup ? '<span class="g10-tag dup">重複</span>' : ''}</div>`; }).join('')}</div>
+      ${bonus ? `<div class="bonus-acc"><span class="ba-cat">${petSVG(2, 'happy', bonus.id, { blink: false })}</span><div><b>額外掉落！</b><div class="small">${esc(petState().name)}的限定配件「${bonus.name}」</div></div></div>` : ''}
+      ${dups.length ? `<button class="btn ghost block mt" id="g10-can">重複的 ${dups.length} 張全部換成罐罐</button>` : ''}
+      <div class="btn-row"><button class="btn ghost" id="g-again">再十連</button><button class="btn" data-act="close">收下</button></div>
+      <p class="center small muted">卡都放進票夾了，到票夾刮開看看</p>`;
+    $('#g10-can', m) && ($('#g10-can', m).onclick = async (e) => {
+      e.currentTarget.disabled = true;
+      let n = 0;
+      for (const x of dups) { const c = list('cards').find((y) => y.id === x.id); if (!c || c.used) continue; await col('cards').remove(c.id); await giveCan(me(), '', true); n++; }
+      e.currentTarget.textContent = `換好了，${petState().name}多了 ${n} 個罐罐`; sfx('pop');
+      $$('.g10-tag.dup', m).forEach((t) => { t.textContent = '換罐罐'; });
+    });
+    $('#g-again', m).onclick = () => { rays && rays.remove(); closeModal(m); ACT.gacha(); setTimeout(() => { const b = $('#g-10'); b && b.click(); }, 400); };
+    m._onClose = () => rays && rays.remove();
+  };
   tapRun(m, '#gm', '#g-pt', '#g-again');   // 點扭蛋機也能扭
   $('#g-tk', m) && ($('#g-tk', m).onclick = () => go(true));
 };
