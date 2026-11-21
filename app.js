@@ -8511,6 +8511,40 @@ hotMatches = () => {
   return hotItems().filter((x) => mine.has(x.k)).map((x) => ({ ...x, at: at(x.k) }));
 };
 
+// 盲盒兌換完：卡面換成揭曉的內容
+const revealed = (c) => !!c && c.mystery && c.secret && c.kind !== 'collect' && remaining(c) === 0;
+const showReveal = (c) => ({ ...c, title: c.secret, desc: '神秘盲盒揭曉', mystery: false });
+const _ticketHTML1 = ticketHTML;
+ticketHTML = (c, o) => _ticketHTML1(revealed(c) ? showReveal(c) : c, o);
+const _emblemSVG1 = emblemSVG;
+emblemSVG = (c, hide) => _emblemSVG1(revealed(c) ? showReveal(c) : c, hide);
+
+// 寫盲盒內容：依稀有度給幾個點子，點一下帶進去
+const MYSTERY_IDEAS = {
+  N: ['一杯你指定的飲料', '幫你按摩 10 分鐘', '今天的碗我洗', '幫你吹頭髮', '一個很久的擁抱', '晚餐你選'],
+  R: ['帶你去吃想吃很久的那家', '一起看你挑的電影', '幫你整理房間', '一封手寫的小卡片', '一整晚陪你打電動', '早餐送到床邊'],
+  SR: ['一次說走就走的小約會', '幫你準備一頓大餐', '一整天聽你安排', '一份你沒想到的小禮物', '陪你去一個你想去的地方', '一次精油按摩'],
+  SSR: ['一趟只屬於我們的小旅行', '一個你許了很久的願望', '一整天的寵愛', '一份認真準備的大禮物', '重溫我們第一次約會', '一個沒有期限的承諾'],
+};
+ACT.writeSecret = (orig => async (el) => {
+  const c = list('cards').find((x) => x.id === el?.dataset?.id); if (!c) return;
+  closeAll();
+  const ideas = MYSTERY_IDEAS[c.rarity] || MYSTERY_IDEAS.N;
+  const m = openModal(`${mhead('偷偷寫下盲盒內容')}
+    <p class="small muted" style="margin:0 0 6px">這是一張 ${c.rarity} 盲盒，對方兌換時才會看到</p>
+    <textarea id="ms-in" maxlength="60" placeholder="寫下你想送的驚喜…">${esc(c.secret || '')}</textarea>
+    <div class="small muted" style="margin:8px 0 4px">沒靈感？點一個帶進去</div>
+    <div class="ms-ideas">${ideas.map((t) => `<button class="chip" data-idea="${esc(t)}">${esc(t)}</button>`).join('')}</div>
+    <button class="btn block mt" id="ms-ok">封存</button>`, { center: true });
+  $$('[data-idea]', m).forEach((b) => b.onclick = () => { $('#ms-in', m).value = b.dataset.idea; });
+  $('#ms-ok', m).onclick = async () => {
+    const v = $('#ms-in', m).value.trim(); if (!v) return toast('寫點什麼吧');
+    await col('cards').update(c.id, { secret: v });
+    if (!c.secret && c.owner !== me()) await notify(c.owner, 'mystery', '你的神秘盲盒準備好了 🎁');
+    closeModal(m); toast('封存好了 🤫'); render();
+  };
+})(ACT.writeSecret);
+
 // ============================================================
 //  功能整合（2026/11/21 她選的 11 項）
 //  新功能補成就、隱藏成就、火辣成就補齊、成就有獎勵、想試清單→約會點子、
