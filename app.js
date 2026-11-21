@@ -5706,6 +5706,7 @@ async function sharkEaten(el) {
   await sleep(560);
   sfx('pop'); vibrate(30);
   el.classList.add('eaten');
+  document.querySelectorAll('.fr-bubble.solo').forEach((b) => b.remove());   // 先收掉「關機了」那句，不要疊在一起
   const b1 = bubble('晽晽貓貓一口把鯊魚吃掉了', r.left + r.width / 2, r.top, 'solo narr');
   await sleep(1300);
   b1.remove();
@@ -5727,7 +5728,7 @@ async function sharkEaten(el) {
   el.classList.remove('regrow'); el.classList.add('wake');
   setTimeout(() => el.remove(), 2200);
 }
-window.__eat = () => { catStroll('shark'); setTimeout(() => { const e = document.querySelector('.fr-shark'); if (e) { e.click(); setTimeout(() => sharkEaten(e), 700); } }, 2500); };
+window.__eat = () => { catStroll('shark'); setTimeout(() => { const e = document.querySelector('.fr-shark'); if (e) { e.click(); setTimeout(() => sharkEaten(e), 1500); } }, 2500); };
 // ============================================================
 //  想你：愛心雨、想你系列紀念卡
 // ============================================================
