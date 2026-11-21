@@ -263,7 +263,9 @@ function todModal({ levels, cls = '', key = 'park-tod-lv' }) {
     const show = (x) => {
       const txt = ms.length > 1 ? personalize(x.t, nick(asker), nick(answerer)) : x.t;
       $('#tres', m).innerHTML = `<div class="prompt-card"><div class="small muted" style="font-family:var(--sans)">${k === 'truth' ? '真心話' : '大冒險'} · ${spiceIc(x.l)} · ${esc(nick(answerer))} ${k === 'truth' ? '回答' : '挑戰'}</div>${esc(txt)}</div>
+        ${cls.includes('hot-zone') && typeof hotSecs === 'function' && hotSecs(txt) ? `<button class="btn block ghost hd-timer" id="t-timer"><i data-ic="hourglass"></i> 開始倒數</button>` : ''}
         <div class="center"><button class="link" id="t-swap" style="margin-top:8px">換一題（兩個人都同意才換）</button></div>`;
+      $('#t-timer', m) && ($('#t-timer', m).onclick = () => hotTimer(hotSecs(txt), txt, true));
       $('#t-swap', m).onclick = async () => {
         if (!(await confirmBox('兩個人都同意換一題嗎？', '都同意，換！'))) return;
         const rest = pool.filter((y) => y.t !== x.t);

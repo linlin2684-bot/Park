@@ -154,11 +154,12 @@ function hotHub() {
     <div class="hz-hero">${hotEmblem()}<div class="small">今晚的熱度</div>
       <div class="seg hz-lv" id="hz-lv">${[2, 3].map((l) => `<button data-l="${l}" class="${hotLv() === l ? 'on' : ''}">${spiceIc(l)} ${D.SPICE[l].label}</button>`).join('')}</div></div>
     <div class="game-tiles hz-tiles">
+      <button class="game-tile wide" data-act="hotPose"><span class="gi"><i data-ic="star" data-medal></i></span><div class="grow"><b>今天的姿勢</b><br><span>${hotPoseToday() ? '今天的牌已經抽好了' : '每天一組，抽到幾張就照順序來'}</span></div><span style="font-size:22px">›</span></button>
       <button class="game-tile" data-act="hotDice"><span class="gi"><i data-ic="dice" data-medal></i></span><b>火辣骰子</b><span>動作、位置、多久，骰子說了算</span></button>
       <button class="game-tile" data-act="hotTod"><span class="gi"><i data-ic="w_fire" data-medal></i></span><b>真心話大冒險</b><span>大膽版，輪流來</span></button>
       <button class="game-tile wide" data-act="hotList"><span class="gi"><i data-ic="heart" data-medal></i></span><div class="grow"><b>想試清單</b><br><span>各自偷偷勾，兩個人都想的才會配對</span></div>${hotNewMatch() ? '<span class="badge-dot">!</span>' : ''}<span style="font-size:22px">›</span></button>
     </div>
-    <div class="center"><button class="link" id="hz-lock"><i data-ic="lock"></i> 鎖上離開</button></div>`;
+    <div class="center hz-links"><button class="link" data-act="hotTimer"><i data-ic="hourglass"></i> 計時器</button><button class="link" data-act="hotPoseBook"><i data-ic="book"></i> 姿勢圖鑑</button><button class="link" id="hz-lock"><i data-ic="lock"></i> 鎖上離開</button></div>`;
   const m = openModal(draw(), { center: true, cls: 'hot-zone hz-hub' });
   const wire = () => {
     $$('#hz-lv button', m).forEach((b) => b.onclick = () => { localStorage.setItem('park-hot-lv', b.dataset.l); $$('#hz-lv button', m).forEach((x) => x.classList.toggle('on', x === b)); });
@@ -184,7 +185,7 @@ ACT.hotDice = () => {
     <div class="hdice-row">${kinds.map((k) => `<div class="hdie" data-k="${k}"><svg viewBox="0 0 80 80" class="hd-ring" aria-hidden="true"><circle cx="40" cy="40" r="37"/><circle cx="40" cy="40" r="32" stroke-dasharray="1.4 2.8"/></svg><small>${D.HOT_DICE_NAMES[k]}</small><b>?</b></div>`).join('')}</div>
     <div id="hd-res"></div>
     <button class="btn block hot-btn" id="hd-go">擲骰子</button>
-    <div class="center"><button class="link" id="hd-edit" style="margin-top:10px">改骰子上的字</button></div>`, { center: true, cls: 'hot-zone' });
+    <div class="center hz-links"><button class="link" id="hd-edit">改骰子上的字</button><button class="link" data-act="hotTimer">自訂計時</button></div>`, { center: true, cls: 'hot-zone' });
   $$('#hd-lv button', m).forEach((b) => b.onclick = () => { localStorage.setItem('park-hot-lv', b.dataset.l); $$('#hd-lv button', m).forEach((x) => x.classList.toggle('on', x === b)); });
   const setTurn = (u) => { turn = u; localStorage.setItem('park-hot-turn', u); $$('#hd-turn button', m).forEach((x) => x.classList.toggle('on', x.dataset.u === u)); };
   $$('#hd-turn button', m).forEach((b) => b.onclick = () => setTurn(b.dataset.u));
@@ -200,13 +201,15 @@ ACT.hotDice = () => {
       const el = $(`.hdie[data-k="${k}"]`, m), faces = hotFaces(lv, k), b = $('b', el);
       el.classList.remove('spin'); void el.offsetWidth; el.classList.add('spin');
       const stop = now() + 700 + i * 260;
-      while (now() < stop) { b.textContent = who(pick(faces)); await sleep(70); }
-      raw[k] = pick(faces); out[k] = who(raw[k]); b.textContent = out[k];
+      while (now() < stop) { b.textContent = who(pick(faces)); b.classList.toggle('long', b.textContent.length > 4); await sleep(70); }
+      raw[k] = pick(faces); out[k] = who(raw[k]); b.textContent = out[k]; b.classList.toggle('long', out[k].length > 4);
       el.classList.remove('spin'); el.classList.add('land'); setTimeout(() => el.classList.remove('land'), 400);
     }));
     sfx('chime');
     $('#hd-res', m).innerHTML = `<div class="prompt-card hd-card"><div class="small muted" style="font-family:var(--sans)">${spiceIc(lv)} ${esc(nick(doer))} 對 ${esc(nick(target))}</div>
-      ${esc(out.act)}<span class="hd-sep">·</span>${/【/.test(raw.part) ? '' : esc(nick(target)) + '的'}${esc(out.part)}<span class="hd-sep">·</span>${esc(out.time)}</div>`;
+      ${esc(out.act)}<span class="hd-sep">·</span>${/【/.test(raw.part) ? '' : esc(nick(target)) + '的'}${esc(out.part)}<span class="hd-sep">·</span>${esc(out.time)}</div>
+      ${hotSecs(out.time) ? `<button class="btn block ghost hd-timer" id="hd-t"><i data-ic="hourglass"></i> 開始倒數 ${esc(out.time)}</button>` : ''}`;
+    $('#hd-t', m) && ($('#hd-t', m).onclick = () => hotTimer(hotSecs(out.time), `${out.act} · ${out.time}`, true));
     if (ms.length > 1) setTurn(target);
     rolling = false;
   };
@@ -215,12 +218,12 @@ ACT.hotDice = () => {
 function hotDiceEditor(lv) {
   const kinds = ['act', 'part', 'time'];
   const m = openModal(`${mhead(`改骰子 · ${D.SPICE[lv].label}`)}
-    <p class="small muted" style="margin:0 0 8px">一行一面，2～12 面。改了兩個人都會一起換。寫【做的人】【被做的人】，擲出來會換成名字</p>
+    <p class="small muted" style="margin:0 0 8px">一行一面，2～16 面。改了兩個人都會一起換。寫【做的人】【被做的人】，擲出來會換成名字</p>
     ${kinds.map((k) => `<label>${D.HOT_DICE_NAMES[k]}</label><textarea id="de-${k}" rows="6">${esc(hotFaces(lv, k).join('\n'))}</textarea>`).join('')}
     <div class="btn-row"><button class="btn ghost" id="de-reset">換回預設</button><button class="btn hot-btn" id="de-save">儲存</button></div>`, { center: true, cls: 'hot-zone' });
   const save = async (reset) => {
     for (const k of kinds) {
-      const faces = reset ? [] : $(`#de-${k}`, m).value.split('\n').map((x) => x.trim()).filter(Boolean).slice(0, 12);
+      const faces = reset ? [] : $(`#de-${k}`, m).value.split('\n').map((x) => x.trim()).filter(Boolean).slice(0, 16);
       if (!reset && faces.length < 2) return toast(`「${D.HOT_DICE_NAMES[k]}」至少要 2 面`);
       const old = hotDocs('dice').find((x) => x.lv === lv && x.kind === k);
       if (reset) { if (old) await col('hot').remove(old.id); continue; }
@@ -308,4 +311,195 @@ function hotAddItem() {
       m._onClose = null; closeModal(m); res(true);
     };
   });
+}
+
+
+// ---------- 計時器（骰子、真心話大冒險、自己設定） ----------
+function hotSecs(t) {
+  t = String(t || '');
+  let m = t.match(/(\d+)\s*分半/); if (m) return +m[1] * 60 + 30;
+  m = t.match(/(\d+)\s*分鐘/); if (m) return +m[1] * 60;
+  m = t.match(/(\d+)\s*秒/); if (m) return +m[1];
+  return 0;
+}
+const fmtSecs = (n) => `${Math.floor(n / 60)}:${pad(n % 60)}`;
+ACT.hotTimer = () => hotTimer(60, '', false);
+function hotTimer(secs, label, autostart) {
+  let total = secs, left = secs, end = 0, tick = null, lock = null;
+  const presets = [30, 60, 90, 120, 180, 240, 300];
+  const C = 2 * Math.PI * 88;
+  const m = openModal(`${mhead('<i data-ic="hourglass"></i> 計時器')}
+    ${label ? `<div class="ht-label">${esc(label)}</div>` : ''}
+    <div class="ht-ring"><svg viewBox="0 0 200 200"><circle cx="100" cy="100" r="96" class="ht-o"/><circle cx="100" cy="100" r="88" class="ht-bg"/><circle cx="100" cy="100" r="88" class="ht-fg" id="ht-fg" style="stroke-dasharray:${C};stroke-dashoffset:0"/><circle cx="100" cy="100" r="78" class="ht-o" stroke-dasharray="1.4 3"/></svg>
+      <div class="ht-num" id="ht-n">${fmtSecs(left)}</div></div>
+    <div class="seg ht-pre" id="ht-pre">${presets.map((x) => `<button data-s="${x}" class="${x === total ? 'on' : ''}">${x < 60 ? x + ' 秒' : x % 60 ? Math.floor(x / 60) + ' 分半' : x / 60 + ' 分'}</button>`).join('')}</div>
+    <div class="ht-adj"><button class="btn sm ghost" data-d="-30">− 30 秒</button><button class="btn sm ghost" data-d="30">＋ 30 秒</button></div>
+    <div class="btn-row"><button class="btn ghost" id="ht-reset">重設</button><button class="btn hot-btn" id="ht-go">開始</button></div>`, { center: true, cls: 'hot-zone ht-modal' });
+  const show = () => {
+    $('#ht-n', m).textContent = fmtSecs(Math.max(0, Math.ceil(left)));
+    $('#ht-fg', m).style.strokeDashoffset = String(C * (1 - Math.max(0, left) / (total || 1)));
+  };
+  const relLock = () => { try { lock && lock.release(); } catch (e) {} lock = null; };
+  const stop = () => { clearInterval(tick); tick = null; relLock(); $('#ht-go', m).textContent = '開始'; };
+  const done = () => {
+    stop(); left = 0; show();
+    m.querySelector('.modal').classList.add('ht-done');
+    $('#ht-n', m).textContent = '時間到';
+    sfx('chime'); setTimeout(() => sfx('chime'), 450); vibrate([200, 100, 200]);
+  };
+  const start = async () => {
+    if (left <= 0) left = total;
+    m.querySelector('.modal').classList.remove('ht-done');
+    end = now() + left * 1000;
+    tick = setInterval(() => { left = (end - now()) / 1000; if (left <= 0) done(); else show(); }, 200);
+    $('#ht-go', m).textContent = '暫停';
+    try { if (navigator.wakeLock) lock = await navigator.wakeLock.request('screen'); } catch (e) {}   // 倒數時螢幕不要暗掉
+  };
+  const setTotal = (x) => { stop(); total = Math.max(10, Math.min(3600, x)); left = total; m.querySelector('.modal').classList.remove('ht-done'); $$('#ht-pre button', m).forEach((b) => b.classList.toggle('on', +b.dataset.s === total)); show(); };
+  $$('#ht-pre button', m).forEach((b) => b.onclick = () => setTotal(+b.dataset.s));
+  $$('[data-d]', m).forEach((b) => b.onclick = () => setTotal(total + +b.dataset.d));
+  $('#ht-go', m).onclick = () => (tick ? stop() : start());
+  $('#ht-reset', m).onclick = () => setTotal(total);
+  m._onClose = () => { clearInterval(tick); relLock(); };
+  if (autostart) start();
+}
+
+// ---------- 今天的姿勢 ----------
+const poseKey = (p) => p.no ? 'n' + p.no : p.k;
+function hotPoses() {
+  const custom = hotDocs('pose-item').map((d) => ({ k: d.k, lv: d.lv || 3, name: d.name, how: d.how || '', tip: d.tip || '', scene: !!d.scene, custom: true, id: d.id, by: d.by }));
+  return [...D.HOT_POSES, ...custom];
+}
+const poseByKey = (k) => hotPoses().find((p) => poseKey(p) === k);
+const hotPoseToday = () => hotDocs('pose-day').filter((d) => d.day === dkey()).sort((a, b) => a.at - b.at)[0];
+const poseDone = () => new Set(hotDocs('pose-done').map((d) => d.key));
+const poseFill = (t, r) => String(t || '').replace(/【隨機】/g, r || '她或他');
+const POSE_MOTIFS = [
+  '<path d="M6 -16 A16 16 0 1 0 6 16 A12.5 12.5 0 1 1 6 -16 Z" class="pe-f"/>',
+  '<circle cx="-6" cy="0" r="11" class="pe-s"/><circle cx="6" cy="0" r="11" class="pe-s"/>',
+  '<path d="M-17 -6 Q-11 -12 -5 -6 T7 -6 T19 -6 M-17 2 Q-11 -4 -5 2 T7 2 T19 2 M-17 10 Q-11 4 -5 10 T7 10 T19 10" class="pe-s"/>',
+  '<path d="M0 -18 L4 -4 L18 0 L4 4 L0 18 L-4 4 L-18 0 L-4 -4 Z" class="pe-f"/>',
+  '<path d="M0 17 C-8 17 -12 12 -12 6 C-12 -1 -5 -4 -5 -12 C0 -9 1 -5 1 -2 C3 -4 4 -7 4 -10 C10 -6 12 0 12 6 C12 12 8 17 0 17 Z" class="pe-f"/>',
+  '<path d="M0 15 C-14 5 -17 -3 -14 -9 C-11 -15 -3 -14 0 -7 C3 -14 11 -15 14 -9 C17 -3 14 5 0 15 Z" class="pe-s"/>',
+  '<path d="M0 0 C0 -3 4 -3 4 0 C4 5 -4 6 -6 0 C-8 -8 4 -11 9 -4 C14 4 4 13 -4 11 C-14 8 -15 -6 -6 -13" class="pe-s"/>',
+  '<path d="M0 0 C-5 -8 -16 -8 -16 0 C-16 8 -5 8 0 0 C5 -8 16 -8 16 0 C16 8 5 8 0 0 Z" class="pe-s"/>',
+  '<path d="M0 0 C-4 -6 -4 -14 0 -18 C4 -14 4 -6 0 0 C6 -4 14 -4 18 0 C14 4 6 4 0 0 C4 6 4 14 0 18 C-4 14 -4 6 0 0 C-6 4 -14 4 -18 0 C-14 -4 -6 -4 0 0 Z" class="pe-f"/>',
+  '<path d="M-3 -15 A15 15 0 0 0 -3 15 A11 11 0 0 1 -3 -15 Z M3 -15 A15 15 0 0 1 3 15 A11 11 0 0 0 3 -15 Z" class="pe-f"/>',
+  '<circle cx="0" cy="-8" r="7" class="pe-s"/><path d="M0 -1 V17 M0 9 H6 M0 14 H5" class="pe-s"/>',
+  '<circle r="7" class="pe-f"/><path d="M0 -17 V-11 M0 11 V17 M-17 0 H-11 M11 0 H17 M-12 -12 L-8 -8 M8 8 L12 12 M12 -12 L8 -8 M-8 8 L-12 12" class="pe-s"/>',
+];
+function poseEmblem(p) {
+  const n = p.no || (hash(p.k || p.name) % 97);
+  const lv3 = (p.lv || 3) >= 3;
+  let dots = ''; const cnt = lv3 ? 12 : 8;
+  for (let i = 0; i < cnt; i++) { const a = i * 2 * Math.PI / cnt; dots += `<circle cx="${(Math.sin(a) * 33).toFixed(1)}" cy="${(-Math.cos(a) * 33).toFixed(1)}" r="${i % 2 ? 1 : 1.6}" class="pe-d"/>`; }
+  return `<svg class="pose-em ${lv3 ? 'lv3' : 'lv2'}" viewBox="-40 -40 80 80" aria-hidden="true"><circle r="38" class="pe-bg"/><circle r="38" class="pe-r" stroke-width="1.4"/><circle r="29" class="pe-r" stroke-width=".7" stroke-dasharray="1.2 2.4"/>${dots}
+    <g transform="scale(.95)">${POSE_MOTIFS[n % POSE_MOTIFS.length]}</g></svg>`;
+}
+const flames = (lv) => (lv >= 3 ? spiceIc(3) + spiceIc(3) : spiceIc(2));
+function poseCardHTML(p, { order = 0, r = '', done = false, small = false } = {}) {
+  const no = p.no ? `No.${pad(p.no)}` : '自訂';
+  return `<div class="pcard ${small ? 'sm' : ''}" data-key="${esc(poseKey(p))}"><div class="pc-in">
+    <div class="pc-face pc-front">${order ? `<div class="pc-order">第 ${order} 張</div>` : ''}<div class="pc-no">${no}</div>
+      <div class="pc-em">${poseEmblem(p)}</div><div class="pc-name">${esc(p.name)}</div>
+      <div class="pc-lv">${flames(p.lv || 3)}${p.scene ? '<span class="pc-scene">場景</span>' : ''}</div>
+      ${done ? '<div class="pc-stamp"><b>已解鎖</b></div>' : ''}<div class="pc-hint">點一下看說明</div></div>
+    <div class="pc-face pc-back"><div class="pc-no">${no} · ${esc(p.name)}</div>
+      <div class="pc-how">${esc(poseFill(p.how, r))}</div>
+      ${p.tip ? `<div class="pc-tip"><span>小訣竅</span>${esc(poseFill(p.tip, r))}</div>` : ''}
+      ${r && /【隨機】/.test(p.how) ? `<div class="pc-r">這次抽到：<b>${esc(r)}</b></div>` : ''}<div class="pc-hint">點一下翻回去</div></div>
+  </div></div>`;
+}
+function wireFlip(root) { $$('.pcard', root).forEach((c) => c.onclick = (e) => { if (e.target.closest('button')) return; c.classList.toggle('flipped'); sfx('pop'); }); }
+
+ACT.hotPose = () => {
+  const m = openModal('', { center: true, cls: 'hot-zone hz-pose' });
+  let deal = false;
+  const draw = () => {
+    const day = hotPoseToday(), done = poseDone();
+    let body;
+    if (!day) {
+      body = `<div class="pz-intro">${hotEmblem()}<p>今天還沒抽<br><span class="small muted">張數也是抽的，1～5 張。抽到的牌兩個人看到的都一樣，今天不能重抽</span></p>
+        <div class="seg hz-lv" id="pz-lv">${[2, 3].map((l) => `<button data-l="${l}" class="${hotLv() === l ? 'on' : ''}">${spiceIc(l)} ${D.SPICE[l].label}</button>`).join('')}</div>
+        <p class="small muted" style="margin:0">曖昧只抽曖昧的牌；火辣兩種都會抽到</p>
+        <button class="btn block hot-btn" id="pz-go">抽今天的姿勢</button></div>`;
+    } else {
+      const cards = day.cards.map((c, i) => ({ c, i, p: poseByKey(c.key) })).filter((x) => x.p);
+      body = `<div class="pz-count">今天抽到 <b>${cards.length}</b> 張，照順序來</div>
+        <div class="pz-row ${deal ? 'deal' : ''}">${cards.map(({ c, i, p }) => `<div class="pz-slot" style="--i:${i}">${poseCardHTML(p, { order: i + 1, r: c.r, done: done.has(poseKey(p)) && (day.doneKeys || []).includes(poseKey(p)) })}
+          <div class="pz-btns">${p.scene ? `<button class="btn sm ghost" data-swap="${i}">換一張</button>` : ''}${(day.doneKeys || []).includes(poseKey(p)) ? '' : `<button class="btn sm hot-btn" data-done="${i}">試過了</button>`}</div></div>`).join('')}</div>
+        ${cards.length > 1 ? '<p class="small muted center" style="margin:6px 0 0">左右滑動看每一張</p>' : ''}`;
+    }
+    m.querySelector('.modal').innerHTML = `${mhead('<i data-ic="star"></i> 今天的姿勢')}${body}
+      <div class="center hz-links"><button class="link" data-act="hotPoseBook"><i data-ic="book"></i> 姿勢圖鑑</button><button class="link" id="pz-add"><i data-ic="plus"></i> 自己加一張</button></div>`;
+    deal = false;
+    wireFlip(m);
+    $$('#pz-lv button', m).forEach((b) => b.onclick = () => { localStorage.setItem('park-hot-lv', b.dataset.l); $$('#pz-lv button', m).forEach((x) => x.classList.toggle('on', x === b)); });
+    $('#pz-go', m) && ($('#pz-go', m).onclick = async () => {
+      if (hotPoseToday()) return draw();
+      const lv = hotLv(), n = 1 + Math.floor(Math.random() * 5);
+      const pool = shuffled(hotPoses().filter((p) => (p.lv || 3) <= lv), Math.floor(Math.random() * 1e9));
+      const cards = pool.slice(0, n).map((p) => ({ key: poseKey(p), r: /【隨機】/.test(p.how) ? pick(['她', '他']) : '' }));
+      $('#pz-go', m).disabled = true; vibrate([20, 40, 20]); sfx('sparkle');
+      await col('hot').add({ type: 'pose-day', day: dkey(), lv, cards, doneKeys: [], by: me(), at: now() });
+      deal = true; draw();
+    });
+    $$('[data-swap]', m).forEach((b) => b.onclick = async () => {
+      const day = hotPoseToday(), i = +b.dataset.swap;
+      const used = new Set(day.cards.map((c) => c.key));
+      const cand = hotPoses().filter((p) => !p.scene && (p.lv || 3) <= (day.lv || 3) && !used.has(poseKey(p)));
+      if (!cand.length) return toast('沒有可以換的牌了');
+      const p = pick(cand);
+      const cards = day.cards.map((c, j) => (j === i ? { key: poseKey(p), r: /【隨機】/.test(p.how) ? pick(['她', '他']) : '' } : c));
+      await col('hot').update(day.id, { cards }); sfx('pop'); toast(`換成「${p.name}」`); draw();
+    });
+    $$('[data-done]', m).forEach((b) => b.onclick = async () => {
+      const day = hotPoseToday(), c = day.cards[+b.dataset.done];
+      await col('hot').update(day.id, { doneKeys: [...(day.doneKeys || []), c.key] });
+      if (!poseDone().has(c.key)) await col('hot').add({ type: 'pose-done', key: c.key, at: now() });
+      sfx('stamp'); vibrate(30); draw();
+    });
+    $('#pz-add', m).onclick = () => hotPoseEditor();
+  };
+  draw();
+  m._redraw = draw;
+};
+
+// 姿勢圖鑑：試過的才會亮，沒試過的是問號徽章（不顯示總數）
+ACT.hotPoseBook = () => {
+  const done = poseDone();
+  const all = hotPoses();
+  const cell = (p) => done.has(poseKey(p))
+    ? `<button class="pb-cell on" data-key="${esc(poseKey(p))}"><span class="pb-em">${poseEmblem(p)}</span><small>${p.no ? 'No.' + pad(p.no) : '自訂'}</small><b>${esc(p.name)}</b></button>`
+    : `<div class="pb-cell"><span class="pb-em pb-q"><svg viewBox="-40 -40 80 80"><circle r="38" class="pe-bg"/><circle r="38" class="pe-r" stroke-width="1.2" stroke-dasharray="2 3"/><text y="10" text-anchor="middle">?</text></svg></span><small>${p.no ? 'No.' + pad(p.no) : '自訂'}</small><b>？？？</b></div>`;
+  const m = openModal(`${mhead('<i data-ic="book"></i> 姿勢圖鑑')}
+    <p class="small muted" style="margin:0 0 8px">抽到並按「試過了」的姿勢，會在這裡亮起來</p>
+    <div class="pb-grid">${all.filter((p) => !p.custom).map(cell).join('')}</div>
+    ${all.some((p) => p.custom) ? `<div class="hl-grp">我們加的</div><div class="pb-grid">${all.filter((p) => p.custom).map((p) => `<button class="pb-cell on" data-key="${esc(poseKey(p))}"><span class="pb-em">${poseEmblem(p)}</span><small>自訂</small><b>${esc(p.name)}</b></button>`).join('')}</div>` : ''}`,
+    { center: true, cls: 'hot-zone hz-book' });
+  $$('.pb-cell.on', m).forEach((b) => b.onclick = () => {
+    const p = poseByKey(b.dataset.key);
+    const v = openModal(`${mhead(esc(p.name))}<div class="pz-one">${poseCardHTML(p, { done: done.has(poseKey(p)) })}</div>
+      ${p.custom && p.by === me() ? '<div class="center"><button class="link" id="pv-del">刪掉這張</button></div>' : ''}`, { center: true, cls: 'hot-zone' });
+    wireFlip(v);
+    $('#pv-del', v) && ($('#pv-del', v).onclick = async () => { if (await confirmBox('刪掉這張自己加的卡？', '刪掉')) { await col('hot').remove(p.id); closeModal(v); closeModal(m); } });
+  });
+};
+function hotPoseEditor() {
+  let lv = hotLv(), scene = false;
+  const m = openModal(`${mhead('自己加一張')}
+    <label>名稱</label><input id="pe-n" maxlength="12" placeholder="例如：窗邊">
+    <div class="seg" id="pe-lv" style="margin-top:10px">${[2, 3].map((l) => `<button data-l="${l}" class="${lv === l ? 'on' : ''}">${spiceIc(l)} ${D.SPICE[l].label}</button>`).join('')}</div>
+    <label>怎麼做（寫清楚她和他各自的位置）</label><textarea id="pe-h" rows="3" maxlength="80"></textarea>
+    <label>小訣竅（可以不寫）</label><input id="pe-t" maxlength="40">
+    <div class="toggle" style="margin-top:10px"><label class="switch"><input type="checkbox" id="pe-s"><span></span></label><span class="small">場景限定（抽到可以換一張）</span></div>
+    <div class="btn-row"><button class="btn hot-btn" id="pe-ok">加進牌組</button></div>`, { center: true, cls: 'hot-zone' });
+  $$('#pe-lv button', m).forEach((b) => b.onclick = () => { lv = +b.dataset.l; $$('#pe-lv button', m).forEach((x) => x.classList.toggle('on', x === b)); });
+  $('#pe-s', m).onchange = (e) => { scene = e.target.checked; };
+  $('#pe-ok', m).onclick = async () => {
+    const name = $('#pe-n', m).value.trim(), how = $('#pe-h', m).value.trim();
+    if (!name || !how) return toast('名稱和怎麼做都要寫');
+    await col('hot').add({ type: 'pose-item', k: 'p-' + uid8(), name, lv, how, tip: $('#pe-t', m).value.trim(), scene, by: me(), at: now() });
+    closeModal(m); toast('加進牌組了，之後抽得到');
+  };
 }
