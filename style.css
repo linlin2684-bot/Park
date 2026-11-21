@@ -1821,3 +1821,29 @@ html[data-theme="night"] .emb-F-pet { --e-bg: #18141c; --e-ink: #ece4ef; --e-acc
 .pb-q text { fill: rgba(233, 194, 122, .5); font-family: var(--serif); font-size: 30px; font-weight: 900; }
 .hdie b.long { font-size: 12px; line-height: 1.3; max-width: 70px; }
 .seg.ht-pre { flex-wrap: wrap; justify-content: center; overflow: visible; }
+
+/* 前戲遊戲（真心話＋大冒險＋骰子合併） */
+.hp-light { display: flex; align-items: center; gap: 6px; margin: 8px auto 0; padding: 7px 14px; border-radius: 999px; background: #2e111e; box-shadow: inset 0 0 0 1px rgba(233, 194, 122, .35); color: var(--muted); font-size: 13px; }
+.hp-light b { color: #fff4e6; font-family: var(--serif); font-size: 15px; }
+.hp-light .small { color: rgba(233, 194, 122, .6); margin-left: 4px; }
+.hp-light .ic { width: 16px; height: 16px; color: #e9c27a; }
+.hz-play .hdice-row.hide { display: none; }
+.hp-btns { display: grid; grid-template-columns: 1fr 1.2fr 1fr; gap: 8px; margin-top: 12px; }
+.hp-btns .btn { padding-left: 6px; padding-right: 6px; }
+.hp-flip { width: 96px; height: 96px; margin: 16px auto; border-radius: 50%; display: grid; place-items: center; color: #e9c27a; background: radial-gradient(circle at 50% 35%, #5a2036, #2e111e); box-shadow: inset 0 0 0 1.5px #e9c27a; animation: hdSpin .35s linear 2; }
+.hp-flip .ic { width: 44px; height: 44px; }
+
+/* 姿勢卡：喜歡、稀有、劇本、Round 2 */
+.pc-like { position: absolute; top: 10px; right: 10px; width: 34px; height: 34px; border-radius: 50%; display: grid; place-items: center; color: rgba(233, 194, 122, .6); background: rgba(42, 15, 28, .5); }
+.pc-like .ic { width: 18px; height: 18px; }
+.pc-like.on { color: #fff4e6; background: #d9485f; box-shadow: 0 0 10px rgba(217, 72, 95, .6); }
+.pc-like.on .ic path { fill: currentColor; }
+.pc-rare { position: absolute; top: 12px; left: 12px; font-size: 11px; font-weight: 800; padding: 2px 8px; border-radius: 6px; color: #3b2208; background: linear-gradient(135deg, #f4c96b, #e39b3a); }
+.pc-script { margin-top: 12px; width: 100%; font-size: 13px; line-height: 1.6; color: #fff4e6; text-align: left; padding: 8px 10px; border-radius: 10px; background: rgba(42, 15, 28, .6); box-shadow: inset 0 0 0 1px rgba(233, 194, 122, .3); }
+.pc-script span { display: inline-block; width: 3em; color: #e9c27a; font-size: 11px; letter-spacing: .1em; }
+.pc-back { overflow: hidden; }
+.pc-back .pc-how { margin-top: 12px; font-size: 17px; }
+.pz-r2 { color: #e9c27a; font-weight: 900; letter-spacing: .05em; }
+.pz-row + .pz-count { margin-top: 18px; }
+.pc-back .pc-script + .pc-hint { margin-top: auto; }
+.pc-back { padding-bottom: 10px; }
