@@ -278,8 +278,8 @@ function bdayPerkHTML() {
 //  罐罐商店（小小黑的視窗裡）
 // ============================================================
 const CAN_SHOP = [
-  { id: 'ticket', name: '扭蛋券 1 張', cost: 8, give: async () => { await addTicket(me(), 1); } },
-  { id: 'pts', name: '20 點', cost: 5, give: async () => { await _addPoints(me(), 20, '罐罐商店'); } },
+  { id: 'ticket', name: '扭蛋券 1 張', cost: 6, give: async () => { await addTicket(me(), 1); } },
+  { id: 'pts', name: '10 點', cost: 3, give: async () => { await _addPoints(me(), 10, '罐罐商店'); } },
   { id: 'acc', name: '隨機一個小小黑配件', cost: 15, ok: () => PET_ACC.some((a) => a.gacha && !(((S.couple.pet || {}).owned) || []).includes(a.id)),
     give: async () => {
       const owned = ((S.couple.pet || {}).owned) || [];

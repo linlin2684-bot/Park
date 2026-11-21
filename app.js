@@ -1846,8 +1846,9 @@ PAGES.home = {
 
     ${dailyCardHTML()}
 
-    ${todos.length ? `<div class="card soft-todo">${todos.slice(0, S.todoAll ? 99 : 3).map((t) => `<div class="todo-item"><span class="ti">${t.icon}</span><span class="grow">${esc(t.text)}</span>
-      <button class="btn sm" data-act="${t.act}" ${t.id ? `data-id="${t.id}"` : ''} ${t.tab ? `data-tab="${t.tab}"` : ''}>${t.btn}</button></div>`).join('')}${todos.length > 3 ? `<button class="link center todo-more" data-act="todoMore">${S.todoAll ? '收起來' : `還有 ${todos.length - 3} 件`}</button>` : ''}</div>` : ''}
+    ${todos.length ? `<div class="card soft-todo">
+      <button class="wait-head" data-act="todoAll"><span class="wait-em">${waitEmblem()}</span><span class="grow"><b>有人在等你</b><br><span class="small muted">小小黑幫你記著</span></span><span class="wait-more">看全部 ›</span></button>
+      ${todos.slice(0, 2).map(todoRow).join('')}</div>` : ''}
 
     <div class="card note-row note-row2"><button class="nr-main" data-act="writeNote"><span class="lr-i"><i data-ic="letter"></i></span><span class="grow"><b>藏一張小紙條</b><div class="small muted">藏在 App 某個角落，等 ${esc(nick(p) || '對方')} 自己發現${list('notes').filter((n) => n.by === me() && !n.found).length ? `・${list('notes').filter((n) => n.by === me() && !n.found).length} 張還沒被找到` : ''}</div></span></button><button class="nr-box" data-act="noteBox"><i data-ic="book"></i><small>紙條盒</small></button></div>`;
   },
@@ -1991,7 +1992,23 @@ ACT.cdEdit = () => {
   m._onClose = () => render();
 };
 
-ACT.todoMore = () => { S.todoAll = !S.todoAll; render(); };
+const todoRow = (t) => `<div class="todo-item"><span class="ti">${t.icon}</span><span class="grow">${esc(t.text)}</span>
+      <button class="btn sm" data-act="${t.act}" ${t.id ? `data-id="${t.id}"` : ''} ${t.tab ? `data-tab="${t.tab}"` : ''}>${t.btn}</button></div>`;
+// 圖騰：圓形徽章裡坐著等你的小小黑
+function waitEmblem() {
+  return `<svg viewBox="-44 -44 88 88" class="wait-svg"><circle r="41" class="hall-c1"/><circle r="35" class="hall-c2"/>
+    ${Array.from({ length: 12 }, (_, i) => { const a = i * 30 * Math.PI / 180; return `<circle cx="${(Math.sin(a) * 38).toFixed(1)}" cy="${(-Math.cos(a) * 38).toFixed(1)}" r="${i % 3 ? .9 : 1.6}" class="hall-c4"/>`; }).join('')}
+    <g transform="translate(-34 -40) scale(.68)">${catPose('sit')}</g></svg>`;
+}
+ACT.todoAll = () => {
+  const m = openModal('', { center: true });
+  const draw = () => {
+    const ts = homeTodos();
+    m.querySelector('.modal').innerHTML = `${mhead('有人在等你')}${ts.length ? ts.map(todoRow).join('') : '<div class="empty">都看完了</div>'}`;
+  };
+  draw();
+  m.addEventListener('click', (e) => { if (e.target.closest('[data-act]') && !e.target.closest('.m-close')) setTimeout(() => { if (document.body.contains(m)) closeModal(m); }, 50); }, true);
+};
 // ============================================================
 //  圖騰系統：依卡名產生和風幾何底紋＋中央徽章＋卡框（不用 emoji）
 // ============================================================
@@ -8824,8 +8841,8 @@ function bdayPerkHTML() {
 //  罐罐商店（小小黑的視窗裡）
 // ============================================================
 const CAN_SHOP = [
-  { id: 'ticket', name: '扭蛋券 1 張', cost: 8, give: async () => { await addTicket(me(), 1); } },
-  { id: 'pts', name: '20 點', cost: 5, give: async () => { await _addPoints(me(), 20, '罐罐商店'); } },
+  { id: 'ticket', name: '扭蛋券 1 張', cost: 6, give: async () => { await addTicket(me(), 1); } },
+  { id: 'pts', name: '10 點', cost: 3, give: async () => { await _addPoints(me(), 10, '罐罐商店'); } },
   { id: 'acc', name: '隨機一個小小黑配件', cost: 15, ok: () => PET_ACC.some((a) => a.gacha && !(((S.couple.pet || {}).owned) || []).includes(a.id)),
     give: async () => {
       const owned = ((S.couple.pet || {}).owned) || [];
