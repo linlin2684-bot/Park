@@ -3905,6 +3905,12 @@ ACT.addTrip = () => {
   };
 };
 // 照片自動歸檔：選了這趟旅行的，或日期落在旅行那幾天的
+// 每個人各寫一段心得；舊資料只有建立的人寫的 note
+function tripSays(t) { const o = { ...(t.notes || {}) }; if (t.note && !o[t.by]) o[t.by] = t.note; return o; }
+function tripSaysHTML(t) {
+  const o = tripSays(t);
+  return (S.couple.members || []).filter((u) => o[u]).map((u) => `<div class="letter trip-say"><small>${esc(nick(u))}的心得</small>${esc(o[u])}</div>`).join('');
+}
 function tripPhotos(t) {
   const a = t.date, b = t.dateEnd || t.date;
   return list('photos').filter((x) => x.tripId === t.id || (!x.tripId && a && x.date >= a && x.date <= b)).sort((x, y) => (x.date || '').localeCompare(y.date || ''));
@@ -3914,9 +3920,23 @@ ACT.openTrip = (el) => {
   const m = openModal(`${mhead('<i data-ic="pin"></i> ' + esc(t.name))}
     ${t.cover ? `<img src="${t.cover}" style="width:100%;border-radius:16px;display:block">` : ''}
     <p class="small muted">${esc(t.date || '')} · ${esc(nick(t.by))} 記錄</p>
-    ${t.note ? `<div class="letter">${esc(t.note)}</div>` : ''}
+    ${tripSaysHTML(t)}
+    <button class="btn sm ghost" id="tp-say" style="margin:0 0 10px">${tripSays(t)[me()] ? '改我的心得' : '寫我的心得'}</button>
     ${(() => { const ps = tripPhotos(t); return ps.length ? `<div class="trip-ph"><div class="small muted">這趟的照片（${ps.length}）</div><div class="trip-ph-g">${ps.map((x) => `<img src="${x.img}" alt="">`).join('')}</div></div>` : ''; })()}
     <div class="btn-row">${t.lat != null && S.map ? '<button class="btn ghost" id="tp-go">在地圖上看</button>' : ''}${t.by === me() ? '<button class="btn ghost" id="tp-del">刪除</button>' : ''}</div>`);
+  $('#tp-say', m).onclick = async () => {
+    const cur = tripSays(t)[me()] || '';
+    const m2 = openModal(`${mhead('我的心得')}<p class="small muted">${esc(t.name)}・寫下這趟最想記住的事</p>
+      <textarea id="ts-t" maxlength="300" placeholder="這趟最難忘的是…">${esc(cur)}</textarea><button class="btn block mt" id="ts-ok">存起來</button>`, { center: true });
+    $('#ts-ok', m2).onclick = async () => {
+      const v = $('#ts-t', m2).value.trim();
+      const said = { ...(t.notes || {}) }; if (v) said[me()] = v; else delete said[me()];
+      const up = { notes: said };
+      if (t.by === me() && t.note) up.note = v;   // 舊的心得欄位是建立的人寫的，跟著改
+      await col('trips').update(t.id, up);
+      closeModal(m2); closeModal(m); toast('心得存好了'); ACT.openTrip(el);
+    };
+  };
   $('#tp-go', m) && ($('#tp-go', m).onclick = () => { closeModal(m); S.map.setView([t.lat, t.lng], 12); window.scrollTo({ top: 0, behavior: 'smooth' }); });
   $('#tp-del', m) && ($('#tp-del', m).onclick = async () => { if (await confirmBox('刪除這個足跡？')) { await col('trips').remove(t.id); closeModal(m); } });
 };
@@ -9697,6 +9717,18 @@ function reviewMore2(Y, inY) {
     out.push({ bg: ph.length ? `linear-gradient(rgba(20,8,14,.3), rgba(20,8,14,.75)), url('${ph[0].img}') center/cover` : '', i: ic('sparkle'), n: md(parseD(k).getTime()), t: '今年最熱鬧的一天',
       s: `那天你們${bits.join('、')}<br>是一年裡最滿的一天` });
   }
+
+  // 我們的旅行：每一趟一頁，照片拼貼＋兩個人當下的心得
+  const trips = list('trips').filter((t) => (t.date || '').startsWith(String(Y))).sort((a, b) => (a.date > b.date ? 1 : -1));
+  trips.map((t) => ({ t, ps: [t.cover && { img: t.cover }, ...tripPhotos(t)].filter((x) => x && x.img), says: tripSays(t) }))
+    .filter((x) => x.ps.length || Object.keys(x.says).length).slice(0, 6).forEach(({ t, ps, says }, i, arr) => {
+      const pics = ps.slice(0, 4);
+      const cap = ps.find((p) => p.caption);
+      out.push({ i: pics.length ? `<div class="rv-trip n${pics.length}">${pics.map((p, j) => `<span style="background-image:url('${p.img}');--r:${[-6, 5, -3, 7][j]}deg"></span>`).join('')}</div>` : ic('pin'),
+        n: esc(cut(t.name, 10)), t: `${md(parseD(t.date).getTime())}${t.dateEnd ? ` – ${md(parseD(t.dateEnd).getTime())}` : ''}・我們的第 ${i + 1} 趟旅行`,
+        s: [...ms.filter((u) => says[u]).map((u) => `<div class="rv-tsay"><small>${esc(nick(u))}</small>「${esc(cut(says[u], 60))}」</div>`),
+          !Object.keys(says).length && cap ? `<div class="rv-tsay">「${esc(cut(cap.caption, 40))}」</div>` : ''].join('') });
+    });
 
   // 雨後的彩虹
   const hist = S.couple.moodHist || {};

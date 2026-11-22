@@ -89,6 +89,18 @@ function reviewMore2(Y, inY) {
       s: `那天你們${bits.join('、')}<br>是一年裡最滿的一天` });
   }
 
+  // 我們的旅行：每一趟一頁，照片拼貼＋兩個人當下的心得
+  const trips = list('trips').filter((t) => (t.date || '').startsWith(String(Y))).sort((a, b) => (a.date > b.date ? 1 : -1));
+  trips.map((t) => ({ t, ps: [t.cover && { img: t.cover }, ...tripPhotos(t)].filter((x) => x && x.img), says: tripSays(t) }))
+    .filter((x) => x.ps.length || Object.keys(x.says).length).slice(0, 6).forEach(({ t, ps, says }, i, arr) => {
+      const pics = ps.slice(0, 4);
+      const cap = ps.find((p) => p.caption);
+      out.push({ i: pics.length ? `<div class="rv-trip n${pics.length}">${pics.map((p, j) => `<span style="background-image:url('${p.img}');--r:${[-6, 5, -3, 7][j]}deg"></span>`).join('')}</div>` : ic('pin'),
+        n: esc(cut(t.name, 10)), t: `${md(parseD(t.date).getTime())}${t.dateEnd ? ` – ${md(parseD(t.dateEnd).getTime())}` : ''}・我們的第 ${i + 1} 趟旅行`,
+        s: [...ms.filter((u) => says[u]).map((u) => `<div class="rv-tsay"><small>${esc(nick(u))}</small>「${esc(cut(says[u], 60))}」</div>`),
+          !Object.keys(says).length && cap ? `<div class="rv-tsay">「${esc(cut(cap.caption, 40))}」</div>` : ''].join('') });
+    });
+
   // 雨後的彩虹
   const hist = S.couple.moodHist || {};
   let rain = 0, cleared = 0;

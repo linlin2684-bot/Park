@@ -231,6 +231,12 @@ ACT.addTrip = () => {
   };
 };
 // 照片自動歸檔：選了這趟旅行的，或日期落在旅行那幾天的
+// 每個人各寫一段心得；舊資料只有建立的人寫的 note
+function tripSays(t) { const o = { ...(t.notes || {}) }; if (t.note && !o[t.by]) o[t.by] = t.note; return o; }
+function tripSaysHTML(t) {
+  const o = tripSays(t);
+  return (S.couple.members || []).filter((u) => o[u]).map((u) => `<div class="letter trip-say"><small>${esc(nick(u))}的心得</small>${esc(o[u])}</div>`).join('');
+}
 function tripPhotos(t) {
   const a = t.date, b = t.dateEnd || t.date;
   return list('photos').filter((x) => x.tripId === t.id || (!x.tripId && a && x.date >= a && x.date <= b)).sort((x, y) => (x.date || '').localeCompare(y.date || ''));
@@ -240,9 +246,23 @@ ACT.openTrip = (el) => {
   const m = openModal(`${mhead('<i data-ic="pin"></i> ' + esc(t.name))}
     ${t.cover ? `<img src="${t.cover}" style="width:100%;border-radius:16px;display:block">` : ''}
     <p class="small muted">${esc(t.date || '')} · ${esc(nick(t.by))} 記錄</p>
-    ${t.note ? `<div class="letter">${esc(t.note)}</div>` : ''}
+    ${tripSaysHTML(t)}
+    <button class="btn sm ghost" id="tp-say" style="margin:0 0 10px">${tripSays(t)[me()] ? '改我的心得' : '寫我的心得'}</button>
     ${(() => { const ps = tripPhotos(t); return ps.length ? `<div class="trip-ph"><div class="small muted">這趟的照片（${ps.length}）</div><div class="trip-ph-g">${ps.map((x) => `<img src="${x.img}" alt="">`).join('')}</div></div>` : ''; })()}
     <div class="btn-row">${t.lat != null && S.map ? '<button class="btn ghost" id="tp-go">在地圖上看</button>' : ''}${t.by === me() ? '<button class="btn ghost" id="tp-del">刪除</button>' : ''}</div>`);
+  $('#tp-say', m).onclick = async () => {
+    const cur = tripSays(t)[me()] || '';
+    const m2 = openModal(`${mhead('我的心得')}<p class="small muted">${esc(t.name)}・寫下這趟最想記住的事</p>
+      <textarea id="ts-t" maxlength="300" placeholder="這趟最難忘的是…">${esc(cur)}</textarea><button class="btn block mt" id="ts-ok">存起來</button>`, { center: true });
+    $('#ts-ok', m2).onclick = async () => {
+      const v = $('#ts-t', m2).value.trim();
+      const said = { ...(t.notes || {}) }; if (v) said[me()] = v; else delete said[me()];
+      const up = { notes: said };
+      if (t.by === me() && t.note) up.note = v;   // 舊的心得欄位是建立的人寫的，跟著改
+      await col('trips').update(t.id, up);
+      closeModal(m2); closeModal(m); toast('心得存好了'); ACT.openTrip(el);
+    };
+  };
   $('#tp-go', m) && ($('#tp-go', m).onclick = () => { closeModal(m); S.map.setView([t.lat, t.lng], 12); window.scrollTo({ top: 0, behavior: 'smooth' }); });
   $('#tp-del', m) && ($('#tp-del', m).onclick = async () => { if (await confirmBox('刪除這個足跡？')) { await col('trips').remove(t.id); closeModal(m); } });
 };
