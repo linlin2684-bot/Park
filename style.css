@@ -2117,7 +2117,6 @@ button.sched-i { width: 100%; text-align: left; }
 .wait-more { font-size: 13px; font-weight: 700; color: var(--accent); white-space: nowrap; }
 .soft-todo .wait-head { margin-bottom: 0; }
 
-<<<<<<< Updated upstream
 /* 收藏冊「親手做的」 */
 .keep-card { position: relative; }
 .keep-seal { position: absolute; right: 4px; bottom: 16px; width: 26px; height: 26px; transform: rotate(-14deg); filter: drop-shadow(0 1px 2px rgba(0, 0, 0, .3)); }
@@ -2132,7 +2131,7 @@ button.sched-i { width: 100%; text-align: left; }
 .keep-memo { text-align: center; font-family: var(--serif); font-size: 16px; padding: 10px; margin: 4px 0 8px; border-top: 1px dashed var(--line); border-bottom: 1px dashed var(--line); }
 .g-sec.g-hot { --e-bg: #2a0f1c; --e-ink: #e9c27a; --e-acc: #d9485f; background: linear-gradient(160deg, #3a1626, #1f0a14); color: #f7e3d0; }
 .g-sec.g-hot li { color: #f7e3d0; }
-=======
+
 /* ===== 午夜我愛你（07y-ily.js）===== */
 .hero-miss.ily { background: none; box-shadow: none; width: 52px; height: 52px; top: 9px; right: 9px; padding: 0; animation: ilyBeat 1.8s ease-in-out infinite; filter: drop-shadow(0 4px 8px rgba(110, 15, 34, .45)); }
 .hero-miss.ily .ily-seal { width: 100%; height: 100%; display: block; }
@@ -2153,4 +2152,3 @@ button.sched-i { width: 100%; text-align: left; }
 .av.crowned .ily-crown { position: absolute; left: 50%; top: -.72em; width: 1.1em; height: auto; transform: translateX(-50%); pointer-events: none; }
 .mrev-ily { display: flex; align-items: center; gap: 8px; justify-content: center; margin-top: 10px; font-size: 13px; }
 .mrev-ily .ily-crown { width: 22px; height: auto; }
->>>>>>> Stashed changes
