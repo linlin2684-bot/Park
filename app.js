@@ -4953,7 +4953,7 @@ function petHomeCard() {
   const pct = P.next ? Math.round((P.xp - P.stage.xp) / (P.next.xp - P.stage.xp) * 100) : 100;
   const dv = dutyVisitor();
   return `<div class="card pet-card ${dv ? 'has-visitor' : ''}" data-act="petOpen">
-    <div class="pet-room"><div class="pet-stage"${!dv && dutySoloOn() ? ' data-act="dutyHi" data-k="black"' : ''}>${petArt(P)}</div>${dv || dutySolo()}</div>
+    <div class="pet-room"><div class="pet-stage"${dutyCatAttr()}>${petArt(P)}</div>${dv || dutySolo()}</div>
     <div class="grow">
       <div class="pet-name">${esc(P.name)} <span class="chip">${PET_STAGES[P.show].name}</span></div>
       <div class="small muted ${dv ? 'duty-say' : ''}">${dv ? dutyText() : PET_TIME_TEXT[petTimePose()] || PET_MOOD_TEXT[P.mood]}</div>
@@ -4982,7 +4982,7 @@ ACT.petPat = async (el, e) => {
 ACT.petOpen = () => {
   const P = petState();
   const m = openModal(`${mhead(`<i data-ic="heart"></i> ${esc(P.name)}`)}
-    <div class="pet-room big ${dutyVisitor() ? 'has-visitor' : ''}"><div class="pet-big"${!dutyVisitor() && dutySoloOn() ? ' data-act="dutyHi" data-k="black"' : ''}>${petArt(P, true)}</div>${dutyVisitor() || dutySolo()}</div>
+    <div class="pet-room big ${dutyVisitor() ? 'has-visitor' : ''}"><div class="pet-big"${dutyCatAttr()}>${petArt(P, true)}</div>${dutyVisitor() || dutySolo()}</div>
     ${dutyVisitor() ? `<p class="center small duty-say" style="margin:0 0 4px;color:var(--accent)">${dutyText()}</p>` : ''}
     <p class="center muted" style="margin:0 0 4px">${PET_STAGES[P.show].name}・${PET_TIME_TEXT[petTimePose()] || PET_MOOD_TEXT[P.mood]}</p>
     <div class="btn-row" style="justify-content:center;margin-bottom:12px">
@@ -5521,7 +5521,7 @@ function dutyText() {
   if (!k) return '';
   const met = !!((S.couple.dex || {})[k] || {}).met;
   const said = localStorage.getItem(`park-duty2-${dkey()}-${me()}`);
-  if (said) return `今天 ${FRIENDS[k].name} 陪${esc(petState().name)}值日，點牠再看一次`;
+  if (said) return `今天 ${FRIENDS[k].name} 陪${esc(petState().name)}值日，點牠再聊聊`;
   return (met ? `今天 ${FRIENDS[k].name} 來陪${esc(petState().name)}值日，點牠打招呼` : '有位沒見過的朋友來值日，點牠看看');
 }
 // 值日小劇場的程式在 07h2-duty.js
@@ -5868,29 +5868,33 @@ function dutySolo() {
   const said = localStorage.getItem(dutyKey());
   return `<button class="duty-solo ${said ? 'said' : ''}" data-act="dutyHi" data-k="black" aria-label="小小黑值日">值日生</button>`;
 }
-// 今天演哪一組：沒看過的優先；同一天再點一次就重演同一組
+// 點小小黑也會演：有值日生就演值日生那段，沒有就小小黑自己說
+function dutyCatAttr() {
+  const k = dutyToday() || (dutySoloOn() ? 'black' : '');
+  return k ? ` data-act="dutyHi" data-k="${k}"` : '';
+}
+// 每點一次換一段：沒看過的優先，不會連續演同一段
+const dutyLast = {};
 function dutyPick(k) {
-  const saved = localStorage.getItem(dutyKey());
-  if (saved && /^\w+:\d+$/.test(saved) && saved.startsWith(k + ':')) return +saved.split(':')[1];
-  const n = DUTY_SKITS[k].length, got = dutyGot(k);
-  const fresh = [...Array(n).keys()].filter((i) => !got[i]);
-  const pool = fresh.length ? fresh : [...Array(n).keys()];
-  return pool[Math.floor(Math.random() * pool.length)];
+  const n = DUTY_SKITS[k].length, got = dutyGot(k), all = [...Array(n).keys()].filter((i) => i !== dutyLast[k]);
+  const fresh = all.filter((i) => !got[i]);
+  const pool = fresh.length ? fresh : all;
+  return (dutyLast[k] = pool[Math.floor(Math.random() * pool.length)]);
 }
 const dutyClean = (t) => t.replace(/（[^）]*）/g, '').trim() || '……';
 const dutyActs = (t) => [...t.matchAll(/（([^）]*)）/g)].map((m) => m[1]);
-let dutyBusy = false;
+let dutyCancel = null; // 正在演的那一段，點別的地方再開一段時先收掉
 ACT.dutyHi = async (el, e) => {
   e && e.stopPropagation();
-  if (dutyBusy) return;
   const k = el.dataset.k, skit = DUTY_SKITS[k];
   if (!skit) return;
   const idx = dutyPick(k), first = !localStorage.getItem(dutyKey());
   const room = el.closest('.pet-room');
   const catEl = (room && room.querySelector('.pet-stage, .pet-big')) || el;
-  const vis = k === 'black' ? null : el;
+  const vis = k === 'black' ? null : (el.classList.contains('pet-visitor') ? el : room && room.querySelector('.pet-visitor'));
   const inModal = !!el.closest('.modal-back');
-  dutyBusy = true;
+  if (dutyCancel) dutyCancel();
+  let cancelled = false;
   sfx('heart');
   if (first) { const r = el.getBoundingClientRect(); floaty(r.left + r.width / 2, r.top, ['#ff9fb4', '#ffd45c']); }
   if (el.classList.contains('duty-solo') || el.classList.contains('pet-visitor')) el.classList.add('said');
@@ -5924,23 +5928,25 @@ ACT.dutyHi = async (el, e) => {
       b.classList.add('tappable');
       const tapped = await new Promise((res) => {
         const els = [b, el, catEl].filter(Boolean);
-        const done = (v) => { clearTimeout(tm); els.forEach((x) => x.removeEventListener('click', on, true)); res(v); };
+        const done = (v) => { clearTimeout(tm); els.forEach((x) => x.removeEventListener('click', on, true)); if (dutyCancel === stop) dutyCancel = null; res(v); };
+        const stop = () => { cancelled = true; done(false); };
+        dutyCancel = stop;
         const tm = setTimeout(() => done(false), 12000);
         function on(ev) { ev.stopPropagation(); ev.preventDefault(); done(true); }
         els.forEach((x) => x.addEventListener('click', on, true));
       });
-      b.classList.add('out'); setTimeout(() => b.remove(), 300);
+      b.classList.add('out'); setTimeout(() => b.remove(), cancelled ? 0 : 300);
       if (tgt) tgt.classList.remove('duty-talk');
       if (!tapped) break;
       sfx('pop');
     }
   } finally {
-    dutyBusy = false;
     setTimeout(() => vis && vis.classList.remove('off'), 1500);
   }
+  if (cancelled) return;
   localStorage.setItem(dutyKey(), `${k}:${idx}`);
   const name = k === 'black' ? petState().name : FRIENDS[k].name;
-  document.querySelectorAll('.duty-say').forEach((x) => { x.textContent = `今天 ${name} 陪${petState().name}值日，點牠再看一次`; });
+  document.querySelectorAll('.duty-say').forEach((x) => { x.textContent = `今天 ${name} 陪${petState().name}值日，點牠再聊聊`; });
   if (k === 'black') document.querySelectorAll('.duty-solo').forEach((x) => x.classList.add('said'));
   if (S.couple && !dutyGot(k)[idx]) {
     const up = { [`dex.${k}.d.${idx}`]: true };

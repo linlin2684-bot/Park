@@ -150,7 +150,7 @@ function petHomeCard() {
   const pct = P.next ? Math.round((P.xp - P.stage.xp) / (P.next.xp - P.stage.xp) * 100) : 100;
   const dv = dutyVisitor();
   return `<div class="card pet-card ${dv ? 'has-visitor' : ''}" data-act="petOpen">
-    <div class="pet-room"><div class="pet-stage"${!dv && dutySoloOn() ? ' data-act="dutyHi" data-k="black"' : ''}>${petArt(P)}</div>${dv || dutySolo()}</div>
+    <div class="pet-room"><div class="pet-stage"${dutyCatAttr()}>${petArt(P)}</div>${dv || dutySolo()}</div>
     <div class="grow">
       <div class="pet-name">${esc(P.name)} <span class="chip">${PET_STAGES[P.show].name}</span></div>
       <div class="small muted ${dv ? 'duty-say' : ''}">${dv ? dutyText() : PET_TIME_TEXT[petTimePose()] || PET_MOOD_TEXT[P.mood]}</div>
@@ -179,7 +179,7 @@ ACT.petPat = async (el, e) => {
 ACT.petOpen = () => {
   const P = petState();
   const m = openModal(`${mhead(`<i data-ic="heart"></i> ${esc(P.name)}`)}
-    <div class="pet-room big ${dutyVisitor() ? 'has-visitor' : ''}"><div class="pet-big"${!dutyVisitor() && dutySoloOn() ? ' data-act="dutyHi" data-k="black"' : ''}>${petArt(P, true)}</div>${dutyVisitor() || dutySolo()}</div>
+    <div class="pet-room big ${dutyVisitor() ? 'has-visitor' : ''}"><div class="pet-big"${dutyCatAttr()}>${petArt(P, true)}</div>${dutyVisitor() || dutySolo()}</div>
     ${dutyVisitor() ? `<p class="center small duty-say" style="margin:0 0 4px;color:var(--accent)">${dutyText()}</p>` : ''}
     <p class="center muted" style="margin:0 0 4px">${PET_STAGES[P.show].name}・${PET_TIME_TEXT[petTimePose()] || PET_MOOD_TEXT[P.mood]}</p>
     <div class="btn-row" style="justify-content:center;margin-bottom:12px">

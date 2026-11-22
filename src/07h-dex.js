@@ -244,7 +244,7 @@ function dutyText() {
   if (!k) return '';
   const met = !!((S.couple.dex || {})[k] || {}).met;
   const said = localStorage.getItem(`park-duty2-${dkey()}-${me()}`);
-  if (said) return `今天 ${FRIENDS[k].name} 陪${esc(petState().name)}值日，點牠再看一次`;
+  if (said) return `今天 ${FRIENDS[k].name} 陪${esc(petState().name)}值日，點牠再聊聊`;
   return (met ? `今天 ${FRIENDS[k].name} 來陪${esc(petState().name)}值日，點牠打招呼` : '有位沒見過的朋友來值日，點牠看看');
 }
 // 值日小劇場的程式在 07h2-duty.js
