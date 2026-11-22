@@ -2152,3 +2152,17 @@ button.sched-i { width: 100%; text-align: left; }
 .av.crowned .ily-crown { position: absolute; left: 50%; top: -.72em; width: 1.1em; height: auto; transform: translateX(-50%); pointer-events: none; }
 .mrev-ily { display: flex; align-items: center; gap: 8px; justify-content: center; margin-top: 10px; font-size: 13px; }
 .mrev-ily .ily-crown { width: 22px; height: auto; }
+
+/* ---------- 值日小劇場 ---------- */
+.fr-bubble.duty.over { z-index: 140; }
+.fr-bubble.duty.far { font-size: 13px; opacity: .9; }
+.duty-talk { filter: drop-shadow(0 0 6px color-mix(in srgb, var(--accent) 45%, transparent)); }
+.pet-visitor.off .cat-svg { transform: rotate(180deg) translateY(-8px); filter: grayscale(.7) brightness(.85); transition: transform .4s, filter .4s; animation: none !important; }
+.pet-visitor.run { transform: translateX(140%); opacity: 0; transition: transform 1s ease-in, opacity 1s ease-in; }
+.pet-stage.hop .cat-svg, .pet-big.hop .cat-svg, .pet-stage.hop svg, .pet-big.hop svg { animation: catJump .35s ease-in-out 2; }
+.duty-solo { position: absolute; top: -4px; left: 0; right: 0; margin: 0 auto; width: max-content; z-index: 2; font-size: 9px; font-weight: 800; letter-spacing: .08em; padding: 1px 7px; border-radius: 99px; border: 0;
+  background: var(--accent); color: #fff; box-shadow: 0 2px 6px color-mix(in srgb, var(--accent) 35%, transparent); animation: pvPing 2.2s ease-in-out infinite; }
+.duty-solo.said { background: var(--card2); color: var(--muted); box-shadow: none; animation: none; }
+.pet-room.big .duty-solo { font-size: 11px; padding: 2px 10px; top: 0; }
+.dex-line.duty div + div { margin-top: 2px; }
+.dex-line.duty b { color: var(--accent); font-weight: 700; }

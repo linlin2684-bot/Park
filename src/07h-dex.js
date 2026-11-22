@@ -244,18 +244,10 @@ function dutyText() {
   if (!k) return '';
   const met = !!((S.couple.dex || {})[k] || {}).met;
   const said = localStorage.getItem(`park-duty2-${dkey()}-${me()}`);
-  return said || (met ? `今天 ${FRIENDS[k].name} 來陪${esc(petState().name)}值日，點牠打招呼` : '有位沒見過的朋友來值日，點牠看看');
+  if (said) return `今天 ${FRIENDS[k].name} 陪${esc(petState().name)}值日，點牠再看一次`;
+  return (met ? `今天 ${FRIENDS[k].name} 來陪${esc(petState().name)}值日，點牠打招呼` : '有位沒見過的朋友來值日，點牠看看');
 }
-ACT.dutyHi = (el) => {
-  // 值日生一天只打一次招呼，台詞要慢慢收集
-  if (localStorage.getItem(`park-duty2-${dkey()}-${me()}`)) return toast('今天已經打過招呼了，明天見');
-  const k = el.dataset.k, r = el.getBoundingClientRect();
-  sfx('heart'); floaty(r.left + r.width / 2, r.top, ['#ff9fb4', '#ffd45c']);
-  const t = sayLine(k);
-  localStorage.setItem(`park-duty2-${dkey()}-${me()}`, t);
-  el.classList.add('said', 'hop'); setTimeout(() => el.classList.remove('hop'), 700);
-  document.querySelectorAll('.duty-say').forEach((x) => { x.textContent = t; });
-};
+// 值日小劇場的程式在 07h2-duty.js
 
 // ---------- 圖鑑書 ----------
 function dexFullCount() {
@@ -319,6 +311,7 @@ function animalPage(k, i) {
     ${L.map((t, j) => `<div class="dex-line ${got[j] ? '' : 'locked'}">${got[j] ? esc(t) : '？？？'}</div>`).join('')}
     ${sp.length ? `<h3 class="da-h">限定台詞 <span>${sp.filter((_, j) => got['s' + j]).length} 句</span></h3>
       ${sp.map((x, j) => `<div class="dex-line sp ${got['s' + j] ? '' : 'locked'}"><span class="sp-tag">${FEST_NAMES[x.w]}</span>${got['s' + j] ? esc(x.t) : '？？？'}</div>`).join('')}` : ''}
+    ${typeof dutyDexHTML === 'function' ? dutyDexHTML(k) : ''}
     ${typeof pestDexHTML === 'function' ? pestDexHTML(k, got) : ''}
     <h3 class="da-h">我們幫牠加的 <span>${cu.length}</span></h3>
     ${cu.map((c) => `<div class="dex-line cu">${esc(c.t)}<span class="cu-by">— ${esc(nick(c.by))}</span>${c.by === me() ? `<button class="cu-del" data-del="${c.id}" aria-label="刪除">✕</button>` : ''}</div>`).join('') || '<p class="small muted" style="margin:4px 0 0">你們最懂牠，幫牠多說幾句吧，路過時牠就會說出來。</p>'}
