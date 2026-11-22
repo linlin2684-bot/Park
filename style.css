@@ -2166,3 +2166,27 @@ button.sched-i { width: 100%; text-align: left; }
 .pet-room.big .duty-solo { font-size: 11px; padding: 2px 10px; top: 0; }
 .dex-line.duty div + div { margin-top: 2px; }
 .dex-line.duty b { color: var(--accent); font-weight: 700; }
+
+/* ---------- 紙條：更多信紙（淺色＋深色） ---------- */
+.paper-kraft { background: #d6b386 repeating-linear-gradient(83deg, rgba(120, 80, 30, .06) 0 2px, transparent 2px 7px) !important; box-shadow: inset 0 0 0 1px #c09a68 !important; }
+.paper-pink { background: #ffe6ee radial-gradient(circle, #ffc2d3 1.6px, transparent 2px) 0 0 / 18px 18px !important; box-shadow: inset 0 0 0 1px #f6c9d6 !important; }
+.paper-mint { background: #e3f6ec radial-gradient(circle, #bfe6d1 2px, transparent 2.4px) 0 0 / 16px 16px !important; box-shadow: inset 0 0 0 1px #c6e8d6 !important; }
+.paper-peach { background-color: #fff3ea !important; background-image: linear-gradient(90deg, rgba(255, 140, 100, .14) 50%, transparent 50%), linear-gradient(rgba(255, 140, 100, .14) 50%, transparent 50%) !important; background-size: 20px 20px !important; box-shadow: inset 0 0 0 1px #f6d4c2 !important; }
+.paper-lav { background: #efe8ff radial-gradient(circle, #d4c4fb 1.4px, transparent 1.8px) 0 0 / 14px 14px !important; box-shadow: inset 0 0 0 1px #ddd0fa !important; }
+.paper-air { background: linear-gradient(#fdfaf3, #fdfaf3) padding-box, repeating-linear-gradient(-45deg, #c8283c 0 7px, #fdfaf3 7px 12px, #24406b 12px 19px, #fdfaf3 19px 24px) border-box !important; border: 5px solid transparent !important; }
+.paper-night { background: radial-gradient(circle at 20% 30%, #fff 0 .8px, transparent 1.4px) 0 0 / 46px 38px, radial-gradient(circle at 70% 70%, rgba(255, 255, 255, .7) 0 .7px, transparent 1.2px) 0 0 / 31px 27px, linear-gradient(160deg, #1d2547, #2b2056) !important; box-shadow: inset 0 0 0 1px #3a4278 !important; }
+.paper-chalk { background: radial-gradient(ellipse at 30% 20%, rgba(255, 255, 255, .07), transparent 60%), #2f3d36 !important; box-shadow: inset 0 0 0 4px #8a6a43, inset 0 0 0 5px #6d5233 !important; }
+.paper-velvet { background: radial-gradient(ellipse at 50% 0%, #7a2342, #4a1328 75%) !important; box-shadow: inset 0 0 0 3px #4a1328, inset 0 0 0 4px #d4af37 !important; }
+.paper-inkgold { background: #1e1b22 !important; box-shadow: inset 0 0 0 4px #1e1b22, inset 0 0 0 5px #c9a44c, inset 0 0 0 7px #1e1b22, inset 0 0 0 8px rgba(201, 164, 76, .5) !important; }
+.paper-forest { background: radial-gradient(circle, rgba(181, 236, 208, .12) 1.6px, transparent 2px) 0 0 / 18px 18px, linear-gradient(170deg, #24443a, #1a3127) !important; box-shadow: inset 0 0 0 1px #2f5546 !important; }
+.paper-moon { position: absolute; right: 10px; top: 8px; width: 20px; opacity: .9; }
+.note-paper textarea { color: var(--ink) !important; background: transparent !important; }
+.note-paper textarea::placeholder { color: color-mix(in srgb, var(--ink) 45%, transparent) !important; }
+.paper-kraft .paper-tape { background: rgba(255, 255, 255, .4); }
+.np-pick { grid-template-columns: repeat(5, 1fr); gap: 8px 6px; }
+.np-sw { height: 28px; }
+.np-pick .np-sw.paper-air { border-width: 3px !important; }
+.np-pick button.on .np-sw.paper-air { outline: 2px solid var(--accent); outline-offset: 1px; }
+.np-ink { flex-wrap: wrap; overflow: visible; gap: 6px 4px; }
+.np-ink button { width: calc((100% - 28px) / 8); }
+.np-ink span { box-shadow: inset 0 0 0 1px rgba(0, 0, 0, .15), inset 0 0 0 2px rgba(255, 255, 255, .4); }

@@ -4,21 +4,35 @@
 // ============================================================
 const NOTE_PAPERS = [
   { id: 'lined', name: '橫線' }, { id: 'grid', name: '格子' }, { id: 'sticky', name: '便條紙' }, { id: 'cat', name: '小小黑' },
+  { id: 'kraft', name: '牛皮紙' }, { id: 'pink', name: '粉紅' }, { id: 'mint', name: '薄荷' }, { id: 'peach', name: '蜜桃格' },
+  { id: 'lav', name: '薰衣草' }, { id: 'air', name: '航空信' },
+  { id: 'night', name: '夜空' }, { id: 'chalk', name: '黑板' }, { id: 'velvet', name: '酒紅' }, { id: 'inkgold', name: '墨金' }, { id: 'forest', name: '森林' },
 ];
 // 墨水顏色：沒選就依信紙配一個
 const NOTE_INKS = [
   { id: '', name: '自動' }, { id: '#4a3520', name: '咖啡' }, { id: '#2e2a33', name: '墨黑' }, { id: '#8c2340', name: '酒紅' },
   { id: '#24406b', name: '深藍' }, { id: '#2f5b47', name: '森綠' }, { id: '#5b3d86', name: '紫藤' }, { id: '#b0552a', name: '橘棕' },
+  { id: '#fdf6e3', name: '奶白' }, { id: '#e9c46a', name: '金色' }, { id: '#ffb3c7', name: '粉紅' }, { id: '#a8d4ff', name: '天藍' },
+  { id: '#b5ecd0', name: '薄荷' }, { id: '#d8c8ff', name: '淡紫' },
 ];
-const PAPER_INK = { lined: '#4a3520', grid: '#24406b', sticky: '#2e2a33', cat: '#8c2340' };
+const PAPER_INK = { lined: '#4a3520', grid: '#24406b', sticky: '#2e2a33', cat: '#8c2340',
+  kraft: '#3d2a17', pink: '#8c2340', mint: '#2f5b47', peach: '#b0552a', lav: '#5b3d86', air: '#24406b',
+  night: '#fdf6e3', chalk: '#fdf6e3', velvet: '#e9c46a', inkgold: '#e9c46a', forest: '#b5ecd0' };
 const noteInk = (n) => (n && n.ink) || PAPER_INK[(n && n.paper) || 'lined'] || '#4a3520';
 const NOTE_CARRIERS = ['haohao', 'doggy', 'abian', 'calico', 'white', 'tuxedo', 'black'];
 const paperCls = (n) => 'paper-' + ((n && n.paper) || 'lined');
 const catCorner = '<svg class="paper-catmark" viewBox="0 0 40 30"><path d="M8 28 Q6 16 12 12 L11 3 L17 9 Q20 8 23 9 L29 3 L28 12 Q34 16 32 28 Z" fill="#2b2633"/><ellipse cx="16" cy="17" rx="2" ry="2.4" fill="#ffd970"/><ellipse cx="24" cy="17" rx="2" ry="2.4" fill="#ffd970"/><path d="M19 21 L21 21 L20 22 Z" fill="#ff9fb4"/></svg>';
-const paperDeco = (n) => (((n && n.paper) || 'lined') === 'cat' ? catCorner : ((n && n.paper) === 'sticky' ? '<span class="paper-tape"></span>' : ''));
+const paperDeco = (n) => {
+  const p = (n && n.paper) || 'lined';
+  if (p === 'cat') return catCorner;
+  if (p === 'sticky' || p === 'kraft') return '<span class="paper-tape"></span>';
+  if (p === 'night') return '<svg class="paper-moon" viewBox="0 0 24 24"><path d="M15 3a9 9 0 1 0 6 15A7 7 0 0 1 15 3z" fill="#f6d77a"/></svg>';
+  return '';
+};
 // 摺起來的紙條（藏起來時露出的那一角）
 const foldedNoteSVG = (paper = 'lined') => {
-  const fill = { lined: '#fffaf0', grid: '#f6f8fb', sticky: '#fff1a6', cat: '#fbf3ea' }[paper] || '#fffaf0';
+  const fill = { lined: '#fffaf0', grid: '#f6f8fb', sticky: '#fff1a6', cat: '#fbf3ea', kraft: '#d6b386', pink: '#ffe6ee', mint: '#e3f6ec', peach: '#ffefe4', lav: '#efe8ff', air: '#fdfaf3',
+    night: '#232a52', chalk: '#2f3d36', velvet: '#5a1830', inkgold: '#211d26', forest: '#1f3a2e' }[paper] || '#fffaf0';
   return `<svg viewBox="0 0 44 32" class="note-fold"><path d="M2 4 L36 2 L42 8 L40 30 L4 29 Z" fill="${fill}" stroke="#d8c3a4" stroke-width=".8"/><path d="M36 2 L36 9 L42 8 Z" fill="#e9dcc6" stroke="#d8c3a4" stroke-width=".6"/><path d="M8 13 H32 M8 18 H30 M8 23 H24" stroke="#d9c9ae" stroke-width=".9"/><circle cx="33" cy="23" r="4.2" fill="#c8283c"/><path d="M33 21.2 C32.4 20.2 30.8 20.4 30.8 21.8 C30.8 23 32.2 23.9 33 24.6 C33.8 23.9 35.2 23 35.2 21.8 C35.2 20.4 33.6 20.2 33 21.2 Z" fill="#f6c3cc"/></svg>`;
 };
 
@@ -38,7 +52,7 @@ ACT.writeNote = () => {
     paper = b.dataset.p;
     $$('.np-pick button', m).forEach((x) => x.classList.toggle('on', x === b));
     const pp = $('#nw-paper', m); pp.className = `letter note-paper ${paperCls({ paper })}`;
-    pp.querySelectorAll('.paper-catmark,.paper-tape').forEach((x) => x.remove()); pp.insertAdjacentHTML('beforeend', paperDeco({ paper }));
+    pp.querySelectorAll('.paper-catmark,.paper-tape,.paper-moon').forEach((x) => x.remove()); pp.insertAdjacentHTML('beforeend', paperDeco({ paper }));
     pp.style.setProperty('--ink', noteInk({ paper, ink }));
   });
   $$('.np-ink button', m).forEach((b) => b.onclick = () => {
