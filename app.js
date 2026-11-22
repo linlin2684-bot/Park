@@ -3251,7 +3251,7 @@ function tapRun(m, sel, ...btns) {
 function wheelSVG(labels) {
   const n = labels.length, seg = 360 / n, cx = 150, cy = 150, R = 128;
   const pt = (a, r) => [cx + r * Math.sin(a * Math.PI / 180), cy - r * Math.cos(a * Math.PI / 180)];
-  const base = n > 10 ? 11 : n > 7 ? 13 : 15;
+  const base = n > 16 ? 10.5 : n > 10 ? 11 : n > 7 ? 13 : 15;
   let s = `<svg viewBox="0 0 300 300" id="wh" class="wheel-svg">
     <circle cx="150" cy="150" r="148" class="wr-rim"/>
     <circle cx="150" cy="150" r="141" class="wr-rim2"/>`;
@@ -3322,28 +3322,52 @@ ACT.fate = () => {
 };
 
 // ---------- 今天吃什麼 ----------
+// 11/22 晽晽要求：分成「$200 以下」「$200 以上」兩個轉盤，各 20 個、不要牛肉；兩邊都可以自己編輯
+const FOOD_LO = ['滷味', '鍋燒意麵', '炒飯', '便當', '涼麵', '丼飯', '烏龍麵', '咖哩飯', '水餃鍋貼', '麻辣燙',
+  '鹹酥雞', '夜市小吃', '越南河粉', '雞排', '蚵仔煎', '臭豆腐', '自助餐', '雞肉飯', '早餐店', '自己煮'];
+const FOOD_HI = ['火鍋', '拉麵', '壽司', '早午餐', '韓式炸雞', '泰式料理', '義大利麵', '燒肉', '港式飲茶', '印度咖哩',
+  '墨西哥料理', '披薩', '部隊鍋', '日式定食', '居酒屋', '薑母鴨', '羊肉爐', '海鮮熱炒', '吃到飽', '鐵板燒'];
+const FOOD_TIERS = { lo: { key: 'foodLo', name: '$200 以下', def: FOOD_LO }, hi: { key: 'foodHi', name: '$200 以上', def: FOOD_HI } };
 ACT.food = () => {
-  const foods = S.couple.food && S.couple.food.length ? S.couple.food : D.DEFAULT_FOOD;
+  let tier = localStorage.getItem('park-food-tier') === 'hi' ? 'hi' : 'lo';
+  const listOf = (t) => { const v = S.couple[FOOD_TIERS[t].key]; return v && v.length ? v : FOOD_TIERS[t].def; };
   const m = openModal(`${mhead('<i data-ic="dining"></i> 今天吃什麼')}
-    <div class="wheel-wrap"><div class="wheel-pointer"></div>${wheelSVG(foods)}<div class="wheel-hub"><i data-ic="dining"></i></div></div>
+    <div class="seg seg-fit food-tier">${Object.entries(FOOD_TIERS).map(([k, t]) => `<button data-t="${k}">${t.name}</button>`).join('')}</div>
+    <div class="wheel-wrap"><div class="wheel-pointer"></div><div id="fwh"></div><div class="wheel-hub"><i data-ic="dining"></i></div></div>
     <div id="fdres"></div>
     <div class="btn-row"><button class="btn ghost" id="fed">編輯選項</button><button class="btn" id="fsp">轉！</button></div>`, { center: true });
+  let foods = [];
+  const draw = () => {
+    foods = listOf(tier);
+    m.querySelectorAll('.food-tier button').forEach((b) => b.classList.toggle('on', b.dataset.t === tier));
+    $('#fwh', m).innerHTML = wheelSVG(foods);
+    $('#fdres', m).innerHTML = '';
+    $('#fsp', m).textContent = '轉！';
+    m.classList.toggle('food-hi', tier === 'hi');
+  };
+  draw();
+  m.querySelectorAll('.food-tier button').forEach((b) => b.onclick = () => {
+    if ($('#fsp', m).disabled) return;
+    tier = b.dataset.t; localStorage.setItem('park-food-tier', tier); draw();
+  });
   tapRun(m, '.wheel-wrap', '#fsp');
   $('#fsp', m).onclick = async () => {
     $('#fsp', m).disabled = true;
     const idx = Math.floor(Math.random() * foods.length);
     await spinTo($('#wh', m), foods.length, idx);
-    $('#fdres', m).innerHTML = `<div class="prompt-card">今天就吃「${esc(foods[idx])}」！</div>
+    const pick = foods[idx], tn = FOOD_TIERS[tier].name;
+    $('#fdres', m).innerHTML = `<div class="prompt-card">今天就吃「${esc(pick)}」！</div>
       ${partner() ? '<button class="btn ghost block mt" id="ftell">告訴對方</button>' : ''}`;
     $('#fsp', m).disabled = false; $('#fsp', m).textContent = '不滿意，再轉一次';
-    $('#ftell', m) && ($('#ftell', m).onclick = async () => { await notify(partner(), 'card', `今天吃什麼？轉盤說：${foods[idx]} 🍽️`); toast('傳過去了'); });
+    $('#ftell', m) && ($('#ftell', m).onclick = async () => { await notify(partner(), 'card', `今天吃什麼？${tn}轉盤說：${pick} 🍽️`); toast('傳過去了'); });
   };
   $('#fed', m).onclick = async () => {
-    const v = await promptBox('一行一個選項', { multiline: true, value: foods.join('\n'), ok: '儲存' });
+    const t = FOOD_TIERS[tier];
+    const v = await promptBox(`${t.name}：一行一個選項（最多 24 個）`, { multiline: true, value: listOf(tier).join('\n'), ok: '儲存' });
     if (!v) return;
-    const arr = v.split('\n').map((x) => x.trim()).filter(Boolean).slice(0, 16);
+    const arr = [...new Set(v.split('\n').map((x) => x.trim()).filter(Boolean))].slice(0, 24);
     if (arr.length < 2) return toast('至少要兩個選項');
-    await S.store.updateCouple(S.cid, { food: arr });
+    await S.store.updateCouple(S.cid, { [t.key]: arr });
     closeModal(m); setTimeout(ACT.food, 200);
   };
 };

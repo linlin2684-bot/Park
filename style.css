@@ -2190,3 +2190,17 @@ button.sched-i { width: 100%; text-align: left; }
 .np-ink { flex-wrap: wrap; overflow: visible; gap: 6px 4px; }
 .np-ink button { width: calc((100% - 28px) / 8); }
 .np-ink span { box-shadow: inset 0 0 0 1px rgba(0, 0, 0, .15), inset 0 0 0 2px rgba(255, 255, 255, .4); }
+
+/* ===== 今天吃什麼：$200 以下／以上兩個轉盤（11/22）===== */
+.food-tier { margin: 0 0 12px; padding-bottom: 2px; }
+.food-tier button { font-size: 13.5px; letter-spacing: .04em; }
+.food-hi .wheel-svg .wr-rim, .food-hi .wheel-svg .wr-inner { fill: #7d5a22; }
+.food-hi .wheel-svg .wr-edge, .food-hi .wheel-svg .wr-rim2, .food-hi .wheel-svg .wr-inner2 { stroke: #e9c77b; }
+.food-hi .wheel-svg .wline { stroke: color-mix(in srgb, #e9c77b 75%, transparent); }
+.food-hi .wheel-svg .wdot { fill: #d9a441; }
+.food-hi .wheel-svg .wseg.a { fill: color-mix(in srgb, #e9c77b 30%, var(--card)); }
+.food-hi .wheel-svg .wseg.b, .food-hi .wheel-svg .wseg.c { fill: color-mix(in srgb, #e9c77b 10%, var(--card)); }
+.food-hi .wheel-hub { border-color: #e9c77b; box-shadow: 0 0 0 4px #7d5a22, 0 6px 14px rgba(0, 0, 0, .3); }
+.food-hi .wheel-hub .ic { color: #b8862f; }
+.food-hi .food-tier button.on { background: linear-gradient(135deg, #e9c77b, #b8862f); color: #3a2608; }
+.food-hi #fsp { background: linear-gradient(135deg, #e9c77b, #b8862f); color: #3a2608; box-shadow: 0 6px 14px rgba(184, 134, 47, .35); }
