@@ -2208,3 +2208,9 @@ button.sched-i { width: 100%; text-align: left; }
 .pet-card .pet-say { z-index: 6; }
 .pet-card:has(.pet-say) .duty-solo { opacity: 0; }
 .pet-stage[data-act], .pet-big[data-act] { cursor: pointer; }
+/* 年度回顧：小夥伴、今年的第一次 */
+.story .slide .si .rv-fr { display: inline-block; width: 150px; height: 120px; }
+.story .slide .si .rv-fr svg { width: 100%; height: 100%; }
+.rv-firsts { display: flex; flex-direction: column; gap: 10px; margin-top: 4px; }
+.rv-firsts div { background: rgba(255, 255, 255, .14); border-radius: 12px; padding: 8px 14px; font-size: 13px; line-height: 1.55; }
+.rv-firsts b { font-size: 15px; }

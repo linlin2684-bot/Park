@@ -195,6 +195,7 @@ ACT.dutyHi = async (el, e) => {
     setTimeout(() => vis && vis.classList.remove('off'), 1500);
   }
   if (cancelled) return;
+  if (k !== 'black') fyInc(`duty.${k}`);
   localStorage.setItem(dutyKey(), `${k}:${idx}`);
   const name = k === 'black' ? petState().name : FRIENDS[k].name;
   document.querySelectorAll('.duty-say').forEach((x) => { x.textContent = `今天 ${name} 陪${petState().name}值日，點牠再聊聊`; });
