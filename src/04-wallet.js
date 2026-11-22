@@ -154,7 +154,7 @@ ACT.giveCard = (el) => {
       return;
     }
     await giveCard(partner(), t);
-    if (battleId) await col('battles').update(battleId, { paid: true });
+    if (battleId) { const bb = list('battles').find((x) => x.id === battleId); await col('battles').update(battleId, { paid: true, paidBy: { ...((bb && bb.paidBy) || {}), [me()]: true } }); }
     sendAnimation(t, partner());
   });
 };

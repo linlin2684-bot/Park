@@ -54,6 +54,13 @@ function homeTodos() {
     t.push({ icon: '<i data-ic="gift"></i>', text: `${nick(c.owner)} 扭到了神秘盲盒，換你偷偷寫內容`, act: 'writeSecret', id: c.id, btn: '去寫' });
   }
   for (const b of list('battles')) {
+    if (b.kind === 'set') {
+      if (b.status === 'pending' && !(b.accepted || {})[me()]) t.push({ icon: '<i data-ic="swords"></i>', text: `${nick(b.by)} 出了這週的 3 個挑戰，要接受嗎？`, act: 'battle', btn: '看看' });
+      if (b.status === 'active' && Object.entries((b.done || {})[partner()] || {}).some(([, v]) => v === 'claimed')) t.push({ icon: '<i data-ic="swords"></i>', text: `${nick(partner())} 說自己完成一個挑戰了`, act: 'battle', btn: '確認' });
+      if ((b.owes || {})[me()] && !(b.paidBy || {})[me()]) t.push({ icon: '<i data-ic="gift"></i>', text: `${nick(partner())} 挑了卡片禮盒，要發一張卡給對方`, act: 'battlePay', id: b.id, btn: '發卡' });
+      continue;
+    }
+    if (b.status === 'pending' && !(b.accepted || {})[me()]) t.push({ icon: '<i data-ic="swords"></i>', text: `${nick(b.by)} 向你發起挑戰「${b.task}」，要接受嗎？`, act: 'battle', btn: '看看' });
     if (b.status === 'claimed' && b.claimer !== me()) t.push({ icon: '<i data-ic="swords"></i>', text: `${nick(b.claimer)} 說自己完成挑戰「${b.task}」了`, act: 'battleJudge', id: b.id, btn: '確認' });
     if (b.status === 'done' && b.loser === me() && !b.paid) t.push({ icon: '<i data-ic="flag"></i>', text: `挑戰輸了，要發一張卡給 ${nick(b.winner)}`, act: 'battlePay', id: b.id, btn: '發卡' });
   }

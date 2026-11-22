@@ -62,7 +62,7 @@ PAGES.play = {
       <button class="game-tile" data-act="tod"><span class="gi"><i data-ic="dice" data-medal></i></span><b>真心話大冒險</b><span>輪流抽題，誰都逃不掉</span></button>
       <button class="game-tile" data-act="quiz"><span class="gi"><i data-ic="minds" data-medal></i></span><b>默契問答</b><span>${quizNew ? '今天的題目來了' : (q && p && q.answers[p] ? '看結果' : '等對方作答')}</span>${quizNew ? '<span class="badge-dot">!</span>' : ''}</button>
       <button class="game-tile wide" data-act="dex"><span class="gi"><i data-ic="book" data-medal></i></span><div class="grow"><b>小動物圖鑑</b><br><span>已經遇到 ${dexCount()} 位朋友<br>牠們會路過首頁，也會來小小黑家值日</span></div><span style="font-size:22px">›</span></button>
-      <button class="game-tile wide" data-act="battle"><span class="gi"><i data-ic="swords" data-medal></i></span><div class="grow"><b>對戰挑戰</b><br><span>${bt ? `進行中：${esc(bt.task)}` : '一週內誰先完成？輸的人發卡'}</span></div><span style="font-size:22px">›</span></button>
+      <button class="game-tile wide" data-act="battle"><span class="gi"><i data-ic="swords" data-medal></i></span><div class="grow"><b>對戰挑戰</b><br><span>${bt ? `${bt.status === 'pending' ? '等待接受' : '進行中'}：${esc(bt.task)}` : '一週內誰先完成？輸的人發卡'}</span></div><span style="font-size:22px">›</span></button>
     </div>
     ${stampCardHTML()}
     ${weeklyHTML()}`;
@@ -470,14 +470,26 @@ ACT.quiz = () => {
 };
 
 // ---------- 對戰挑戰 ----------
-function activeBattle() { return list('battles').find((b) => b.status === 'active' || b.status === 'claimed'); }
+function activeBattle() { return list('battles').find((b) => b.status === 'active' || b.status === 'claimed' || b.status === 'pending'); }
+let battleEditing = null; // 正在改題目的那一場（還沒兩個人都接受）
 ACT.battle = () => {
   const b = activeBattle();
   const p = partner();
   const hist = list('battles').filter((x) => x.status === 'done' || x.status === 'draw').sort((a, b) => b.at - a.at);
   const wins = (u) => hist.filter((x) => x.winner === u).length;
   let body = '';
-  if (b) {
+  const editing = b && b.status === 'pending' && battleEditing === b.id;
+  if (b && b.status === 'pending' && !editing) {
+    const acc = b.accepted || {};
+    body = `<div class="card center" style="background:linear-gradient(135deg,color-mix(in srgb,var(--accent) 12%,var(--card)),var(--card))">
+      <div style="font-size:44px"><i data-ic="swords"></i></div><h3 style="justify-content:center">${esc(b.task)}</h3>
+      <p class="small muted" style="margin:0">${esc(nick(b.by))} 出的題 · 兩個人都接受後才開始算 7 天</p>
+      <div class="bt-acc">${[me(), p].map((u) => `<span class="${acc[u] ? 'on' : ''}">${avatar(u)} ${esc(nick(u))} ${acc[u] ? '已接受' : '還沒接受'}</span>`).join('')}</div></div>
+      ${acc[me()]
+        ? `<p class="center muted">等 ${esc(nick(p))} 接受挑戰…</p>`
+        : `<button class="btn block" data-act="battleAccept" data-id="${b.id}"><i data-ic="swords"></i> 接受挑戰</button>`}
+      <div class="btn-row"><button class="btn ghost" data-act="battleEdit" data-id="${b.id}"><i data-ic="edit"></i> 返回修改</button>${b.by === me() ? `<button class="btn ghost" data-act="battleCancel" data-id="${b.id}">取消這場</button>` : ''}</div>`;
+  } else if (b && !editing) {
     const left = b.deadline - now();
     const over = left < 0;
     body = `<div class="card center" style="background:linear-gradient(135deg,color-mix(in srgb,var(--accent) 18%,var(--card)),var(--card))">
@@ -489,7 +501,7 @@ ACT.battle = () => {
         : over ? `<button class="btn ghost block" data-act="battleDraw" data-id="${b.id}">都沒完成，平手收場</button>`
         : `<button class="btn block" data-act="battleClaim" data-id="${b.id}"><i data-ic="flag"></i> 我完成了！</button>`}`;
   } else {
-    body = `<p class="small muted" style="margin-top:0">選一個挑戰，7 天內誰先完成誰贏，輸的人要發一張卡給贏的人。</p>
+    body = `${editing ? `<button class="btn ghost sm" data-act="battleBack" style="margin-bottom:8px">‹ 返回</button><p class="small muted" style="margin-top:0">換一個題目，改完要兩個人重新接受。</p>` : '<p class="small muted" style="margin-top:0">選一個挑戰，兩個人都接受後開始，7 天內誰先完成誰贏，輸的人要發一張卡給贏的人。</p>'}
       ${battlePicks().map((t, i) => `<div class="bt-row"><button class="quiz-opt" data-act="battleNew" data-t="${esc(t)}">${esc(t)}</button>${battleSwapLeft() ? `<button class="bt-swap" data-act="battleSwapOne" data-s="${i}" aria-label="換掉這個"><i data-ic="swap"></i></button>` : ''}</div>`).join('')}
       <p class="small muted center" style="margin:2px 0 8px">${battleSwapLeft() ? '每個人每週可以換掉其中一個' : '這週已經換過了，下週一會有新的'}</p>
       <button class="quiz-opt" data-act="battleNew" data-t=""><i data-ic="edit"></i> 自己出題…</button>`;
@@ -523,9 +535,34 @@ ACT.battleNew = async (el) => {
   let t = el.dataset.t;
   if (!t) t = await promptBox('自己出題', { placeholder: '例如：先存到 5000 元' });
   if (!t) return;
-  await col('battles').add({ task: t, by: me(), at: now(), deadline: now() + 7 * 86400000, status: 'active' });
-  await notify(partner(), 'battle', `${nick(me())} 向你發起挑戰 ⚔️`, t);
-  toast('挑戰開始！'); setTimeout(ACT.battle, 300);
+  const cur = list('battles').find((x) => x.id === battleEditing && x.status === 'pending');
+  battleEditing = null;
+  if (cur) {
+    await col('battles').update(cur.id, { task: t, by: me(), accepted: { [me()]: true }, at: now() });
+    await notify(partner(), 'battle', `${nick(me())} 把挑戰改成「${t}」，要你重新接受 ⚔️`, t);
+    toast('改好了，等對方接受');
+  } else {
+    await col('battles').add({ task: t, by: me(), at: now(), status: 'pending', accepted: { [me()]: true } });
+    await notify(partner(), 'battle', `${nick(me())} 向你發起挑戰，接受了才開始 ⚔️`, t);
+    toast('等對方接受挑戰');
+  }
+  setTimeout(ACT.battle, 300);
+};
+ACT.battleAccept = async (el) => {
+  const b = list('battles').find((x) => x.id === el.dataset.id); if (!b || b.status !== 'pending') return ACT.battle();
+  const acc = { ...(b.accepted || {}), [me()]: true };
+  const all = (S.couple.members || []).every((u) => acc[u]);
+  await col('battles').update(b.id, all ? { accepted: acc, status: 'active', startAt: now(), deadline: now() + 7 * 86400000 } : { accepted: acc });
+  await notify(partner(), 'battle', all ? `${nick(me())} 接受挑戰了！7 天倒數開始 ⚔️` : `${nick(me())} 接受了挑戰`, b.task);
+  toast(all ? '挑戰開始！' : '接受了，等對方'); setTimeout(ACT.battle, 300);
+};
+ACT.battleEdit = (el) => { battleEditing = el.dataset.id; ACT.battle(); };
+ACT.battleBack = () => { battleEditing = null; ACT.battle(); };
+ACT.battleCancel = async (el) => {
+  if (!(await confirmBox('取消這場挑戰？'))) return;
+  await col('battles').remove(el.dataset.id); battleEditing = null;
+  await notify(partner(), 'battle', `${nick(me())} 取消了這場挑戰`);
+  setTimeout(ACT.battle, 300);
 };
 ACT.battleClaim = async (el) => {
   if (!(await confirmBox('確定完成了嗎？要對方確認才算贏喔'))) return;
