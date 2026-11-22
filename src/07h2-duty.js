@@ -101,7 +101,7 @@ const DUTY_SKITS = {
     [['b', '狗狗今天沒來拍我尾巴'], ['b', '……有一點點想牠']],
     [['b', '值日生要被摸摸'], ['b', '這是我剛剛定的']],
     [['b', '我把襪子收好了'], ['b', '收在我的紙箱裡']],
-    [['b', '還好今天沒來'], ['b', '……有點太安靜了']],
+    [['b', '還好今天沒來'], ['b', '……有點太安靜了'], ['b', '太好了，好開心']],
     [['b', '今天值日結束'], ['b', '明天也是我，要罐罐']],
   ],
 };
@@ -121,8 +121,13 @@ function dutyCatAttr() {
 }
 // 每點一次換一段：沒看過的優先，不會連續演同一段
 const dutyLast = {};
+// 道別、收尾的那段只在晚上 11:30～12:00 出現（這段時間第一次點就先演它）
+const DUTY_END = { orange: 7, calico: 7, tuxedo: 7, haohao: 7, abian: 7, gungun: 7, black: 7 };
+const dutyEndTime = () => { const d = new Date(); return d.getHours() === 23 && d.getMinutes() >= 30; };
 function dutyPick(k) {
-  const n = DUTY_SKITS[k].length, got = dutyGot(k), all = [...Array(n).keys()].filter((i) => i !== dutyLast[k]);
+  const n = DUTY_SKITS[k].length, got = dutyGot(k), end = DUTY_END[k], late = dutyEndTime();
+  if (late && end != null && dutyLast[k] !== end && !dutyLast[k + ':end']) { dutyLast[k + ':end'] = 1; return (dutyLast[k] = end); }
+  const all = [...Array(n).keys()].filter((i) => i !== dutyLast[k] && (late || i !== end));
   const fresh = all.filter((i) => !got[i]);
   const pool = fresh.length ? fresh : all;
   return (dutyLast[k] = pool[Math.floor(Math.random() * pool.length)]);
