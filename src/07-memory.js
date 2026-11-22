@@ -353,7 +353,9 @@ function missExtra(misses) {
   const [dk, dn] = Object.entries(day).sort((a, b) => b[1] - a[1])[0];
   const part = h < 5 ? '凌晨' : h < 11 ? '早上' : h < 13 ? '中午' : h < 18 ? '下午' : '晚上';
   const h12 = h % 12 === 0 ? 12 : h % 12;
-  return `<br><br>最常在${part} ${h12} 點想對方<br>想最多次的是 ${dk}，那天想了 ${dn} 次`;
+  const span = Math.max(1, Math.round((Math.min(now(), new Date(new Date(misses[0].at).getFullYear(), 11, 31).getTime()) - new Date(new Date(misses[0].at).getFullYear(), 0, 1).getTime()) / 86400000));
+  const per = misses.length >= span ? `平均一天想對方 ${Math.round(misses.length / span)} 次` : `平均每 ${Math.round(span / misses.length)} 天，就有人想對方一次`;
+  return `<br><br>${per}<br>最常在${part} ${h12} 點想對方<br>想最多次的是 ${dk}，那天想了 ${dn} 次`;
 }
 ACT.review = () => {
   const Y = reviewYear() || new Date().getFullYear();
