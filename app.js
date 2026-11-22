@@ -4450,6 +4450,17 @@ function memAch() {
 }
 
 // ---------- 年度回顧 ----------
+// 想你那頁多兩行：最常在幾點想對方、想最多次的那一天
+function missExtra(misses) {
+  if (!misses.length) return '';
+  const hr = {}, day = {};
+  misses.forEach((x) => { const d = new Date(x.at); hr[d.getHours()] = (hr[d.getHours()] || 0) + 1; const k = `${d.getMonth() + 1}/${d.getDate()}`; day[k] = (day[k] || 0) + 1; });
+  const h = +Object.entries(hr).sort((a, b) => b[1] - a[1])[0][0];
+  const [dk, dn] = Object.entries(day).sort((a, b) => b[1] - a[1])[0];
+  const part = h < 5 ? '凌晨' : h < 11 ? '早上' : h < 13 ? '中午' : h < 18 ? '下午' : '晚上';
+  const h12 = h % 12 === 0 ? 12 : h % 12;
+  return `<br><br>最常在${part} ${h12} 點想對方<br>想最多次的是 ${dk}，那天想了 ${dn} 次`;
+}
 ACT.review = () => {
   const Y = reviewYear() || new Date().getFullYear();
   const inY = (ts) => ts && new Date(ts).getFullYear() === Y;
@@ -4474,7 +4485,7 @@ ACT.review = () => {
     { i: ic('gacha'), n: gacha.length, t: '次扭蛋和合成', s: `扭出 ${gacha.filter((g) => g.rarity === 'SSR').length} 張 SSR、${gacha.filter((g) => g.rarity === 'SR').length} 張 SR` },
     { i: ic('map'), n: trips.length, t: '個一起去過的地方', s: trips.length ? trips.slice(0, 8).map((t) => esc(t.name)).join('・') : '明年一起去更多地方吧' },
     { i: ic('target'), n: `${goals.filter((g) => g.done).length}/${goals.length}`, t: '個年度目標完成', s: goals.filter((g) => g.done).slice(0, 6).map((g) => '✓ ' + esc(g.title)).join('<br>') || '寫下明年的目標吧' },
-    { i: ic('heart'), n: money(misses.length), t: '次「想你」', s: ms.map((u) => `${esc(nick(u))} 想了 ${misses.filter((x) => x.by === u).length} 次`).join('<br>') },
+    { i: ic('heart'), n: money(misses.length), t: '次「想你」', s: ms.map((u) => `${esc(nick(u))} 想了 ${misses.filter((x) => x.by === u).length} 次`).join('<br>') + missExtra(misses) },
     { i: ic('minds'), n: qrate + '%', t: '默契度', s: `一起答了 ${quiz.length} 題默契問答<br>${daily.length} 題每日一問<br>互相蓋了 ${stamps.length} 個章` },
     ...reviewMore(Y, inY),
     { bg: finaleBg(), i: ic('house'), n: `第 ${money(daysAtEnd)} 天`, t: D.BIRTHDAY_SLOGAN, s: `${Y + 1} 年也請多多指教` },
