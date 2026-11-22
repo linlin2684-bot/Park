@@ -95,7 +95,7 @@ PAGES.home = {
     return `${annivHomeCard()}
     ${homeNextDate()}
     <div class="card hero">
-      <button class="hero-miss ${missCoolLeft() > 0 ? 'cool' : ''}" data-act="miss" id="missbtn" aria-label="想你"><i data-ic="heart" class="ic-fill"></i></button>
+      ${ilyPending() ? `<button class="hero-miss ily" data-act="miss" id="missbtn" aria-label="說我愛你">${ILY_SEAL}</button>` : `<button class="hero-miss ${missCoolLeft() > 0 ? 'cool' : ''}" data-act="miss" id="missbtn" aria-label="想你"><i data-ic="heart" class="ic-fill"></i></button>`}
       <div class="small muted">我們在一起</div>
       <div class="days">第 ${money(daysTogether())} <small>天</small></div>
       <div class="couple"><span>${avatar(me())} ${esc(nick(me()))}</span><span class="heart"><i data-ic="heart" class="ic-fill"></i></span><span>${p ? `${avatar(p)} ${esc(nick(p))}${partnerOnline() ? `<button class="online-dot" data-act="poke" aria-label="戳一下"><i></i>在線上・戳一下</button>` : ''}` : '<span class="muted">等待對方加入…</span>'}</span></div>

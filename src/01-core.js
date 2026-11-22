@@ -55,7 +55,12 @@ const partner = () => S.couple?.members?.find((u) => u !== S.me.uid) || null;
 const prof = (uid) => S.couple?.profiles?.[uid] || {};
 const nick = (uid) => uid === 'sys' ? '遊樂園' : (prof(uid).nick || (uid === me() ? '我' : '對方'));
 const avatarRaw = (p) => (p.av && (AVATARS[p.av] || p.av === 'blackcat')) ? avatarSVG(p.av) : esc(p.emoji || (p.role === 'him' ? '👦' : '👧'));
-const avatar = (uid, cls = '') => uid === 'sys' ? '<span class="av"><i data-ic="ferris"></i></span>' : `<span class="av ${cls}">${avatarRaw(prof(uid))}</span>`;
+// 午夜冠軍那個月，頭像戴金框＋小王冠（07y-ily.js）
+const avatar = (uid, cls = '') => {
+  if (uid === 'sys') return '<span class="av"><i data-ic="ferris"></i></span>';
+  const k = typeof ilyCrowned === 'function' && ilyCrowned(uid);
+  return `<span class="av ${cls}${k ? ' crowned' : ''}">${avatarRaw(prof(uid))}${k ? ILY_CROWN : ''}</span>`;
+};
 const spiceLevel = () => {
   const ms = S.couple?.members || [];
   if (!ms.length) return 1;
