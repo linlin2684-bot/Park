@@ -2204,3 +2204,7 @@ button.sched-i { width: 100%; text-align: left; }
 .food-hi .wheel-hub .ic { color: #b8862f; }
 .food-hi .food-tier button.on { background: linear-gradient(135deg, #e9c77b, #b8862f); color: #3a2608; }
 .food-hi #fsp { background: linear-gradient(135deg, #e9c77b, #b8862f); color: #3a2608; box-shadow: 0 6px 14px rgba(184, 134, 47, .35); }
+/* 小小黑說話時，值日生標籤讓開 */
+.pet-card .pet-say { z-index: 6; }
+.pet-card:has(.pet-say) .duty-solo { opacity: 0; }
+.pet-stage[data-act], .pet-big[data-act] { cursor: pointer; }

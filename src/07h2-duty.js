@@ -133,13 +133,15 @@ ACT.dutyHi = async (el, e) => {
   if (!skit) return;
   const idx = dutyPick(k), first = !localStorage.getItem(dutyKey());
   const room = el.closest('.pet-room');
-  const catEl = room && room.querySelector('.pet-stage, .pet-big');
+  const catEl = (room && room.querySelector('.pet-stage, .pet-big')) || el;
   const vis = k === 'black' ? null : el;
   const inModal = !!el.closest('.modal-back');
   dutyBusy = true;
   sfx('heart');
   if (first) { const r = el.getBoundingClientRect(); floaty(r.left + r.width / 2, r.top, ['#ff9fb4', '#ffd45c']); }
-  el.classList.add('said');
+  if (el.classList.contains('duty-solo') || el.classList.contains('pet-visitor')) el.classList.add('said');
+  room && room.querySelector('.duty-solo')?.classList.add('said');
+  document.querySelector('.pet-card .pet-say')?.remove();
   try {
     for (const [i, [who, t]] of skit[idx].entries()) {
       const tgt = who === 'a' ? vis : catEl;
