@@ -227,7 +227,7 @@ function dutyToday() {
   if (pv) return pool.includes(pv) ? pv : pool[0] || null;
   if (!pool.length) return null;
   const h = hash('duty' + dkey() + (S.cid || ''));
-  if (h % 100 >= 25) return null;   // 大約四天一次
+  if (h % 100 >= 35) return null;   // 每天 35% 機率
   return pool[(h >>> 8) % pool.length];
 }
 // 值日生住進小小黑的房間：坐在小小黑旁邊，點牠打招呼
