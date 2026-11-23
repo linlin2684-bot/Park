@@ -13,6 +13,8 @@ const COUPLE_SKIP = ['members', 'creator', 'code', 'lastBackupAt'];
 function buildBackup() {
   const couple = {};
   for (const [k, v] of Object.entries(S.couple || {})) if (!COUPLE_SKIP.includes(k)) couple[k] = v;
+  // 圖鑑：S.couple.dex／scenes 是「我自己的」畫面用版本，備份要存原本的（01e-friends.js dexPersonal）
+  if ('dexAll' in couple) { couple.dex = couple.dexAll; couple.scenes = couple.scenesAll; delete couple.dexAll; delete couple.scenesAll; delete couple.__dexP; }
   const cols = {};
   for (const name of COLS) cols[name] = list(name).map((d) => ({ ...d }));
   return { app: 'two-park', ver: 1, cid: S.cid, at: now(), couple, cols };

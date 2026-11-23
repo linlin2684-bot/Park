@@ -175,8 +175,8 @@ async function dexNote(k, idx) {
   const first = !D0.met, newLine = idx != null && !(D0.l || {})[idx];
   if (!first && !newLine) return;
   const up = {};
-  if (newLine) up[`dex.${k}.l.${idx}`] = true;
-  if (first) { up[`dex.${k}.met`] = now(); up[`dex.${k}.by`] = me(); }
+  if (newLine) up[`dexU.${me()}.${k}.l.${idx}`] = true;
+  if (first) { up[`dexU.${me()}.${k}.met`] = now(); up[`dexU.${me()}.${k}.by`] = me(); }
   await S.store.updateCouple(S.cid, up);
   if (first) setTimeout(() => toast(`圖鑑新增：${FRIENDS[k].name}！也解鎖了牠的頭像`), 1600);
 }
@@ -288,3 +288,55 @@ window.__stroll = (c) => catStroll(c || 'haohao');
 // ---------- 圖鑑頁 ----------
 const DEX_ORDER = ['black', 'orange', 'white', 'calico', 'tuxedo', 'haohao', 'doggy', 'abian', 'gungun', 'shark'];
 function dexCount() { const d = S.couple?.dex || {}; return DEX_ORDER.filter((k) => d[k] && d[k].met).length; }
+
+// ============================================================
+//  小動物圖鑑：各自遇到才算在各自的圖鑑（11/23 晽晽要求）
+//  每個人的紀錄在 couple.dexU[uid][k] = {met, by, l, d}、couple.scenesU[uid][id]
+//  自己加的台詞（cu）兩個人共用，還是在 couple.dex[k].cu
+//  讀取時把 S.couple.dex／scenes 換成「我自己的」，其他程式照舊讀 S.couple.dex 就好
+//  舊的共用紀錄（dexSplit 之前）照「誰先遇到（by）」分給那個人
+// ============================================================
+function dexLegacySplit(c) {
+  const U = {}, SC = {}, ms = c.members || [];
+  ms.forEach((u) => { U[u] = {}; SC[u] = {}; });
+  for (const [k, e] of Object.entries(c.dex || {})) {
+    if (!e || !e.met || !ms.includes(e.by)) continue;
+    U[e.by][k] = { met: e.met, by: e.by, l: e.l || {}, d: e.d || {} };
+  }
+  for (const [id, e] of Object.entries(c.scenes || {})) if (e && ms.includes(e.by)) SC[e.by][id] = e;
+  return { U, SC };
+}
+function dexPersonal(c) {
+  if (!c || c.__dexP) return;
+  const u = me(), shared = c.dex || {};
+  let U = c.dexU || {}, SC = c.scenesU || {};
+  if (!c.dexSplit) { const L = dexLegacySplit(c); U = L.U; SC = L.SC; }
+  const mine = U[u] || {}, view = {};
+  for (const k of new Set([...Object.keys(mine), ...Object.keys(shared)])) {
+    const e = mine[k] || {};
+    const cu = (shared[k] || {}).cu;
+    if (!e.met && !cu) continue;
+    view[k] = { ...e, ...(cu ? { cu } : {}) };
+  }
+  c.dexAll = shared; c.scenesAll = c.scenes || {};
+  c.dex = view; c.scenes = SC[u] || {};
+  c.__dexP = true;
+}
+let dexSplitBusy = false;
+async function dexSplitOnce() {
+  const c = S.couple;
+  if (dexSplitBusy || !c || !S.cid || c.dexSplit) return;
+  dexSplitBusy = true;
+  try {
+    await S.store.coupleTx(S.cid, (x) => {
+      if (x.dexSplit) return null;
+      const L = dexLegacySplit(x);
+      const up = { dexSplit: now() };
+      for (const [u, v] of Object.entries(L.U)) for (const [k, e] of Object.entries(v)) up[`dexU.${u}.${k}`] = e;
+      for (const [u, v] of Object.entries(L.SC)) for (const [id, e] of Object.entries(v)) up[`scenesU.${u}.${id}`] = e;
+      return up;
+    });
+  } catch (e) { console.warn('圖鑑分開', e); }
+  finally { dexSplitBusy = false; }
+}
+setInterval(() => { if (document.visibilityState !== 'hidden') dexSplitOnce(); }, 3000);

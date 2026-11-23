@@ -201,8 +201,8 @@ ACT.dutyHi = async (el, e) => {
   document.querySelectorAll('.duty-say').forEach((x) => { x.textContent = `今天 ${name} 陪${petState().name}值日，點牠再聊聊`; });
   if (k === 'black') document.querySelectorAll('.duty-solo').forEach((x) => x.classList.add('said'));
   if (S.couple && !dutyGot(k)[idx]) {
-    const up = { [`dex.${k}.d.${idx}`]: true };
-    if (!((S.couple.dex || {})[k] || {}).met) { up[`dex.${k}.met`] = now(); up[`dex.${k}.by`] = me(); }
+    const up = { [`dexU.${me()}.${k}.d.${idx}`]: true };
+    if (!((S.couple.dex || {})[k] || {}).met) { up[`dexU.${me()}.${k}.met`] = now(); up[`dexU.${me()}.${k}.by`] = me(); }
     await S.store.updateCouple(S.cid, up);
     toast('值日小劇場收進圖鑑了');
   }

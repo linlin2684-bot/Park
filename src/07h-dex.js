@@ -124,7 +124,7 @@ function duoStroll(sc) {
     if (sc.a === 'black' || sc.b === 'black') blackPatXP();
     dexNote(sc.a, null); dexNote(sc.b, null);
     if (S.couple && !sceneSeen()[sc.id]) {
-      await S.store.updateCouple(S.cid, { [`scenes.${sc.id}`]: { at: now(), by: me() } });
+      await S.store.updateCouple(S.cid, { [`scenesU.${me()}.${sc.id}`]: { at: now(), by: me() } });
       toast(`小劇場收進圖鑑：〈${sc.title}〉`);
     }
   };
@@ -407,7 +407,7 @@ async function dexResetOnce() {
   if (S.couple.togetherStart && S.couple.dexReset >= 2 && !dexResetBusy) localFreshStart(S.couple.togetherStart);
   if (S.couple.dexReset >= 1 || dexResetBusy) return;
   dexResetBusy = true;
-  await S.store.coupleTx(S.cid, (x) => (x.dexReset >= 1 ? null : { dex: {}, scenes: {}, dexReset: 1 }));
+  await S.store.coupleTx(S.cid, (x) => (x.dexReset >= 1 ? null : { dex: {}, scenes: {}, dexU: {}, scenesU: {}, dexReset: 1 }));
   dexResetBusy = false;
 }
 
@@ -427,7 +427,7 @@ async function joinFreshStart() {
     }
   }
   await S.store.updateCouple(S.cid, {
-    dex: {}, scenes: {}, dexReset: 2, pet: { name: (c.pet && c.pet.name) || '小小黑' }, drops: {}, tickets: {}, cans: {}, canDay: {},
+    dex: {}, scenes: {}, dexU: {}, scenesU: {}, dexReset: 2, pet: { name: (c.pet && c.pet.name) || '小小黑' }, drops: {}, tickets: {}, cans: {}, canDay: {},
     moods: {}, moodHist: {}, spins: {}, annivLetters: {}, opened: {}, taskOverride: {}, taskSwapReq: null, battleSwaps: {},
     'fund.rewarded': false, fundsDone: 0, sched: {}, cardMemo: {},
   });

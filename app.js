@@ -989,8 +989,8 @@ async function dexNote(k, idx) {
   const first = !D0.met, newLine = idx != null && !(D0.l || {})[idx];
   if (!first && !newLine) return;
   const up = {};
-  if (newLine) up[`dex.${k}.l.${idx}`] = true;
-  if (first) { up[`dex.${k}.met`] = now(); up[`dex.${k}.by`] = me(); }
+  if (newLine) up[`dexU.${me()}.${k}.l.${idx}`] = true;
+  if (first) { up[`dexU.${me()}.${k}.met`] = now(); up[`dexU.${me()}.${k}.by`] = me(); }
   await S.store.updateCouple(S.cid, up);
   if (first) setTimeout(() => toast(`圖鑑新增：${FRIENDS[k].name}！也解鎖了牠的頭像`), 1600);
 }
@@ -1102,6 +1102,58 @@ window.__stroll = (c) => catStroll(c || 'haohao');
 // ---------- 圖鑑頁 ----------
 const DEX_ORDER = ['black', 'orange', 'white', 'calico', 'tuxedo', 'haohao', 'doggy', 'abian', 'gungun', 'shark'];
 function dexCount() { const d = S.couple?.dex || {}; return DEX_ORDER.filter((k) => d[k] && d[k].met).length; }
+
+// ============================================================
+//  小動物圖鑑：各自遇到才算在各自的圖鑑（11/23 晽晽要求）
+//  每個人的紀錄在 couple.dexU[uid][k] = {met, by, l, d}、couple.scenesU[uid][id]
+//  自己加的台詞（cu）兩個人共用，還是在 couple.dex[k].cu
+//  讀取時把 S.couple.dex／scenes 換成「我自己的」，其他程式照舊讀 S.couple.dex 就好
+//  舊的共用紀錄（dexSplit 之前）照「誰先遇到（by）」分給那個人
+// ============================================================
+function dexLegacySplit(c) {
+  const U = {}, SC = {}, ms = c.members || [];
+  ms.forEach((u) => { U[u] = {}; SC[u] = {}; });
+  for (const [k, e] of Object.entries(c.dex || {})) {
+    if (!e || !e.met || !ms.includes(e.by)) continue;
+    U[e.by][k] = { met: e.met, by: e.by, l: e.l || {}, d: e.d || {} };
+  }
+  for (const [id, e] of Object.entries(c.scenes || {})) if (e && ms.includes(e.by)) SC[e.by][id] = e;
+  return { U, SC };
+}
+function dexPersonal(c) {
+  if (!c || c.__dexP) return;
+  const u = me(), shared = c.dex || {};
+  let U = c.dexU || {}, SC = c.scenesU || {};
+  if (!c.dexSplit) { const L = dexLegacySplit(c); U = L.U; SC = L.SC; }
+  const mine = U[u] || {}, view = {};
+  for (const k of new Set([...Object.keys(mine), ...Object.keys(shared)])) {
+    const e = mine[k] || {};
+    const cu = (shared[k] || {}).cu;
+    if (!e.met && !cu) continue;
+    view[k] = { ...e, ...(cu ? { cu } : {}) };
+  }
+  c.dexAll = shared; c.scenesAll = c.scenes || {};
+  c.dex = view; c.scenes = SC[u] || {};
+  c.__dexP = true;
+}
+let dexSplitBusy = false;
+async function dexSplitOnce() {
+  const c = S.couple;
+  if (dexSplitBusy || !c || !S.cid || c.dexSplit) return;
+  dexSplitBusy = true;
+  try {
+    await S.store.coupleTx(S.cid, (x) => {
+      if (x.dexSplit) return null;
+      const L = dexLegacySplit(x);
+      const up = { dexSplit: now() };
+      for (const [u, v] of Object.entries(L.U)) for (const [k, e] of Object.entries(v)) up[`dexU.${u}.${k}`] = e;
+      for (const [u, v] of Object.entries(L.SC)) for (const [id, e] of Object.entries(v)) up[`scenesU.${u}.${id}`] = e;
+      return up;
+    });
+  } catch (e) { console.warn('圖鑑分開', e); }
+  finally { dexSplitBusy = false; }
+}
+setInterval(() => { if (document.visibilityState !== 'hidden') dexSplitOnce(); }, 3000);
 // ============================================================
 //  啟動、登入、配對、外框
 // ============================================================
@@ -1226,6 +1278,7 @@ function enterCouple(cid) {
   S.unsubs.push(S.store.watchCouple(cid, (c) => {
     if (!c) { toast('找不到這個空間'); return; }
     S.couple = c;
+    dexPersonal(c);   // 圖鑑各算各的（11/23）
     if (first) { first = false; maybeSeed(); holidayDrops(); }
     else maybeSeed();
     render();
@@ -4608,6 +4661,8 @@ const COUPLE_SKIP = ['members', 'creator', 'code', 'lastBackupAt'];
 function buildBackup() {
   const couple = {};
   for (const [k, v] of Object.entries(S.couple || {})) if (!COUPLE_SKIP.includes(k)) couple[k] = v;
+  // 圖鑑：S.couple.dex／scenes 是「我自己的」畫面用版本，備份要存原本的（01e-friends.js dexPersonal）
+  if ('dexAll' in couple) { couple.dex = couple.dexAll; couple.scenes = couple.scenesAll; delete couple.dexAll; delete couple.scenesAll; delete couple.__dexP; }
   const cols = {};
   for (const name of COLS) cols[name] = list(name).map((d) => ({ ...d }));
   return { app: 'two-park', ver: 1, cid: S.cid, at: now(), couple, cols };
@@ -5478,7 +5533,7 @@ function duoStroll(sc) {
     if (sc.a === 'black' || sc.b === 'black') blackPatXP();
     dexNote(sc.a, null); dexNote(sc.b, null);
     if (S.couple && !sceneSeen()[sc.id]) {
-      await S.store.updateCouple(S.cid, { [`scenes.${sc.id}`]: { at: now(), by: me() } });
+      await S.store.updateCouple(S.cid, { [`scenesU.${me()}.${sc.id}`]: { at: now(), by: me() } });
       toast(`小劇場收進圖鑑：〈${sc.title}〉`);
     }
   };
@@ -5761,7 +5816,7 @@ async function dexResetOnce() {
   if (S.couple.togetherStart && S.couple.dexReset >= 2 && !dexResetBusy) localFreshStart(S.couple.togetherStart);
   if (S.couple.dexReset >= 1 || dexResetBusy) return;
   dexResetBusy = true;
-  await S.store.coupleTx(S.cid, (x) => (x.dexReset >= 1 ? null : { dex: {}, scenes: {}, dexReset: 1 }));
+  await S.store.coupleTx(S.cid, (x) => (x.dexReset >= 1 ? null : { dex: {}, scenes: {}, dexU: {}, scenesU: {}, dexReset: 1 }));
   dexResetBusy = false;
 }
 
@@ -5781,7 +5836,7 @@ async function joinFreshStart() {
     }
   }
   await S.store.updateCouple(S.cid, {
-    dex: {}, scenes: {}, dexReset: 2, pet: { name: (c.pet && c.pet.name) || '小小黑' }, drops: {}, tickets: {}, cans: {}, canDay: {},
+    dex: {}, scenes: {}, dexU: {}, scenesU: {}, dexReset: 2, pet: { name: (c.pet && c.pet.name) || '小小黑' }, drops: {}, tickets: {}, cans: {}, canDay: {},
     moods: {}, moodHist: {}, spins: {}, annivLetters: {}, opened: {}, taskOverride: {}, taskSwapReq: null, battleSwaps: {},
     'fund.rewarded': false, fundsDone: 0, sched: {}, cardMemo: {},
   });
@@ -6032,8 +6087,8 @@ ACT.dutyHi = async (el, e) => {
   document.querySelectorAll('.duty-say').forEach((x) => { x.textContent = `今天 ${name} 陪${petState().name}值日，點牠再聊聊`; });
   if (k === 'black') document.querySelectorAll('.duty-solo').forEach((x) => x.classList.add('said'));
   if (S.couple && !dutyGot(k)[idx]) {
-    const up = { [`dex.${k}.d.${idx}`]: true };
-    if (!((S.couple.dex || {})[k] || {}).met) { up[`dex.${k}.met`] = now(); up[`dex.${k}.by`] = me(); }
+    const up = { [`dexU.${me()}.${k}.d.${idx}`]: true };
+    if (!((S.couple.dex || {})[k] || {}).met) { up[`dexU.${me()}.${k}.met`] = now(); up[`dexU.${me()}.${k}.by`] = me(); }
     await S.store.updateCouple(S.cid, up);
     toast('值日小劇場收進圖鑑了');
   }

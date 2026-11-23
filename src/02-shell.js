@@ -122,6 +122,7 @@ function enterCouple(cid) {
   S.unsubs.push(S.store.watchCouple(cid, (c) => {
     if (!c) { toast('找不到這個空間'); return; }
     S.couple = c;
+    dexPersonal(c);   // 圖鑑各算各的（11/23）
     if (first) { first = false; maybeSeed(); holidayDrops(); }
     else maybeSeed();
     render();
