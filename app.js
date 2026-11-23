@@ -7305,9 +7305,13 @@ function pokeCheck() {
 
 // ---------- 每日一問撞答案 ----------
 const DAILY_STOP = new Set('我們 你們 他們 一起 什麼 覺得 因為 所以 可以 就是 還是 沒有 自己 一個 這個 那個 如果 時候 然後 但是 不是 真的 應該 現在 已經 比較 其實 感覺 一下 一點 有點 很多 最近 喜歡 希望 想要 知道 可能 一直 每次 這樣 那樣 的話 的時 好像 還有 之前 之後 今天'.split(' '));
+const DAILY_CALL = ['好寶', '寶貝', '寶寶', '親愛的', '老公', '老婆', '男朋友', '女朋友', '男友', '女友', '北鼻', 'baby', 'Baby'];
 function dailyCollide(a, b) {
   if (!a || !b) return '';
-  const clean = (s) => s.replace(/[\s，。！？、,.!?~～…「」『』（）()]/g, '|');
+  // 稱呼不算撞答案（11/23 晽晽：好寶是稱呼）：兩個人的暱稱、名字和常見的互相稱呼先挖掉
+  const names = [...DAILY_CALL, ...((S.couple && S.couple.members) || []).flatMap((u) => [nick(u), (prof(u) || {}).name])]
+    .filter((x) => x && x.length >= 1).sort((x, y) => y.length - x.length);
+  const clean = (s) => names.reduce((t, n) => t.split(n).join('|'), s).replace(/[\s，。！？、,.!?~～…「」『』（）()]/g, '|');
   const A = clean(a), B = clean(b);
   for (let L = Math.min(6, A.length); L >= 2; L--) {
     for (let i = 0; i + L <= A.length; i++) {
