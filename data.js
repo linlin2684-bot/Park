@@ -50,6 +50,9 @@ export const BIRTHDAY_CARDS = [
   { title: '拉生日快樂給自己', rarity: 'SSR', qty: 1, used: 1, desc: '壽星的專屬演奏會' },
   { title: '唱生日快樂給你聽', rarity: 'SSR', qty: 1, used: 1, desc: '還好唱（走音版）' },
   { title: '拍一張25歲的你和我的合照', rarity: 'SSR', qty: 1, used: 1, desc: '這張要放進相框' },
+  // 11/23 補上的實體卡 #11、#18
+  { title: '訂旅行基金！', rarity: 'SR', qty: 1, mark: '飛', pat: 'seigaiha', frame: 2, desc: '一起存下一趟旅行的錢 ✈️' },
+  { title: '今年一起做3件事！', rarity: 'SR', qty: 1, mark: '願', pat: 'asanoha', frame: 1, desc: '寫下三件事，一起完成它' },
 ];
 
 // 生日系列收藏卡（不能兌換，只能收藏）
@@ -58,6 +61,7 @@ export const BIRTHDAY_COLLECTIBLES = [
   { title: '中獎了！', desc: '獎品是一個好寶！（已領取）' },
   { title: '以後每個生日', desc: '我都想在你身邊' },
   { title: '謝謝你', desc: '謝謝你出現在我生命中' },
+  { title: '有你在，家才像家', mark: '家', pat: 'shippo', frame: 0, desc: '🏠' },   // 11/23 補上的實體卡 #19
 ];
 export const BIRTHDAY_SERIES = '生日系列';
 export const BIRTHDAY_SLOGAN = '有你在，家才像家';

@@ -97,3 +97,32 @@ async function bdayBackOnce() {
   finally { bdayBackBusy = false; }
 }
 setInterval(() => { if (document.visibilityState !== 'hidden') bdayBackOnce(); }, 3500);
+
+// 11/23：補上 3 張漏掉的實體生日卡（#11、#18、#19）——已經有生日卡的人各補一份（好寶、她自己那本），只做一次
+let bday3Busy = false;
+async function bday3Once() {
+  const c = S.couple;
+  if (bday3Busy || !c || !S.cid || (c.drops || {})['bday3-1123'] || !S.d.cards) return;
+  const NEW = [...D.BIRTHDAY_CARDS.slice(-2), D.BIRTHDAY_COLLECTIBLES[D.BIRTHDAY_COLLECTIBLES.length - 1]];
+  const bd = list('cards').filter((x) => x.series === D.BIRTHDAY_SERIES);
+  const owners = [...new Set(bd.map((x) => x.owner))].filter((u) => (c.members || []).includes(u));
+  if (!owners.length) return;   // 還沒有人有生日卡：好寶加入時 seedBirthday 會連這三張一起發
+  bday3Busy = true;
+  try {
+    const ok = await S.store.coupleTx(S.cid, (x) => ((x.drops || {})['bday3-1123'] ? null : { 'drops.bday3-1123': true }));
+    if (!ok) return;
+    const from = c.creator || me();
+    for (const u of owners) {
+      const have = new Set(bd.filter((x) => x.owner === u).map((x) => x.title));
+      for (const t of NEW) {
+        if (have.has(t.title)) continue;
+        const isC = D.BIRTHDAY_COLLECTIBLES.includes(t);
+        await col('cards').add(cardDoc({ ...t, ...(isC ? { rarity: 'SSR', kind: 'collect' } : {}), series: D.BIRTHDAY_SERIES }, u, from, { scratched: true }));
+      }
+      if (u !== me()) await notify(u, 'card', '生日卡組補上了 3 張 🎂');
+    }
+    render();
+  } catch (e) { console.warn('補生日卡', e); }
+  finally { bday3Busy = false; }
+}
+setInterval(() => { if (document.visibilityState !== 'hidden') bday3Once(); }, 4000);
