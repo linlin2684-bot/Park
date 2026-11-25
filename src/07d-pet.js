@@ -82,7 +82,8 @@ function petAccArt(wear) {
       <path d="M47.5 56 L42.5 70 L46 68 L48.5 71 L50 57 Z M52.5 56 L57.5 70 L54 68 L51.5 71 L50 57 Z" fill="#b51a28"/>
       <path d="M50 54.5 C46 49.5 39 49 39 54.5 C39 60 46 59.5 50 54.5 Z M50 54.5 C54 49.5 61 49 61 54.5 C61 60 54 59.5 50 54.5 Z" fill="#d42433"/>
       <rect x="47.6" y="51.6" width="4.8" height="5.8" rx="1.6" fill="#b51a28"/></g>`,
-    cape: `<path d="M38 50 Q50 54 62 50 L70 80 Q50 86 30 80 Z" fill="#c42e52" opacity=".95"/><path d="M38 50 Q50 54 62 50" fill="none" stroke="#e9c77b" stroke-width="1.6"/><circle cx="50" cy="52.5" r="1.8" fill="#e9c77b"/>`,
+    // 披風：本體畫在身體後面（petSVG 的 capeBack），前面只有領口的金邊和釦子
+    cape: `<path d="M37 49.5 Q50 55 63 49.5" fill="none" stroke="#c42e52" stroke-width="3.2" stroke-linecap="round"/><path d="M37 49.5 Q50 55 63 49.5" fill="none" stroke="#e9c77b" stroke-width="1"/><circle cx="50" cy="53" r="2.2" fill="#e9c77b" stroke="#b8862f" stroke-width=".6"/>`,
     glasses: `<circle cx="43" cy="32.5" r="5.6" fill="none" stroke="#e9c77b" stroke-width="1.3"/><circle cx="57" cy="32.5" r="5.6" fill="none" stroke="#e9c77b" stroke-width="1.3"/><path d="M48.6 32 Q50 30.8 51.4 32" fill="none" stroke="#e9c77b" stroke-width="1.2"/>`,
     bowtie: `<path d="M50 52 L42 48 L42 56 Z M50 52 L58 48 L58 56 Z" fill="#3b5ba5" stroke="#26407e" stroke-width=".8" stroke-linejoin="round"/><circle cx="50" cy="52" r="2" fill="#26407e"/>`,
     beret: `<path d="M34 21 Q36 10 52 10 Q66 11 66 20 Q58 17 48 18 Q40 19 34 21 Z" fill="#c45a6a"/><path d="M52 10 l1 -3" stroke="#c45a6a" stroke-width="1.6" stroke-linecap="round"/>`,
@@ -116,6 +117,7 @@ function petSVG(st, mood, wear, { blink = true, look = '' } = {}) {
     ${PET_PROPS[st] || ''}
     <g transform="translate(50 88) scale(${s}) translate(-50 -88)">
       <g class="pet-body">
+        ${wear === 'cape' && look !== 'ghost' ? '<path d="M38 52 Q50 47 62 52 Q72 66 76 86 Q50 93 24 86 Q28 66 38 52 Z" fill="#c42e52"/><path d="M24 86 Q50 93 76 86" fill="none" stroke="#e9c77b" stroke-width="1.6"/><path d="M27 82 Q31 66 39 55 M73 82 Q69 66 61 55" fill="none" stroke="#9e2140" stroke-width="1"/>' : ''}
         <path class="pet-tail" d="M66 80 Q86 80 84 64 Q83 56 76 58" fill="none" stroke="${I}" stroke-width="5" stroke-linecap="round"/>
         <path d="M34 86 Q29 62 39 50 Q50 43 61 50 Q71 62 66 86 Z" fill="${I}"/>
         <ellipse cx="42" cy="86" rx="6" ry="3" fill="${I}"/><ellipse cx="58" cy="86" rx="6" ry="3" fill="${I}"/>
@@ -129,7 +131,7 @@ function petSVG(st, mood, wear, { blink = true, look = '' } = {}) {
           <ellipse cx="39.5" cy="40" rx="2.4" ry="1.3" fill="#ff9fb4" opacity="${mood === 'happy' ? .8 : .45}"/><ellipse cx="60.5" cy="40" rx="2.4" ry="1.3" fill="#ff9fb4" opacity="${mood === 'happy' ? .8 : .45}"/>
           ${look === 'ghost' ? '' : acc}
         </g>
-        ${look ? lookArt(look) : ''}
+        ${look ? `<g transform="translate(50 62) scale(1.12) translate(-50 -62)">${lookArt(look)}</g>` : ''}   <!-- 11/24：服裝放大一點 -->
       </g>
     </g>
   </svg>`;
@@ -143,7 +145,16 @@ function petArt(P, big) {
   return petSVG(P.show, P.mood, P.wear, { look: P.look });
 }
 const PET_TIME_TEXT = { sleep: '睡得正香，小聲一點', stretch: '剛睡醒，正在伸懶腰' };
-const PET_MOOD_TEXT = { happy: '心情超好，尾巴翹得高高的', ok: '在窩裡等你們來玩', miss: '好久沒人理牠了，有點想你們' };
+// 11/24：每種心情多幾種說法，每半小時換一句（同一段時間內兩邊看到同一句）
+const PET_MOOD_LINES = {
+  happy: ['心情超好，尾巴翹得高高的', '一直在呼嚕呼嚕，停不下來', '在地上滾來滾去，露出肚子', '眼睛瞇成兩條線，好滿足', '踩踩踩，在毯子上做麵包',
+    '剛剛自己追尾巴追了好幾圈', '把頭靠過來，要你們再摸一下', '開心到在房間裡暴衝一圈', '尾巴勾成一個問號，在等你們', '叼著玩具走來走去，好得意'],
+  ok: ['在窩裡等你們來玩', '趴在窗邊看外面的鳥', '把自己捲成一顆黑色的球', '在舔爪子，洗得很認真', '盯著一隻飛蟲，屁股扭扭',
+    '躺在陽光照得到的地方', '坐在門口，好像在等誰回家', '打了一個好大的哈欠', '把毛線球推到沙發底下了', '慢慢眨眼睛，在跟你說喜歡'],
+  miss: ['好久沒人理牠了，有點想你們', '耳朵垂下來，一直看著門口', '把你們的衣服當窩，睡在上面', '小小聲地喵了一下，好像在叫你們', '尾巴垂垂的，提不起勁',
+    '在你們常坐的位置趴著等', '把罐罐的空碗推到你面前', '跟在你腳邊走來走去，不想分開'],
+};
+const PET_MOOD_TEXT = new Proxy({}, { get: (_, m) => { const L = PET_MOOD_LINES[m] || PET_MOOD_LINES.ok; const slot = Math.floor(now() / 1800000); return L[(slot * 7 + String(m).length) % L.length]; } });
 
 function petHomeCard() {
   const P = petState();
@@ -176,9 +187,10 @@ ACT.petPat = async (el, e) => {
   toast(`${petState().name} 很開心！經驗 +3`);
 };
 
-ACT.petOpen = () => {
+// 11/24：換型態／裝扮／配件改成在同一個視窗裡直接更新（以前是關掉再開，常常要點兩次、視窗會跳一下）
+function petOpenHTML() {
   const P = petState();
-  const m = openModal(`${mhead(`<i data-ic="heart"></i> ${esc(P.name)}`)}
+  return `${mhead(`<i data-ic="heart"></i> ${esc(P.name)}`)}
     <div class="pet-room big ${dutyVisitor() ? 'has-visitor' : ''}"><div class="pet-big"${dutyCatAttr()}>${petArt(P, true)}</div>${dutyVisitor() || dutySolo()}</div>
     ${dutyVisitor() ? `<p class="center small duty-say" style="margin:0 0 4px;color:var(--accent)">${dutyText()}</p>` : ''}
     <p class="center muted" style="margin:0 0 4px">${PET_STAGES[P.show].name}・${PET_TIME_TEXT[petTimePose()] || PET_MOOD_TEXT[P.mood]}</p>
@@ -196,22 +208,21 @@ ACT.petOpen = () => {
       ${PET_ACC.map((a) => { const ok = P.unlocked.some((x) => x.id === a.id); return ok
         ? `<button data-w="${a.id}" class="${P.wear === a.id ? 'on' : ''}"><span class="pet-thumb">${petSVG(2, 'ok', a.id, { blink: false })}</span>${a.name}</button>`
         : `<button class="locked sil" disabled><span class="pet-thumb">${petSVG(2, 'ok', a.id, { blink: false })}</span>？？？<small>${a.gacha ? '扭蛋時偶爾會掉' : a.anniv ? '某個特別的日子' : a.month ? '某個冬天的節日' : '再長大一點'}</small></button>`; }).join('')}
-    </div>`);
-  $$('.pet-forms:not(.looks) button[data-form]', m).forEach((b) => b.onclick = async () => {
-    await S.store.updateCouple(S.cid, { 'pet.form': +b.dataset.form });
-    closeModal(m); ACT.petOpen();
-  });
-  $$('.pet-forms.looks button[data-look]', m).forEach((b) => b.onclick = async () => {
-    await S.store.updateCouple(S.cid, { 'pet.look': b.dataset.look });
-    closeModal(m); ACT.petOpen();
-  });
-  $$('.pet-acc button', m).forEach((b) => b.onclick = async () => {
-    await S.store.updateCouple(S.cid, { 'pet.wear': b.dataset.w });
-    closeModal(m); ACT.petOpen();
-  });
+    </div>`;
+}
+function petOpenWire(m) {
+  const redraw = () => { const sc = m.querySelector('.modal').scrollTop; m.querySelector('.modal').innerHTML = petOpenHTML(); petOpenWire(m); m.querySelector('.modal').scrollTop = sc; };
+  const set = (path, v) => { S.couple.pet = { ...(S.couple.pet || {}), [path]: v }; S.store.updateCouple(S.cid, { [`pet.${path}`]: v }); redraw(); };
+  $$('.pet-forms:not(.looks) button[data-form]', m).forEach((b) => b.onclick = () => set('form', +b.dataset.form));
+  $$('.pet-forms.looks button[data-look]', m).forEach((b) => b.onclick = () => set('look', b.dataset.look));
+  $$('.pet-acc button[data-w]', m).forEach((b) => b.onclick = () => set('wear', b.dataset.w));
   $('#pt-feed', m).onclick = async () => {
     if (!(await feedCan())) return toast('今天的罐罐吃完了。回答問題、做任務，或等小動物送來');
     await petXP(8, 'feed');
-    toast(`${P.name} 吃得好開心！經驗 +8`); closeModal(m); ACT.petOpen();
+    toast(`${petState().name} 吃得好開心！經驗 +8`); redraw();
   };
+}
+ACT.petOpen = () => {
+  const m = openModal(petOpenHTML());
+  petOpenWire(m);
 };

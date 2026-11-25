@@ -1058,9 +1058,12 @@ function catStroll(force) {
   if (!force && typeof pickScene === 'function') { const sc = pickScene(k); if (sc) return duoStroll(sc); }
   const el = walker(k);
   if (k === 'tuxedo' && Math.random() < .35) el.classList.add('backwards');
-  let timer = setTimeout(() => el.remove(), 9500);
+  // 11/24：走完畫面才消失（看 animationend）；開著視窗時會停在原地等（CSS），關掉再繼續走
+  el.addEventListener('animationend', (ev) => { if (ev.target === el) el.remove(); });
+  let timer = setTimeout(() => el.remove(), 120000);
   el.onclick = async () => {
     const r = el.getBoundingClientRect();
+    const art0 = el.innerHTML;
     // 鯊鯊：第一次點＝鼻子被碰到，關機掉到地上；再點一次＝倒吸一口氣開機，游走
     if (k === 'shark') {
       if (!el.classList.contains('off')) {
@@ -1093,7 +1096,8 @@ function catStroll(force) {
       blackPatXP();
     }
     sayAt = el; sayLine(k);
-    clearTimeout(timer); setTimeout(() => el.remove(), 3400);
+    // 講完話繼續走完（倒退走的也繼續倒退）
+    setTimeout(() => { if (!el.isConnected) return; if (k === 'black') el.innerHTML = art0; el.classList.remove('caught', 'clap', 'trip', 'roll'); }, 2600);
   };
   document.body.appendChild(el);
 }
@@ -1542,7 +1546,12 @@ function renderNav() {
 }
 ACT.tab = (el) => {
   const t = el.dataset.tab;
-  if (S.tab === t) { window.scrollTo({ top: 0, behavior: 'smooth' }); return; }
+  if (S.tab === t) {
+    // 11/24：在收藏館（或其他小分頁）時再點一次下面的分頁，回到這一頁的第一個小分頁
+    const first = { wallet: 'mine', travel: 'plan', memory: 'goals' }[t];
+    if (first && S.sub[t] !== first) { S.sub[t] = first; window.scrollTo(0, 0); render(); return; }
+    window.scrollTo({ top: 0, behavior: 'smooth' }); return;
+  }
   S.tab = t;
   // 切到別的分頁再回來，小分頁回到第一個
   Object.assign(S.sub, { wallet: 'mine', travel: 'plan', memory: 'goals' });
@@ -2871,8 +2880,20 @@ function walletWish() {
     ${theirs.length ? `<h3 style="margin:4px 2px 8px">${esc(nick(partner()))} 的願望</h3>${theirs.map((w) => `<div class="card"><div class="row"><span class="chip" style="color:var(--r-${w.rarity.toLowerCase()})">${w.rarity}</span><b class="grow" style="font-family:var(--serif)">${esc(w.title)}</b></div>
       ${w.note ? `<p class="small muted" style="margin:6px 0 0">${esc(w.note)}</p>` : ''}
       <div class="btn-row"><button class="btn ghost sm" data-act="wishNo" data-id="${w.id}">下次吧</button><button class="btn sm" data-act="wishOk" data-id="${w.id}"><i data-ic="sparkle"></i> 實現願望</button></div></div>`).join('')}` : ''}
-    ${rest.length ? `<h3 style="margin:10px 2px 8px">願望紀錄</h3>${rest.map((w) => `<div class="list-row"><span class="lr-i">${w.by === me() ? '<i data-ic="star"></i>' : '<i data-ic="heart"></i>'}</span><span class="grow">${esc(w.title)}<div class="small muted">${esc(nick(w.by))} · ${fmtDate(w.at)}</div></span><span class="small">${st[w.status]}</span></div>`).join('')}` : ''}`;
+    ${rest.length ? `<h3 style="margin:10px 2px 8px">願望紀錄</h3>${rest.map((w) => `<div class="list-row tap" data-act="wishView" data-id="${w.id}"><span class="lr-i">${w.by === me() ? '<i data-ic="star"></i>' : '<i data-ic="heart"></i>'}</span><span class="grow">${esc(w.title)}<div class="small muted">${esc(nick(w.by))} · ${fmtDate(w.at)}</div></span><span class="small">${st[w.status]}</span></div>`).join('')}` : ''}`;
 }
+// 11/24：願望紀錄點下去看卡面
+ACT.wishView = (el) => {
+  const w = list('wishes').find((x) => x.id === el.dataset.id); if (!w) return;
+  const st = { pending: '等待中', ok: `${fmtDate(w.doneAt || w.at)} 實現了`, no: '下次吧' }[w.status] || '';
+  const granter = (S.couple.members || []).find((u) => u !== w.by) || w.by;
+  const c = { id: 'wish-' + w.id, title: w.title, desc: w.desc || '', rarity: w.rarity || 'N', spice: w.spice || 1, mark: w.mark || '', series: WISH_SERIES, kind: 'card', at: w.at, owner: w.by, from: granter, qty: 1, used: 0, log: [] };
+  const hide = typeof hotLockedCard === 'function' && hotLockedCard(c);
+  openModal(`${mhead('<i data-ic="shooting"></i> 願望')}
+    <div class="ritual">${hide ? bigCardHTML({ ...c, title: '？', desc: '' }) : bigCardHTML(c)}</div>
+    <p class="center small muted" style="margin:10px 0 0">${esc(nick(w.by))} 在 ${fmtDate(w.at)} 許的願・${st}</p>
+    ${w.note ? `<p class="center small" style="margin:6px 0 0">${esc(w.note)}</p>` : ''}`, { center: true });
+};
 ACT.makeWish = () => {
   if (!partner()) return toast('對方加入後才能許願');
   cardEditor({ title: '許一個願' }, async (t) => {
@@ -3142,7 +3163,7 @@ PAGES.play = {
       <button class="game-tile" data-act="tod"><span class="gi"><i data-ic="dice" data-medal></i></span><b>真心話大冒險</b><span>輪流抽題，誰都逃不掉</span></button>
       <button class="game-tile" data-act="quiz"><span class="gi"><i data-ic="minds" data-medal></i></span><b>默契問答</b><span>${quizNew ? '今天的題目來了' : (q && p && q.answers[p] ? '看結果' : '等對方作答')}</span>${quizNew ? '<span class="badge-dot">!</span>' : ''}</button>
       <button class="game-tile wide" data-act="dex"><span class="gi"><i data-ic="book" data-medal></i></span><div class="grow"><b>小動物圖鑑</b><br><span>已經遇到 ${dexCount()} 位朋友<br>牠們會路過首頁，也會來小小黑家值日</span></div><span style="font-size:22px">›</span></button>
-      <button class="game-tile wide" data-act="battle"><span class="gi"><i data-ic="swords" data-medal></i></span><div class="grow"><b>對戰挑戰</b><br><span>${bt ? `${bt.status === 'pending' ? '等待接受' : '進行中'}：${esc(bt.task)}` : '一週內誰先完成？輸的人發卡'}</span></div><span style="font-size:22px">›</span></button>
+      <button class="game-tile wide" data-act="battle"><span class="gi"><i data-ic="swords" data-medal></i></span><div class="grow"><b>對戰挑戰</b> ${daysLeftTxt(bt && bt.deadline ? bt.deadline : 0)}<br><span>${bt ? `${bt.status === 'pending' ? '等待接受' : '進行中'}：${esc(bt.task)}` : '每週 3 個挑戰，每人可換一題，比誰完成得多'}</span></div><span style="font-size:22px">›</span></button>
     </div>
     ${stampCardHTML()}
     ${weeklyHTML()}`;
@@ -3161,7 +3182,7 @@ ACT.gacha = () => {
     <div id="gbtns">
       <div class="btn-row"><button class="btn" id="g-pt">扭一次（${D.POINTS.gachaCost} 點）</button>${tickets(me()) ? `<button class="btn gold" id="g-tk">用扭蛋券 <i data-ic="ticket"></i>${tickets(me())}</button>` : ''}</div>
       <button class="btn block g10-btn" id="g-10"><b>十連抽</b>（${D.POINTS.gachaCost * 10} 點）<span class="g10-gift">多送 1 抽</span></button>
-      ${tickets(me()) >= 10 ? `<button class="btn gold block g10-btn tk" id="g-10t"><b>十連抽</b>（扭蛋券 10 張）<span class="g10-gift">多送 1 抽</span></button>` : ''}
+      <button class="btn gold block g10-btn tk ${tickets(me()) >= 10 ? '' : 'short'}" id="g-10t"><b>十連抽</b>（扭蛋券 10 張${tickets(me()) >= 10 ? '' : `・你有 ${tickets(me())} 張`}）<span class="g10-gift">多送 1 抽</span></button>
       <p class="center small muted">我的點數：<i data-ic="coin"></i> ${balance(me())} · 機率 N ${D.RARITY.N.weight}% / R ${D.RARITY.R.weight}% / SR ${D.RARITY.SR.weight}% / SSR ${D.RARITY.SSR.weight}%</p>
     </div>`, { center: true });
   const go = async (useTicket) => {
@@ -3207,7 +3228,7 @@ ACT.gacha = () => {
   };
   $('#g-pt', m).onclick = () => go(false);
   $('#g-10', m).onclick = () => go10(false);
-  $('#g-10t', m) && ($('#g-10t', m).onclick = () => go10(true));
+  $('#g-10t', m) && ($('#g-10t', m).onclick = () => (tickets(me()) >= 10 ? go10(true) : toast(`扭蛋券還不夠 10 張（你有 ${tickets(me())} 張）`)));
   // 十連抽：付 10 抽的點數，抽 11 張
   const go10 = async (useTicket) => {
     const cost = D.POINTS.gachaCost * 10;
@@ -3699,6 +3720,13 @@ ACT.giveStamp = () => {
 };
 
 // ---------- 每週任務 ----------
+// 11/24：標題旁淡淡的（還剩幾天）。沒給截止時間就算到這週日
+function daysLeftTxt(deadline) {
+  let n;
+  if (deadline) n = Math.max(0, Math.ceil((deadline - now()) / 86400000));
+  else { const d = new Date().getDay() || 7; n = 8 - d; }
+  return `<span class="days-left">（${n <= 1 ? '今天最後一天' : `還剩 ${n} 天`}）</span>`;
+}
 function weekTaskIdx() {
   const wk = weekKey();
   const base = shuffled(D.WEEKLY_TASKS.map((_, i) => i), hash(wk + (S.cid || ''))).slice(0, 3);
@@ -3709,7 +3737,7 @@ function weekTasks() { return weekTaskIdx().map((i) => D.WEEKLY_TASKS[i] || '');
 function weeklyHTML() {
   const wk = weekKey(), p = partner();
   const done = (i, u) => list('taskDone').some((x) => x.id === `${wk}_${i}_${u}`);
-  return `<div class="card"><h3><i data-ic="clipboard"></i> 每週任務 <span class="sub">完成一項 +${D.POINTS.weeklyTask} 點</span></h3>
+  return `<div class="card"><h3><i data-ic="clipboard"></i> 每週任務 ${daysLeftTxt(0)} <span class="sub">完成一項 +${D.POINTS.weeklyTask} 點</span></h3>
     ${weekTasks().map((t, i) => {
       const req = S.couple.taskSwapReq;
       const pending = req && req.wk === wk && req.i === i;
@@ -4087,7 +4115,7 @@ ACT.dateEdit = (el, e, preset = {}) => {
     <label>地點（可以不填）</label><input id="dt-p" maxlength="40" value="${esc(t.place)}" placeholder="例如：信義區 XX 餐廳">
     <label>備註（可以不填）</label><input id="dt-n" maxlength="60" value="${esc(t.note)}" placeholder="例如：記得訂位">
     <button class="btn block mt" id="dt-ok">${d ? '儲存' : '排進行程'}</button>
-    ${d ? `<div class="btn-row mt"><button class="btn ghost" id="dt-ics"><i data-ic="download"></i> 加到手機行事曆</button>${d.done ? '' : '<button class="btn ghost" id="dt-done"><i data-ic="check"></i> 去過了</button>'}</div>
+    ${d ? `<div class="btn-row mt"><button class="btn ghost" id="dt-ics"><i data-ic="download"></i> 加到手機行事曆</button>${d.done ? '<button class="btn ghost" id="dt-undo"><i data-ic="swap"></i> 按錯了，改回還沒去</button>' : '<button class="btn ghost" id="dt-done"><i data-ic="check"></i> 去過了</button>'}</div>${d.done && !d.tripId ? '<button class="btn block mt" id="dt-after"><i data-ic="camera"></i> 加照片、收進足跡</button>' : ''}
       <button class="link center" id="dt-del" style="color:#d4405f;margin-top:10px">刪除這個約會</button>` : ''}`);
   const read = () => ({ title: $('#dt-t', m).value.trim(), date: $('#dt-d', m).value, time: $('#dt-h', m).value, place: $('#dt-p', m).value.trim(), note: $('#dt-n', m).value.trim() });
   $('#dt-ok', m).onclick = async () => {
@@ -4106,7 +4134,11 @@ ACT.dateEdit = (el, e, preset = {}) => {
   if (!d) return;
   $('#dt-ics', m).onclick = () => downloadICS(d);
   const dn = $('#dt-done', m);
-  if (dn) dn.onclick = async () => { await col('dates').update(d.id, { done: true, doneAt: now() }); closeModal(m); toast('又一起去了一個地方'); petXP(3); dateStamps(d); askAddMemory({ title: d.title, date: d.date, kind: 'date', note: d.place || '' }); };
+  if (dn) dn.onclick = async () => { await col('dates').update(d.id, { done: true, doneAt: now() }); closeModal(m); toast('又一起去了一個地方'); petXP(3); dateStamps(d); setTimeout(() => dateAfter(d), 500); };
+  const un = $('#dt-undo', m);
+  if (un) un.onclick = async () => { await col('dates').update(d.id, { done: false, doneAt: 0 }); closeModal(m); toast('改回還沒去了'); };
+  const af = $('#dt-after', m);
+  if (af) af.onclick = () => { closeModal(m); dateAfter(d); };
   $('#dt-del', m).onclick = async () => { if (!(await confirmBox('確定刪除這個約會？', '刪除'))) return; await col('dates').remove(d.id); closeModal(m); };
 };
 
@@ -4125,6 +4157,52 @@ function downloadICS(d) {
   a.href = URL.createObjectURL(new Blob([ics], { type: 'text/calendar;charset=utf-8' }));
   a.download = `date-${d.date}.ics`; document.body.appendChild(a); a.click(); a.remove();
   toast('打開下載的檔案就能加進行事曆');
+}
+
+// ---------- 約會完成：加照片、一句話，收進足跡和時間軸（11/24）----------
+// 照片存在 photos（帶 tripId、dateId），足跡存在 trips（帶 dateId，封面＝第一張照片），約會記下 tripId
+function dateAfter(d) {
+  const shots = [];
+  const place = d.place || d.title || '';
+  const m = openModal(`${mhead('<i data-ic="camera"></i> 約會完成')}
+    <div class="da-head"><div class="nd-cal"><b>${dateDT(d).getDate()}</b><span>${dateDT(d).getMonth() + 1} 月</span></div>
+      <div class="grow"><div class="da-t">${esc(d.title)}</div><div class="small muted">${esc(d.place || '')}</div></div></div>
+    <label>今天的照片（最多 6 張，會自動壓縮）</label>
+    <div class="da-ph" id="da-ph"><label class="da-add"><i data-ic="plus"></i><input type="file" accept="image/*" multiple id="da-f" class="hidden"></label></div>
+    <label>一句話記下今天</label><textarea id="da-n" maxlength="200" placeholder="今天最開心的是…"></textarea>
+    <label class="check-row"><input type="checkbox" id="da-trip" checked> 收進足跡（地點：<input id="da-p" class="da-p" maxlength="30" value="${esc(place)}">）</label>
+    <label class="check-row"><input type="checkbox" id="da-mem" checked> 記進時間軸</label>
+    <button class="btn block mt" id="da-ok"><i data-ic="pin"></i> 收進回憶</button>
+    <button class="link center" id="da-skip" style="margin-top:8px">先不用</button>`, { center: true });
+  const draw = () => {
+    const box = $('#da-ph', m);
+    box.querySelectorAll('.da-img').forEach((x) => x.remove());
+    shots.forEach((src, i) => box.insertAdjacentHTML('beforeend', `<div class="da-img" style="background-image:url(${src})"><button data-i="${i}" aria-label="拿掉">✕</button>${i === 0 ? '<span>封面</span>' : ''}</div>`));
+    box.querySelectorAll('.da-img button').forEach((b) => b.onclick = () => { shots.splice(+b.dataset.i, 1); draw(); });
+    $('.da-add', m).style.display = shots.length >= 6 ? 'none' : '';
+  };
+  $('#da-f', m).onchange = async (e) => {
+    for (const f of [...e.target.files].slice(0, 6 - shots.length)) { try { shots.push(await compressImage(f)); } catch (err) { toast('有一張照片讀不到'); } }
+    e.target.value = ''; draw();
+  };
+  $('#da-skip', m).onclick = () => closeModal(m);
+  $('#da-ok', m).onclick = async () => {
+    const note = $('#da-n', m).value.trim(), toTrip = $('#da-trip', m).checked, toMem = $('#da-mem', m).checked, name = $('#da-p', m).value.trim() || d.title;
+    if (!toTrip && !toMem && !shots.length) return closeModal(m);
+    $('#da-ok', m).disabled = true;
+    let tripId = '';
+    if (toTrip) {
+      tripId = await col('trips').add({ name, date: d.date || dkey(), note: '', notes: note ? { [me()]: note } : {}, cover: shots[0] || '', lat: null, lng: null, dateId: d.id, by: me(), at: now() });
+      for (const u of S.couple.members) await addPoints(u, D.POINTS.trip, '旅行足跡：' + name);
+      if (partner()) await notify(partner(), 'trip', `${nick(me())} 把約會收進足跡了 🗺️`, name);
+      await col('dates').update(d.id, { tripId });
+      // 有地點就順手找座標（找不到也沒關係）
+      if (d.place) fetch(`https://nominatim.openstreetmap.org/search?format=json&limit=1&accept-language=zh-TW&q=${encodeURIComponent(d.place)}`).then((r) => r.json()).then((j) => { if (j && j[0]) col('trips').update(tripId, { lat: +j[0].lat, lng: +j[0].lon }); }).catch(() => {});
+    }
+    for (const img of shots) await col('photos').add({ img, caption: d.title, date: d.date || dkey(), tripId, dateId: d.id, by: me(), at: now() });
+    if (toMem) await col('memories').add({ title: d.title, date: d.date || dkey(), kind: 'date', note: note || d.place || '', by: me(), at: now() });
+    closeModal(m); confetti(50); toast(toTrip ? '收進足跡了 📍' : '記下來了');
+  };
 }
 
 // 做完的事情：問要不要記進時間軸（不自動）
@@ -4162,8 +4240,8 @@ function datesJar() {
       </svg>
       <div class="btn-row" style="justify-content:center"><button class="btn ghost" data-act="ideaAdd"><i data-ic="plus"></i> 丟一個點子</button><button class="btn" data-act="ideaShake" ${ideas.length ? '' : 'disabled'}>搖一搖</button></div>
     </div>
-    ${ideas.length ? `<div class="card"><h3 style="font-size:15px">罐子裡的點子</h3><div class="idea-slips">${ideas.map((x, i) => `<div class="idea-chip emb-F-date" style="--r:${((i % 5) - 2) * 1.2}deg"><span class="grow">${esc(x.text)}<small>${esc(nick(x.by))} 丟的</small></span>${x.by === me() ? `<button data-act="ideaDel" data-id="${x.id}" aria-label="刪除">✕</button>` : ''}</div>`).join('')}</div></div>` : ''}
-    ${used.length ? `<details class="card"><summary>抽過的點子（${used.length}）</summary>${used.slice(0, 30).map((x) => `<div class="list-row"><span class="grow muted">${esc(x.text)}</span></div>`).join('')}</details>` : ''}`;
+    ${ideas.length ? `<div class="card"><h3 style="font-size:15px">罐子裡的點子</h3><div class="idea-slips">${ideas.map((x, i) => `<div class="idea-chip emb-F-date" style="--r:${((i % 5) - 2) * 1.2}deg"><span class="grow">${esc(x.text)}<small>${esc(nick(x.by))} 丟的</small></span><button data-act="ideaDel" data-id="${x.id}" aria-label="刪除">✕</button></div>`).join('')}</div></div>` : ''}
+    ${used.length ? `<details class="card"><summary>抽過的點子（${used.length}）</summary>${used.slice(0, 30).map((x) => `<div class="list-row"><span class="grow muted">${esc(x.text)}</span><button class="idea-x" data-act="ideaDel" data-id="${x.id}" aria-label="刪除">✕</button></div>`).join('')}</details>` : ''}`;
 }
 ACT.ideaAdd = async () => {
   const v = await promptBox('丟一個約會點子', { placeholder: '例如：去海邊看日落、一起做菜、夜市吃到飽' });
@@ -4171,7 +4249,7 @@ ACT.ideaAdd = async () => {
   await col('ideas').add({ text: v.trim(), by: me(), used: false, at: now() });
   toast('丟進罐子了'); sfx('pop');
 };
-ACT.ideaDel = async (el, e) => { e && e.stopPropagation(); await col('ideas').remove(el.dataset.id); };
+ACT.ideaDel = async (el, e) => { e && e.stopPropagation(); if (!(await confirmBox('把這個點子從罐子裡拿掉？', '拿掉'))) return; await col('ideas').remove(el.dataset.id); toast('拿掉了'); };
 ACT.ideaShake = async () => {
   const ideas = list('ideas').filter((x) => !x.used);
   if (!ideas.length) return;
@@ -5017,7 +5095,8 @@ function petAccArt(wear) {
       <path d="M47.5 56 L42.5 70 L46 68 L48.5 71 L50 57 Z M52.5 56 L57.5 70 L54 68 L51.5 71 L50 57 Z" fill="#b51a28"/>
       <path d="M50 54.5 C46 49.5 39 49 39 54.5 C39 60 46 59.5 50 54.5 Z M50 54.5 C54 49.5 61 49 61 54.5 C61 60 54 59.5 50 54.5 Z" fill="#d42433"/>
       <rect x="47.6" y="51.6" width="4.8" height="5.8" rx="1.6" fill="#b51a28"/></g>`,
-    cape: `<path d="M38 50 Q50 54 62 50 L70 80 Q50 86 30 80 Z" fill="#c42e52" opacity=".95"/><path d="M38 50 Q50 54 62 50" fill="none" stroke="#e9c77b" stroke-width="1.6"/><circle cx="50" cy="52.5" r="1.8" fill="#e9c77b"/>`,
+    // 披風：本體畫在身體後面（petSVG 的 capeBack），前面只有領口的金邊和釦子
+    cape: `<path d="M37 49.5 Q50 55 63 49.5" fill="none" stroke="#c42e52" stroke-width="3.2" stroke-linecap="round"/><path d="M37 49.5 Q50 55 63 49.5" fill="none" stroke="#e9c77b" stroke-width="1"/><circle cx="50" cy="53" r="2.2" fill="#e9c77b" stroke="#b8862f" stroke-width=".6"/>`,
     glasses: `<circle cx="43" cy="32.5" r="5.6" fill="none" stroke="#e9c77b" stroke-width="1.3"/><circle cx="57" cy="32.5" r="5.6" fill="none" stroke="#e9c77b" stroke-width="1.3"/><path d="M48.6 32 Q50 30.8 51.4 32" fill="none" stroke="#e9c77b" stroke-width="1.2"/>`,
     bowtie: `<path d="M50 52 L42 48 L42 56 Z M50 52 L58 48 L58 56 Z" fill="#3b5ba5" stroke="#26407e" stroke-width=".8" stroke-linejoin="round"/><circle cx="50" cy="52" r="2" fill="#26407e"/>`,
     beret: `<path d="M34 21 Q36 10 52 10 Q66 11 66 20 Q58 17 48 18 Q40 19 34 21 Z" fill="#c45a6a"/><path d="M52 10 l1 -3" stroke="#c45a6a" stroke-width="1.6" stroke-linecap="round"/>`,
@@ -5051,6 +5130,7 @@ function petSVG(st, mood, wear, { blink = true, look = '' } = {}) {
     ${PET_PROPS[st] || ''}
     <g transform="translate(50 88) scale(${s}) translate(-50 -88)">
       <g class="pet-body">
+        ${wear === 'cape' && look !== 'ghost' ? '<path d="M38 52 Q50 47 62 52 Q72 66 76 86 Q50 93 24 86 Q28 66 38 52 Z" fill="#c42e52"/><path d="M24 86 Q50 93 76 86" fill="none" stroke="#e9c77b" stroke-width="1.6"/><path d="M27 82 Q31 66 39 55 M73 82 Q69 66 61 55" fill="none" stroke="#9e2140" stroke-width="1"/>' : ''}
         <path class="pet-tail" d="M66 80 Q86 80 84 64 Q83 56 76 58" fill="none" stroke="${I}" stroke-width="5" stroke-linecap="round"/>
         <path d="M34 86 Q29 62 39 50 Q50 43 61 50 Q71 62 66 86 Z" fill="${I}"/>
         <ellipse cx="42" cy="86" rx="6" ry="3" fill="${I}"/><ellipse cx="58" cy="86" rx="6" ry="3" fill="${I}"/>
@@ -5064,7 +5144,7 @@ function petSVG(st, mood, wear, { blink = true, look = '' } = {}) {
           <ellipse cx="39.5" cy="40" rx="2.4" ry="1.3" fill="#ff9fb4" opacity="${mood === 'happy' ? .8 : .45}"/><ellipse cx="60.5" cy="40" rx="2.4" ry="1.3" fill="#ff9fb4" opacity="${mood === 'happy' ? .8 : .45}"/>
           ${look === 'ghost' ? '' : acc}
         </g>
-        ${look ? lookArt(look) : ''}
+        ${look ? `<g transform="translate(50 62) scale(1.12) translate(-50 -62)">${lookArt(look)}</g>` : ''}   <!-- 11/24：服裝放大一點 -->
       </g>
     </g>
   </svg>`;
@@ -5078,7 +5158,16 @@ function petArt(P, big) {
   return petSVG(P.show, P.mood, P.wear, { look: P.look });
 }
 const PET_TIME_TEXT = { sleep: '睡得正香，小聲一點', stretch: '剛睡醒，正在伸懶腰' };
-const PET_MOOD_TEXT = { happy: '心情超好，尾巴翹得高高的', ok: '在窩裡等你們來玩', miss: '好久沒人理牠了，有點想你們' };
+// 11/24：每種心情多幾種說法，每半小時換一句（同一段時間內兩邊看到同一句）
+const PET_MOOD_LINES = {
+  happy: ['心情超好，尾巴翹得高高的', '一直在呼嚕呼嚕，停不下來', '在地上滾來滾去，露出肚子', '眼睛瞇成兩條線，好滿足', '踩踩踩，在毯子上做麵包',
+    '剛剛自己追尾巴追了好幾圈', '把頭靠過來，要你們再摸一下', '開心到在房間裡暴衝一圈', '尾巴勾成一個問號，在等你們', '叼著玩具走來走去，好得意'],
+  ok: ['在窩裡等你們來玩', '趴在窗邊看外面的鳥', '把自己捲成一顆黑色的球', '在舔爪子，洗得很認真', '盯著一隻飛蟲，屁股扭扭',
+    '躺在陽光照得到的地方', '坐在門口，好像在等誰回家', '打了一個好大的哈欠', '把毛線球推到沙發底下了', '慢慢眨眼睛，在跟你說喜歡'],
+  miss: ['好久沒人理牠了，有點想你們', '耳朵垂下來，一直看著門口', '把你們的衣服當窩，睡在上面', '小小聲地喵了一下，好像在叫你們', '尾巴垂垂的，提不起勁',
+    '在你們常坐的位置趴著等', '把罐罐的空碗推到你面前', '跟在你腳邊走來走去，不想分開'],
+};
+const PET_MOOD_TEXT = new Proxy({}, { get: (_, m) => { const L = PET_MOOD_LINES[m] || PET_MOOD_LINES.ok; const slot = Math.floor(now() / 1800000); return L[(slot * 7 + String(m).length) % L.length]; } });
 
 function petHomeCard() {
   const P = petState();
@@ -5111,9 +5200,10 @@ ACT.petPat = async (el, e) => {
   toast(`${petState().name} 很開心！經驗 +3`);
 };
 
-ACT.petOpen = () => {
+// 11/24：換型態／裝扮／配件改成在同一個視窗裡直接更新（以前是關掉再開，常常要點兩次、視窗會跳一下）
+function petOpenHTML() {
   const P = petState();
-  const m = openModal(`${mhead(`<i data-ic="heart"></i> ${esc(P.name)}`)}
+  return `${mhead(`<i data-ic="heart"></i> ${esc(P.name)}`)}
     <div class="pet-room big ${dutyVisitor() ? 'has-visitor' : ''}"><div class="pet-big"${dutyCatAttr()}>${petArt(P, true)}</div>${dutyVisitor() || dutySolo()}</div>
     ${dutyVisitor() ? `<p class="center small duty-say" style="margin:0 0 4px;color:var(--accent)">${dutyText()}</p>` : ''}
     <p class="center muted" style="margin:0 0 4px">${PET_STAGES[P.show].name}・${PET_TIME_TEXT[petTimePose()] || PET_MOOD_TEXT[P.mood]}</p>
@@ -5131,24 +5221,23 @@ ACT.petOpen = () => {
       ${PET_ACC.map((a) => { const ok = P.unlocked.some((x) => x.id === a.id); return ok
         ? `<button data-w="${a.id}" class="${P.wear === a.id ? 'on' : ''}"><span class="pet-thumb">${petSVG(2, 'ok', a.id, { blink: false })}</span>${a.name}</button>`
         : `<button class="locked sil" disabled><span class="pet-thumb">${petSVG(2, 'ok', a.id, { blink: false })}</span>？？？<small>${a.gacha ? '扭蛋時偶爾會掉' : a.anniv ? '某個特別的日子' : a.month ? '某個冬天的節日' : '再長大一點'}</small></button>`; }).join('')}
-    </div>`);
-  $$('.pet-forms:not(.looks) button[data-form]', m).forEach((b) => b.onclick = async () => {
-    await S.store.updateCouple(S.cid, { 'pet.form': +b.dataset.form });
-    closeModal(m); ACT.petOpen();
-  });
-  $$('.pet-forms.looks button[data-look]', m).forEach((b) => b.onclick = async () => {
-    await S.store.updateCouple(S.cid, { 'pet.look': b.dataset.look });
-    closeModal(m); ACT.petOpen();
-  });
-  $$('.pet-acc button', m).forEach((b) => b.onclick = async () => {
-    await S.store.updateCouple(S.cid, { 'pet.wear': b.dataset.w });
-    closeModal(m); ACT.petOpen();
-  });
+    </div>`;
+}
+function petOpenWire(m) {
+  const redraw = () => { const sc = m.querySelector('.modal').scrollTop; m.querySelector('.modal').innerHTML = petOpenHTML(); petOpenWire(m); m.querySelector('.modal').scrollTop = sc; };
+  const set = (path, v) => { S.couple.pet = { ...(S.couple.pet || {}), [path]: v }; S.store.updateCouple(S.cid, { [`pet.${path}`]: v }); redraw(); };
+  $$('.pet-forms:not(.looks) button[data-form]', m).forEach((b) => b.onclick = () => set('form', +b.dataset.form));
+  $$('.pet-forms.looks button[data-look]', m).forEach((b) => b.onclick = () => set('look', b.dataset.look));
+  $$('.pet-acc button[data-w]', m).forEach((b) => b.onclick = () => set('wear', b.dataset.w));
   $('#pt-feed', m).onclick = async () => {
     if (!(await feedCan())) return toast('今天的罐罐吃完了。回答問題、做任務，或等小動物送來');
     await petXP(8, 'feed');
-    toast(`${P.name} 吃得好開心！經驗 +8`); closeModal(m); ACT.petOpen();
+    toast(`${petState().name} 吃得好開心！經驗 +8`); redraw();
   };
+}
+ACT.petOpen = () => {
+  const m = openModal(petOpenHTML());
+  petOpenWire(m);
 };
 // ============================================================
 //  合照相簿牆：時間軸、足跡的照片自動收進來，也可以另外上傳
@@ -5498,7 +5587,9 @@ function duoStroll(sc) {
   [lead, back].forEach((e) => { e.style.animationDuration = dur + 's'; });
   lead.style.animationDelay = `-${gap.toFixed(2)}s`;
   const byKey = { [sc.lead]: lead, [other]: back };
-  let timer = setTimeout(() => { lead.remove(); back.remove(); }, dur * 1000 + 500);
+  // 11/24：走完畫面才消失（看 animationend），開著視窗時會停下來等
+  [lead, back].forEach((e) => e.addEventListener('animationend', (ev) => { if (ev.target === e) e.remove(); }));
+  let timer = setTimeout(() => { lead.remove(); back.remove(); }, 120000);
   let played = false;
   const play = async () => {
     if (played) return; played = true;
@@ -5529,7 +5620,7 @@ function duoStroll(sc) {
       sfx('pop');
     }
     [lead, back].forEach((e) => e.classList.remove('paused'));
-    timer = setTimeout(() => { lead.remove(); back.remove(); }, dur * 1000);
+    timer = setTimeout(() => { lead.remove(); back.remove(); }, 120000);
     if (sc.a === 'black' || sc.b === 'black') blackPatXP();
     dexNote(sc.a, null); dexNote(sc.b, null);
     if (S.couple && !sceneSeen()[sc.id]) {
@@ -6867,6 +6958,15 @@ const PET_LOOKS = [
   { id: 'summer', name: '夏天', hint: '等夏天來' },
   { id: 'autumn', name: '秋天', hint: '等秋天來' },
   { id: 'winter', name: '冬天', hint: '等冬天來' },
+  // 11/24 多設計 8 套
+  { id: 'sailor', name: '水手服', hint: '一起去過三個地方' },
+  { id: 'raincoat', name: '小雨衣', hint: '下雨天有人陪牠' },
+  { id: 'hoodie', name: '帽T', hint: '連續七天都有人想你' },
+  { id: 'suit', name: '小西裝', hint: '一起赴約十次' },
+  { id: 'detective', name: '小偵探', hint: '找到十張藏起來的紙條' },
+  { id: 'party', name: '壽星派對', hint: '某個人的生日' },
+  { id: 'xmas', name: '聖誕毛衣', hint: '某個下雪的節日' },
+  { id: 'valentine', name: '愛心毛衣', hint: '某個甜甜的節日' },
 ];
 const seasonNow = (d = new Date()) => ['winter', 'winter', 'spring', 'spring', 'spring', 'summer', 'summer', 'summer', 'autumn', 'autumn', 'autumn', 'winter'][d.getMonth()];
 function lookUnlocked() {
@@ -6878,6 +6978,13 @@ function lookUnlocked() {
   if (best >= 7) got.add('pajama');
   if (list('points').some((x) => /^季問答完成/.test(x.reason || ''))) got.add('angel');
   if (list('watch').filter((w) => w.kind === 'food' && w.done).length >= 10) got.add('chef');
+  if (list('trips').length >= 3) got.add('sailor');
+  if (list('dates').filter((d) => d.done).length >= 10) got.add('suit');
+  if (list('notes').filter((n) => n.found).length >= 10) got.add('detective');
+  const md = [...new Set(list('misses').map((x) => dkey(new Date(x.at))))].sort();
+  let r2 = 0, b2 = 0, p2 = null;
+  md.forEach((d) => { r2 = p2 && (parseD(d) - parseD(p2)) / 86400000 === 1 ? r2 + 1 : 1; b2 = Math.max(b2, r2); p2 = d; });
+  if (b2 >= 7) got.add('hoodie');
   return got;
 }
 // 打開 App 時：記下今天的季節、萬聖節；新解鎖的跳通知
@@ -6886,6 +6993,9 @@ async function lookTick() {
   const pet = S.couple.pet || {}, looks = pet.looks || {}, up = {};
   const sn = seasonNow(); if (!looks[sn]) up[`pet.looks.${sn}`] = true;
   const md = dkey().slice(5); if (md === '10-31' && !looks.ghost) up['pet.looks.ghost'] = true;
+  const fn = typeof festNow === 'function' ? festNow() : '';
+  const FL = { bday: 'party', xmas: 'xmas', valentine: 'valentine' }[fn];
+  if (FL && !looks[FL] && !localStorage.getItem('park-fest-preview')) up[`pet.looks.${FL}`] = true;
   if (Object.keys(up).length) await S.store.updateCouple(S.cid, up);
   const key = `park-looks-seen-${S.cid}-${me()}`;
   let seen = null; try { seen = JSON.parse(localStorage.getItem(key) || 'null'); } catch (e) {}
@@ -6900,6 +7010,7 @@ async function lookTick() {
 }
 // 晚上摸牠，記一筆
 function lookNightPat() {
+  if (typeof myMoodRain === 'function' && myMoodRain() && !((S.couple.pet || {}).looks || {}).raincoat) S.store.updateCouple(S.cid, { 'pet.looks.raincoat': true });
   const h = new Date().getHours();
   if (h >= 21 || h < 3) {
     const d = new Date(); if (h < 3) d.setDate(d.getDate() - 1);
@@ -6924,6 +7035,26 @@ function lookArt(id) {
     <path transform="translate(60 18) rotate(20)" d="M0 -5 L1.4 -1.6 L4.4 -2.6 L2.6 1 L4.4 2.6 L.8 2.6 L0 5 L-.8 2.6 L-4.4 2.6 L-2.6 1 L-4.4 -2.6 L-1.4 -1.6 Z" fill="#e98a3a"/>`;
   if (id === 'winter') return `<path d="M35 52 Q50 60 65 52 L66 58 Q50 66 34 58 Z" fill="#d9434f"/><path d="M56 58 L60 74 L55 74 L52 60 Z" fill="#d9434f"/><path d="M37 55 H63 M55 66 H59" stroke="#fbf7f0" stroke-width="1.4" stroke-dasharray="2 2"/>
     <g transform="translate(0 4)"><circle cx="31" cy="33" r="5" fill="#fbf7f0" stroke="#e6dccb" stroke-width=".8"/><circle cx="69" cy="33" r="5" fill="#fbf7f0" stroke="#e6dccb" stroke-width=".8"/><path d="M31 28 Q50 6 69 28" stroke="#d9434f" stroke-width="2" fill="none"/></g>`;
+  if (id === 'sailor') return `<path d="M34 62 Q50 56 66 62 L68 87 L32 87 Z" fill="#f7f7fb"/><path d="M36 58 Q50 64 64 58 L61 67 L50 74 L39 67 Z" fill="#2f4a8a"/><path d="M38 61 L50 70 L62 61" fill="none" stroke="#fff" stroke-width="1.1"/>
+    <path d="M50 72 L46 80 L50 78 L54 80 Z" fill="#d9434f"/><path d="M33 84 H67" stroke="#2f4a8a" stroke-width="2"/>
+    <g transform="translate(0 4)"><path d="M36 20 Q36 10 50 9 Q64 10 64 20 Z" fill="#f7f7fb" stroke="#dcdce8" stroke-width=".8"/><rect x="35" y="18" width="30" height="4.5" rx="2" fill="#2f4a8a"/><path d="M64 20 l6 4 M64 21 l4 6" stroke="#2f4a8a" stroke-width="1.6" stroke-linecap="round"/></g>`;
+  if (id === 'raincoat') return `<path d="M32 60 Q50 53 68 60 L72 89 L28 89 Z" fill="#f5c843"/><path d="M50 58 V88" stroke="#d9a22c" stroke-width="1.2"/><circle cx="54" cy="66" r="1.4" fill="#fff"/><circle cx="54" cy="74" r="1.4" fill="#fff"/><circle cx="54" cy="82" r="1.4" fill="#fff"/>
+    <g transform="translate(0 4)"><path d="M30 44 Q27 14 50 12 Q73 14 70 44" fill="none" stroke="#f5c843" stroke-width="6" stroke-linecap="round"/><path d="M33 22 Q50 8 67 22" fill="none" stroke="#d9a22c" stroke-width="1"/></g>
+    ${[[16, 30], [86, 24], [12, 56], [88, 50]].map(([x, y]) => `<path d="M${x} ${y} q-2 4 0 5 q2 -1 0 -5 Z" fill="#9fd0ff"/>`).join('')}`;
+  if (id === 'hoodie') return `<path d="M32 60 Q50 54 68 60 L70 88 L30 88 Z" fill="#b9a7e6"/><rect x="40" y="74" width="20" height="9" rx="3" fill="#a592d8"/><path d="M45 58 L44 68 M55 58 L56 68" stroke="#fff" stroke-width="1.2" stroke-linecap="round"/><circle cx="44" cy="69" r="1.2" fill="#fff"/><circle cx="56" cy="69" r="1.2" fill="#fff"/>
+    <path d="M31 58 Q50 50 69 58" fill="none" stroke="#a592d8" stroke-width="5" stroke-linecap="round"/>`;
+  if (id === 'suit') return `<path d="M33 61 Q50 55 67 61 L68 87 L32 87 Z" fill="#4a4f63"/><path d="M42 58 L50 76 L58 58 Z" fill="#fbf7f0"/><path d="M41 58 L48 74 L44 76 L38 62 Z M59 58 L52 74 L56 76 L62 62 Z" fill="#3a3e50"/>
+    <path d="M50 60 L46 57.5 L46 62.5 Z M50 60 L54 57.5 L54 62.5 Z" fill="#d9434f"/><circle cx="50" cy="60" r="1.2" fill="#a8303b"/><circle cx="50" cy="80" r="1.1" fill="#c9c4b8"/><path d="M60 66 h4" stroke="#fbf7f0" stroke-width="1.2"/>`;
+  if (id === 'detective') return `<path d="M30 60 Q50 52 70 60 L73 88 L27 88 Z" fill="#b08a5a"/><path d="M30 60 Q50 70 70 60 L66 70 Q50 76 34 70 Z" fill="#9a764a"/><circle cx="46" cy="74" r="1.2" fill="#6b4f30"/><circle cx="54" cy="74" r="1.2" fill="#6b4f30"/>
+    <g transform="translate(0 4)"><path d="M33 22 Q35 8 50 8 Q65 8 67 22 Z" fill="#b08a5a"/><path d="M33 22 Q50 18 67 22 L68 25 Q50 21 32 25 Z" fill="#9a764a"/><path d="M33 23 L27 27 M67 23 L73 27" stroke="#9a764a" stroke-width="3" stroke-linecap="round"/><path d="M42 11 Q50 14 58 11" stroke="#8a6a40" stroke-width=".8" fill="none"/></g>
+    <g transform="translate(80 74) rotate(30)"><circle r="6" fill="#dff1ff" fill-opacity=".6" stroke="#6b4f30" stroke-width="2"/><path d="M0 6 V15" stroke="#6b4f30" stroke-width="2.6" stroke-linecap="round"/></g>`;
+  if (id === 'party') return `<path d="M36 60 L40 56 L44 60 L48 56 L52 60 L56 56 L60 60 L64 56 L64 61 Q50 66 36 61 Z" fill="#fff3c4" stroke="#e8b04b" stroke-width=".8"/>
+    <g transform="translate(0 4) rotate(-10 52 16)"><path d="M43 20 L52 -2 L61 20 Z" fill="#ff8fab"/><path d="M45.5 14 L58.5 14 M48 8 L56 8" stroke="#fff" stroke-width="2"/><circle cx="52" cy="-3" r="2.6" fill="#ffd45c"/></g>
+    ${[[18, 28, '#ff8fab'], [84, 30, '#9fd0ff'], [14, 60, '#ffd45c'], [86, 62, '#b9a7e6'], [24, 46, '#7cc7a8']].map(([x, y, c], i) => `<rect x="${x}" y="${y}" width="3.4" height="1.8" rx=".6" fill="${c}" transform="rotate(${i * 37} ${x} ${y})"/>`).join('')}`;
+  if (id === 'xmas') return `<path d="M32 60 Q50 54 68 60 L70 88 L30 88 Z" fill="#c8303f"/><path d="M31 63 Q50 57 69 63" fill="none" stroke="#2f7a4f" stroke-width="3"/><path d="M30 85 H70" stroke="#2f7a4f" stroke-width="3"/>
+    <path d="M34 72 H66" stroke="#fbf7f0" stroke-width="1.4" stroke-dasharray="1.6 3"/>${[40, 50, 60].map((x) => `<g transform="translate(${x} 79)"><path d="M0 -3.4 V3.4 M-3 -1.7 L3 1.7 M-3 1.7 L3 -1.7" stroke="#fbf7f0" stroke-width=".9" stroke-linecap="round"/></g>`).join('')}`;
+  if (id === 'valentine') return `<path d="M32 60 Q50 54 68 60 L70 88 L30 88 Z" fill="#f7b6c8"/><path d="M31 63 Q50 57 69 63" fill="none" stroke="#e98aa6" stroke-width="3"/><path d="M30 85 H70" stroke="#e98aa6" stroke-width="3"/>
+    <path d="M50 82 C44 77 40 74 42 70 C43.5 67.5 47 67.5 50 71 C53 67.5 56.5 67.5 58 70 C60 74 56 77 50 82 Z" fill="#e2445f"/><path d="M36 76 l1 -1 1 1 M62 76 l1 -1 1 1" stroke="#fff" stroke-width=".9" fill="none"/>`;
   return '';
 }
 // ============================================================
@@ -8520,8 +8651,8 @@ function showPest(k = pick(PEST_KEYS)) {
       if (trialOpen() && document.querySelector('.modal-back.hot-zone')) { pestDone = false; clearTimeout(pestTimer); pestTimer = setTimeout(pestTry, 8000 + Math.random() * 4000); }
     }, 1900);
   };
-  // 不理牠的話，45 秒後自己走掉
-  const idle = setTimeout(() => leave(P.idle, false), 45000);
+  // 11/24：不會自己走掉，一定要點到牠跑掉（關掉火辣區才會跟著消失）
+  const idle = 0;
   let lastPush = -1;
   $('.pest-body', el).onclick = () => {
     if (gone) return;
@@ -9140,7 +9271,7 @@ const MORE_ACH = [
   { id: 'date10', name: '約會十次', desc: '完成 10 個約會', m: 'datesDone', goal: 10, tier: 's', mark: '約' },
   { id: 'date30', name: '約會常客', desc: '完成 30 個約會', m: 'datesDone', goal: 30, tier: 'g', mark: '約' },
   { id: 'look4', name: '換裝達人', desc: '小小黑解鎖 4 套裝扮', m: 'looks', goal: 4, tier: 's', mark: '裝' },
-  { id: 'look8', name: '衣櫃滿滿', desc: '小小黑 8 套裝扮全部解鎖', m: 'looks', goal: 8, tier: 'g', mark: '衣' },
+  { id: 'look8', name: '衣櫃滿滿', desc: '小小黑解鎖 8 套裝扮', m: 'looks', goal: 8, tier: 'g', mark: '衣' },
   { id: 'feed30', name: '罐罐飼養員', desc: '餵小小黑 30 個罐罐', m: 'feeds', goal: 30, tier: 'b', mark: '罐' },
   { id: 'feed100', name: '罐罐大戶', desc: '餵小小黑 100 個罐罐', m: 'feeds', goal: 100, tier: 's', mark: '罐' },
   { id: 'poke50', name: '戳戳樂', desc: '兩人互戳 50 次', m: 'pokes', goal: 50, tier: 'b', mark: '戳' },
@@ -9198,7 +9329,7 @@ function linkFlags() {
 }
 // 十連抽次數
 document.addEventListener('click', (e) => {
-  if (e.target.closest('#g-10, #g-10t') && S.couple && bothIn()) fire(S.store.coupleTx(S.cid, (c) => ({ 'links.tens': ((c.links || {}).tens || 0) + 1 })));
+  if (e.target.closest('#g-10, #g-10t:not(.short)') && S.couple && bothIn()) fire(S.store.coupleTx(S.cid, (c) => ({ 'links.tens': ((c.links || {}).tens || 0) + 1 })));
 }, true);
 
 // ============================================================
@@ -9759,6 +9890,123 @@ monthReview = () => {
   if (R && !R.any && S.couple && (S.couple.members || []).length >= 2 && Object.values(ilyWins(`${R.y}-${pad(R.mo + 1)}`)).some((n) => n)) R.any = true;
   return R;
 };
+// ============================================================
+//  兌換券：對方可以「先收起來」，做完打勾 → 兌換的人驗收（11/24 晽晽要求）
+//  資料放在兌換時建立的那筆 events（type 'redeem'）上：
+//    task: 'doing'（收到了，待完成） → 'done'（做的人打勾了，等驗收） → 'ok'（驗收成功）
+//    later: true＝選了「先收起來」；doneAt、okAt 記時間
+// ============================================================
+const rdTasks = () => list('events').filter((e) => e.type === 'redeem' && e.cardId && e.task && e.task !== 'ok');
+const rdCard = (e) => list('cards').find((x) => x.id === e.cardId);
+const rdTitle = (e) => { const c = rdCard(e); return (c && c.title) || e.detail || '票券'; };
+
+// 對方跳出大卡片：「馬上來」或「先收起來」，兩種都會進到待完成
+redeemPopup = function () {
+  if (!S.d.events || !S.d.cards || document.querySelector('.redeem-pop')) return;
+  const key = `park-redeem-pop-${S.cid}-${me()}`;
+  const evs = list('events').filter((e) => e.to === me() && e.type === 'redeem' && e.cardId);
+  let seen = null; try { seen = JSON.parse(localStorage.getItem(key) || 'null'); } catch (e) {}
+  if (!seen) { localStorage.setItem(key, JSON.stringify(evs.map((e) => e.id))); return; }
+  const e = evs.filter((x) => !seen.includes(x.id) && !x.read).sort((a, b) => a.at - b.at)[0];
+  if (!e) return;
+  seen.push(e.id); localStorage.setItem(key, JSON.stringify(seen.slice(-300)));
+  const c = rdCard(e);
+  const m = openModal(`<div class="redeem-pop">
+      <div class="rp-head"><span class="rp-who">${esc(nick(e.by))}</span> 要兌換這張！</div>
+      ${c ? bigCardHTML(c).replace(/<p class="center small muted"[\s\S]*?<\/p>\s*$/, '') : `<div class="rp-title">${esc(e.detail)}</div>`}
+      <button class="btn block" id="rp-ok">收到，馬上來</button>
+      <button class="btn ghost block mt" id="rp-later"><i data-ic="hourglass"></i> 先收起來，晚點做</button>
+      <p class="center small muted" style="margin:8px 0 0">做完記得打勾，${esc(nick(e.by))} 驗收了才算兌換完成</p>
+    </div>`, { center: true, cls: 'redeem-pop-back' });
+  if (c && typeof attachCardFX === 'function') attachCardFX(m);
+  sfx('chime'); confetti(c && (c.rarity === 'SSR' || c.rarity === 'SR') ? 90 : 45);
+  const take = async (later) => {
+    closeModal(m);
+    await col('events').update(e.id, { read: true, task: 'doing', later, takenAt: now() });
+    await notify(e.by, 'redeem', later ? `${nick(me())} 收下「${rdTitle(e)}」了，晚點會做` : `${nick(me())} 說馬上來：${rdTitle(e)}`);
+    if (later) toast('收起來了，在「有人在等你」和票夾都看得到');
+    setTimeout(redeemPopup, 400);
+  };
+  $('#rp-ok', m).onclick = () => take(false);
+  $('#rp-later', m).onclick = () => take(true);
+};
+
+// 一筆兌換的詳細視窗（做的人：打勾；兌換的人：驗收）
+ACT.rdOpen = (el) => {
+  const e = list('events').find((x) => x.id === el.dataset.id); if (!e) return;
+  const c = rdCard(e), doer = e.to, asker = e.by;
+  const step = (n, on, t) => `<div class="rd-step ${on ? 'on' : ''}"><span class="rd-dot">${on ? '<i data-ic="check"></i>' : n}</span><span>${t}</span></div>`;
+  const body = () => {
+    const x = list('events').find((y) => y.id === e.id) || e;
+    const iDo = doer === me(), iAsk = asker === me();
+    let act = '';
+    if (x.task === 'doing' && iDo) act = '<button class="btn block" id="rd-done"><i data-ic="check"></i> 做完了，請對方驗收</button>';
+    else if (x.task === 'doing') act = `<p class="center small muted">等 ${esc(nick(doer))} 做完打勾</p>`;
+    else if (x.task === 'done' && iAsk) act = '<div class="btn-row"><button class="btn ghost" id="rd-no">還沒有喔</button><button class="btn" id="rd-ok"><i data-ic="sparkle"></i> 驗收成功</button></div>';
+    else if (x.task === 'done') act = `<p class="center small muted">等 ${esc(nick(asker))} 驗收</p>`;
+    else if (x.task === 'ok') act = `<p class="center small" style="color:var(--accent)">${fmtDate(x.okAt)} 驗收成功</p>`;
+    return `${mhead('<i data-ic="ticket"></i> 兌換中')}
+      <div class="ritual">${c ? bigCardHTML(c) : `<div class="rp-title">${esc(e.detail)}</div>`}</div>
+      <div class="rd-steps">
+        ${step(1, true, `${esc(nick(asker))} 兌換`)}
+        ${step(2, ['doing', 'done', 'ok'].includes(x.task), x.later ? `${esc(nick(doer))} 先收起來` : `${esc(nick(doer))} 收到`)}
+        ${step(3, ['done', 'ok'].includes(x.task), `${esc(nick(doer))} 做完`)}
+        ${step(4, x.task === 'ok', `${esc(nick(asker))} 驗收`)}
+      </div>${act}`;
+  };
+  const m = openModal(body(), { center: true });
+  const wire = () => {
+    const re = () => { m.querySelector('.modal').innerHTML = body(); wire(); render(); };
+    $('#rd-done', m) && ($('#rd-done', m).onclick = async () => {
+      await col('events').update(e.id, { task: 'done', doneAt: now() });
+      await notify(asker, 'redeem', `${nick(me())} 說「${rdTitle(e)}」做完了，去驗收吧`);
+      sfx('pop'); toast('打勾了，等對方驗收'); setTimeout(re, 150);
+    });
+    $('#rd-ok', m) && ($('#rd-ok', m).onclick = async () => {
+      await col('events').update(e.id, { task: 'ok', okAt: now() });
+      await notify(doer, 'redeem', `「${rdTitle(e)}」驗收成功 ✨`);
+      confetti(70); sfx('sparkle'); petXP(2); toast('驗收成功！'); setTimeout(re, 150);
+    });
+    $('#rd-no', m) && ($('#rd-no', m).onclick = async () => {
+      await col('events').update(e.id, { task: 'doing' });
+      await notify(doer, 'redeem', `「${rdTitle(e)}」好像還沒做完喔`);
+      toast('退回去了'); setTimeout(re, 150);
+    });
+  };
+  wire();
+};
+
+// 首頁「有人在等你」
+const _rdTodos0 = homeTodos;
+homeTodos = () => {
+  const t = _rdTodos0();
+  for (const e of rdTasks()) {
+    if (e.task === 'doing' && e.to === me()) t.push({ icon: '<i data-ic="ticket"></i>', text: `${nick(e.by)} 兌換的「${rdTitle(e)}」，做完記得打勾`, act: 'rdOpen', id: e.id, btn: '打勾' });
+    if (e.task === 'done' && e.by === me()) t.unshift({ icon: '<i data-ic="sparkle"></i>', text: `${nick(e.to)} 說「${rdTitle(e)}」做完了`, act: 'rdOpen', id: e.id, btn: '驗收' });
+  }
+  return t;
+};
+
+// 票夾「我的票夾」最上面：兌換中
+function rdWalletHTML() {
+  const ts = rdTasks().filter((e) => e.to === me() || e.by === me()).sort((a, b) => a.at - b.at);
+  if (!ts.length) return '';
+  const lab = (e) => (e.task === 'done' ? (e.by === me() ? '等你驗收' : '等對方驗收') : (e.to === me() ? (e.later ? '收起來了，待完成' : '待完成') : `${esc(nick(e.to))} 處理中`));
+  return `<div class="rd-wallet"><h3 class="rd-h"><i data-ic="hourglass"></i> 兌換中</h3>
+    ${ts.map((e) => `<button class="rd-row ${e.task}" data-act="rdOpen" data-id="${e.id}"><span class="rd-t">${esc(rdTitle(e))}</span><span class="rd-s">${lab(e)}</span></button>`).join('')}</div>`;
+}
+const _rdWM0 = walletMine;
+walletMine = () => rdWalletHTML() + _rdWM0();
+
+// 11/24：還沒結束的舊版（單題）對戰挑戰收起來，改用每週 3 題版（07z2-battle.js）
+let btOldBusy = false;
+setInterval(async () => {
+  if (btOldBusy || !S.d.battles || !S.couple || document.visibilityState === 'hidden') return;
+  const old = list('battles').filter((b) => !b.kind && ['pending', 'active', 'claimed'].includes(b.status));
+  if (!old.length) return;
+  btOldBusy = true;
+  try { for (const b of old) await col('battles').update(b.id, { status: 'cancel', cancelWhy: 'v3' }); } finally { btOldBusy = false; }
+}, 5000);
 // ============================================================
 //  年度回顧多的幾頁：最常遇到的小夥伴、小紙條、小小黑這一年、撞答案、
 //  戳一戳、送給對方的卡、今年的第一次

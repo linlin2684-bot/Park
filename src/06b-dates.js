@@ -48,7 +48,7 @@ ACT.dateEdit = (el, e, preset = {}) => {
     <label>地點（可以不填）</label><input id="dt-p" maxlength="40" value="${esc(t.place)}" placeholder="例如：信義區 XX 餐廳">
     <label>備註（可以不填）</label><input id="dt-n" maxlength="60" value="${esc(t.note)}" placeholder="例如：記得訂位">
     <button class="btn block mt" id="dt-ok">${d ? '儲存' : '排進行程'}</button>
-    ${d ? `<div class="btn-row mt"><button class="btn ghost" id="dt-ics"><i data-ic="download"></i> 加到手機行事曆</button>${d.done ? '' : '<button class="btn ghost" id="dt-done"><i data-ic="check"></i> 去過了</button>'}</div>
+    ${d ? `<div class="btn-row mt"><button class="btn ghost" id="dt-ics"><i data-ic="download"></i> 加到手機行事曆</button>${d.done ? '<button class="btn ghost" id="dt-undo"><i data-ic="swap"></i> 按錯了，改回還沒去</button>' : '<button class="btn ghost" id="dt-done"><i data-ic="check"></i> 去過了</button>'}</div>${d.done && !d.tripId ? '<button class="btn block mt" id="dt-after"><i data-ic="camera"></i> 加照片、收進足跡</button>' : ''}
       <button class="link center" id="dt-del" style="color:#d4405f;margin-top:10px">刪除這個約會</button>` : ''}`);
   const read = () => ({ title: $('#dt-t', m).value.trim(), date: $('#dt-d', m).value, time: $('#dt-h', m).value, place: $('#dt-p', m).value.trim(), note: $('#dt-n', m).value.trim() });
   $('#dt-ok', m).onclick = async () => {
@@ -67,7 +67,11 @@ ACT.dateEdit = (el, e, preset = {}) => {
   if (!d) return;
   $('#dt-ics', m).onclick = () => downloadICS(d);
   const dn = $('#dt-done', m);
-  if (dn) dn.onclick = async () => { await col('dates').update(d.id, { done: true, doneAt: now() }); closeModal(m); toast('又一起去了一個地方'); petXP(3); dateStamps(d); askAddMemory({ title: d.title, date: d.date, kind: 'date', note: d.place || '' }); };
+  if (dn) dn.onclick = async () => { await col('dates').update(d.id, { done: true, doneAt: now() }); closeModal(m); toast('又一起去了一個地方'); petXP(3); dateStamps(d); setTimeout(() => dateAfter(d), 500); };
+  const un = $('#dt-undo', m);
+  if (un) un.onclick = async () => { await col('dates').update(d.id, { done: false, doneAt: 0 }); closeModal(m); toast('改回還沒去了'); };
+  const af = $('#dt-after', m);
+  if (af) af.onclick = () => { closeModal(m); dateAfter(d); };
   $('#dt-del', m).onclick = async () => { if (!(await confirmBox('確定刪除這個約會？', '刪除'))) return; await col('dates').remove(d.id); closeModal(m); };
 };
 
@@ -86,6 +90,52 @@ function downloadICS(d) {
   a.href = URL.createObjectURL(new Blob([ics], { type: 'text/calendar;charset=utf-8' }));
   a.download = `date-${d.date}.ics`; document.body.appendChild(a); a.click(); a.remove();
   toast('打開下載的檔案就能加進行事曆');
+}
+
+// ---------- 約會完成：加照片、一句話，收進足跡和時間軸（11/24）----------
+// 照片存在 photos（帶 tripId、dateId），足跡存在 trips（帶 dateId，封面＝第一張照片），約會記下 tripId
+function dateAfter(d) {
+  const shots = [];
+  const place = d.place || d.title || '';
+  const m = openModal(`${mhead('<i data-ic="camera"></i> 約會完成')}
+    <div class="da-head"><div class="nd-cal"><b>${dateDT(d).getDate()}</b><span>${dateDT(d).getMonth() + 1} 月</span></div>
+      <div class="grow"><div class="da-t">${esc(d.title)}</div><div class="small muted">${esc(d.place || '')}</div></div></div>
+    <label>今天的照片（最多 6 張，會自動壓縮）</label>
+    <div class="da-ph" id="da-ph"><label class="da-add"><i data-ic="plus"></i><input type="file" accept="image/*" multiple id="da-f" class="hidden"></label></div>
+    <label>一句話記下今天</label><textarea id="da-n" maxlength="200" placeholder="今天最開心的是…"></textarea>
+    <label class="check-row"><input type="checkbox" id="da-trip" checked> 收進足跡（地點：<input id="da-p" class="da-p" maxlength="30" value="${esc(place)}">）</label>
+    <label class="check-row"><input type="checkbox" id="da-mem" checked> 記進時間軸</label>
+    <button class="btn block mt" id="da-ok"><i data-ic="pin"></i> 收進回憶</button>
+    <button class="link center" id="da-skip" style="margin-top:8px">先不用</button>`, { center: true });
+  const draw = () => {
+    const box = $('#da-ph', m);
+    box.querySelectorAll('.da-img').forEach((x) => x.remove());
+    shots.forEach((src, i) => box.insertAdjacentHTML('beforeend', `<div class="da-img" style="background-image:url(${src})"><button data-i="${i}" aria-label="拿掉">✕</button>${i === 0 ? '<span>封面</span>' : ''}</div>`));
+    box.querySelectorAll('.da-img button').forEach((b) => b.onclick = () => { shots.splice(+b.dataset.i, 1); draw(); });
+    $('.da-add', m).style.display = shots.length >= 6 ? 'none' : '';
+  };
+  $('#da-f', m).onchange = async (e) => {
+    for (const f of [...e.target.files].slice(0, 6 - shots.length)) { try { shots.push(await compressImage(f)); } catch (err) { toast('有一張照片讀不到'); } }
+    e.target.value = ''; draw();
+  };
+  $('#da-skip', m).onclick = () => closeModal(m);
+  $('#da-ok', m).onclick = async () => {
+    const note = $('#da-n', m).value.trim(), toTrip = $('#da-trip', m).checked, toMem = $('#da-mem', m).checked, name = $('#da-p', m).value.trim() || d.title;
+    if (!toTrip && !toMem && !shots.length) return closeModal(m);
+    $('#da-ok', m).disabled = true;
+    let tripId = '';
+    if (toTrip) {
+      tripId = await col('trips').add({ name, date: d.date || dkey(), note: '', notes: note ? { [me()]: note } : {}, cover: shots[0] || '', lat: null, lng: null, dateId: d.id, by: me(), at: now() });
+      for (const u of S.couple.members) await addPoints(u, D.POINTS.trip, '旅行足跡：' + name);
+      if (partner()) await notify(partner(), 'trip', `${nick(me())} 把約會收進足跡了 🗺️`, name);
+      await col('dates').update(d.id, { tripId });
+      // 有地點就順手找座標（找不到也沒關係）
+      if (d.place) fetch(`https://nominatim.openstreetmap.org/search?format=json&limit=1&accept-language=zh-TW&q=${encodeURIComponent(d.place)}`).then((r) => r.json()).then((j) => { if (j && j[0]) col('trips').update(tripId, { lat: +j[0].lat, lng: +j[0].lon }); }).catch(() => {});
+    }
+    for (const img of shots) await col('photos').add({ img, caption: d.title, date: d.date || dkey(), tripId, dateId: d.id, by: me(), at: now() });
+    if (toMem) await col('memories').add({ title: d.title, date: d.date || dkey(), kind: 'date', note: note || d.place || '', by: me(), at: now() });
+    closeModal(m); confetti(50); toast(toTrip ? '收進足跡了 📍' : '記下來了');
+  };
 }
 
 // 做完的事情：問要不要記進時間軸（不自動）
@@ -123,8 +173,8 @@ function datesJar() {
       </svg>
       <div class="btn-row" style="justify-content:center"><button class="btn ghost" data-act="ideaAdd"><i data-ic="plus"></i> 丟一個點子</button><button class="btn" data-act="ideaShake" ${ideas.length ? '' : 'disabled'}>搖一搖</button></div>
     </div>
-    ${ideas.length ? `<div class="card"><h3 style="font-size:15px">罐子裡的點子</h3><div class="idea-slips">${ideas.map((x, i) => `<div class="idea-chip emb-F-date" style="--r:${((i % 5) - 2) * 1.2}deg"><span class="grow">${esc(x.text)}<small>${esc(nick(x.by))} 丟的</small></span>${x.by === me() ? `<button data-act="ideaDel" data-id="${x.id}" aria-label="刪除">✕</button>` : ''}</div>`).join('')}</div></div>` : ''}
-    ${used.length ? `<details class="card"><summary>抽過的點子（${used.length}）</summary>${used.slice(0, 30).map((x) => `<div class="list-row"><span class="grow muted">${esc(x.text)}</span></div>`).join('')}</details>` : ''}`;
+    ${ideas.length ? `<div class="card"><h3 style="font-size:15px">罐子裡的點子</h3><div class="idea-slips">${ideas.map((x, i) => `<div class="idea-chip emb-F-date" style="--r:${((i % 5) - 2) * 1.2}deg"><span class="grow">${esc(x.text)}<small>${esc(nick(x.by))} 丟的</small></span><button data-act="ideaDel" data-id="${x.id}" aria-label="刪除">✕</button></div>`).join('')}</div></div>` : ''}
+    ${used.length ? `<details class="card"><summary>抽過的點子（${used.length}）</summary>${used.slice(0, 30).map((x) => `<div class="list-row"><span class="grow muted">${esc(x.text)}</span><button class="idea-x" data-act="ideaDel" data-id="${x.id}" aria-label="刪除">✕</button></div>`).join('')}</details>` : ''}`;
 }
 ACT.ideaAdd = async () => {
   const v = await promptBox('丟一個約會點子', { placeholder: '例如：去海邊看日落、一起做菜、夜市吃到飽' });
@@ -132,7 +182,7 @@ ACT.ideaAdd = async () => {
   await col('ideas').add({ text: v.trim(), by: me(), used: false, at: now() });
   toast('丟進罐子了'); sfx('pop');
 };
-ACT.ideaDel = async (el, e) => { e && e.stopPropagation(); await col('ideas').remove(el.dataset.id); };
+ACT.ideaDel = async (el, e) => { e && e.stopPropagation(); if (!(await confirmBox('把這個點子從罐子裡拿掉？', '拿掉'))) return; await col('ideas').remove(el.dataset.id); toast('拿掉了'); };
 ACT.ideaShake = async () => {
   const ideas = list('ideas').filter((x) => !x.used);
   if (!ideas.length) return;

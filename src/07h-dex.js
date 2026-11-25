@@ -89,7 +89,9 @@ function duoStroll(sc) {
   [lead, back].forEach((e) => { e.style.animationDuration = dur + 's'; });
   lead.style.animationDelay = `-${gap.toFixed(2)}s`;
   const byKey = { [sc.lead]: lead, [other]: back };
-  let timer = setTimeout(() => { lead.remove(); back.remove(); }, dur * 1000 + 500);
+  // 11/24：走完畫面才消失（看 animationend），開著視窗時會停下來等
+  [lead, back].forEach((e) => e.addEventListener('animationend', (ev) => { if (ev.target === e) e.remove(); }));
+  let timer = setTimeout(() => { lead.remove(); back.remove(); }, 120000);
   let played = false;
   const play = async () => {
     if (played) return; played = true;
@@ -120,7 +122,7 @@ function duoStroll(sc) {
       sfx('pop');
     }
     [lead, back].forEach((e) => e.classList.remove('paused'));
-    timer = setTimeout(() => { lead.remove(); back.remove(); }, dur * 1000);
+    timer = setTimeout(() => { lead.remove(); back.remove(); }, 120000);
     if (sc.a === 'black' || sc.b === 'black') blackPatXP();
     dexNote(sc.a, null); dexNote(sc.b, null);
     if (S.couple && !sceneSeen()[sc.id]) {

@@ -62,7 +62,7 @@ PAGES.play = {
       <button class="game-tile" data-act="tod"><span class="gi"><i data-ic="dice" data-medal></i></span><b>真心話大冒險</b><span>輪流抽題，誰都逃不掉</span></button>
       <button class="game-tile" data-act="quiz"><span class="gi"><i data-ic="minds" data-medal></i></span><b>默契問答</b><span>${quizNew ? '今天的題目來了' : (q && p && q.answers[p] ? '看結果' : '等對方作答')}</span>${quizNew ? '<span class="badge-dot">!</span>' : ''}</button>
       <button class="game-tile wide" data-act="dex"><span class="gi"><i data-ic="book" data-medal></i></span><div class="grow"><b>小動物圖鑑</b><br><span>已經遇到 ${dexCount()} 位朋友<br>牠們會路過首頁，也會來小小黑家值日</span></div><span style="font-size:22px">›</span></button>
-      <button class="game-tile wide" data-act="battle"><span class="gi"><i data-ic="swords" data-medal></i></span><div class="grow"><b>對戰挑戰</b><br><span>${bt ? `${bt.status === 'pending' ? '等待接受' : '進行中'}：${esc(bt.task)}` : '一週內誰先完成？輸的人發卡'}</span></div><span style="font-size:22px">›</span></button>
+      <button class="game-tile wide" data-act="battle"><span class="gi"><i data-ic="swords" data-medal></i></span><div class="grow"><b>對戰挑戰</b> ${daysLeftTxt(bt && bt.deadline ? bt.deadline : 0)}<br><span>${bt ? `${bt.status === 'pending' ? '等待接受' : '進行中'}：${esc(bt.task)}` : '每週 3 個挑戰，每人可換一題，比誰完成得多'}</span></div><span style="font-size:22px">›</span></button>
     </div>
     ${stampCardHTML()}
     ${weeklyHTML()}`;
@@ -81,7 +81,7 @@ ACT.gacha = () => {
     <div id="gbtns">
       <div class="btn-row"><button class="btn" id="g-pt">扭一次（${D.POINTS.gachaCost} 點）</button>${tickets(me()) ? `<button class="btn gold" id="g-tk">用扭蛋券 <i data-ic="ticket"></i>${tickets(me())}</button>` : ''}</div>
       <button class="btn block g10-btn" id="g-10"><b>十連抽</b>（${D.POINTS.gachaCost * 10} 點）<span class="g10-gift">多送 1 抽</span></button>
-      ${tickets(me()) >= 10 ? `<button class="btn gold block g10-btn tk" id="g-10t"><b>十連抽</b>（扭蛋券 10 張）<span class="g10-gift">多送 1 抽</span></button>` : ''}
+      <button class="btn gold block g10-btn tk ${tickets(me()) >= 10 ? '' : 'short'}" id="g-10t"><b>十連抽</b>（扭蛋券 10 張${tickets(me()) >= 10 ? '' : `・你有 ${tickets(me())} 張`}）<span class="g10-gift">多送 1 抽</span></button>
       <p class="center small muted">我的點數：<i data-ic="coin"></i> ${balance(me())} · 機率 N ${D.RARITY.N.weight}% / R ${D.RARITY.R.weight}% / SR ${D.RARITY.SR.weight}% / SSR ${D.RARITY.SSR.weight}%</p>
     </div>`, { center: true });
   const go = async (useTicket) => {
@@ -127,7 +127,7 @@ ACT.gacha = () => {
   };
   $('#g-pt', m).onclick = () => go(false);
   $('#g-10', m).onclick = () => go10(false);
-  $('#g-10t', m) && ($('#g-10t', m).onclick = () => go10(true));
+  $('#g-10t', m) && ($('#g-10t', m).onclick = () => (tickets(me()) >= 10 ? go10(true) : toast(`扭蛋券還不夠 10 張（你有 ${tickets(me())} 張）`)));
   // 十連抽：付 10 抽的點數，抽 11 張
   const go10 = async (useTicket) => {
     const cost = D.POINTS.gachaCost * 10;
@@ -619,6 +619,13 @@ ACT.giveStamp = () => {
 };
 
 // ---------- 每週任務 ----------
+// 11/24：標題旁淡淡的（還剩幾天）。沒給截止時間就算到這週日
+function daysLeftTxt(deadline) {
+  let n;
+  if (deadline) n = Math.max(0, Math.ceil((deadline - now()) / 86400000));
+  else { const d = new Date().getDay() || 7; n = 8 - d; }
+  return `<span class="days-left">（${n <= 1 ? '今天最後一天' : `還剩 ${n} 天`}）</span>`;
+}
 function weekTaskIdx() {
   const wk = weekKey();
   const base = shuffled(D.WEEKLY_TASKS.map((_, i) => i), hash(wk + (S.cid || ''))).slice(0, 3);
@@ -629,7 +636,7 @@ function weekTasks() { return weekTaskIdx().map((i) => D.WEEKLY_TASKS[i] || '');
 function weeklyHTML() {
   const wk = weekKey(), p = partner();
   const done = (i, u) => list('taskDone').some((x) => x.id === `${wk}_${i}_${u}`);
-  return `<div class="card"><h3><i data-ic="clipboard"></i> 每週任務 <span class="sub">完成一項 +${D.POINTS.weeklyTask} 點</span></h3>
+  return `<div class="card"><h3><i data-ic="clipboard"></i> 每週任務 ${daysLeftTxt(0)} <span class="sub">完成一項 +${D.POINTS.weeklyTask} 點</span></h3>
     ${weekTasks().map((t, i) => {
       const req = S.couple.taskSwapReq;
       const pending = req && req.wk === wk && req.i === i;

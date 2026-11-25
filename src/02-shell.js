@@ -386,7 +386,12 @@ function renderNav() {
 }
 ACT.tab = (el) => {
   const t = el.dataset.tab;
-  if (S.tab === t) { window.scrollTo({ top: 0, behavior: 'smooth' }); return; }
+  if (S.tab === t) {
+    // 11/24：在收藏館（或其他小分頁）時再點一次下面的分頁，回到這一頁的第一個小分頁
+    const first = { wallet: 'mine', travel: 'plan', memory: 'goals' }[t];
+    if (first && S.sub[t] !== first) { S.sub[t] = first; window.scrollTo(0, 0); render(); return; }
+    window.scrollTo({ top: 0, behavior: 'smooth' }); return;
+  }
   S.tab = t;
   // 切到別的分頁再回來，小分頁回到第一個
   Object.assign(S.sub, { wallet: 'mine', travel: 'plan', memory: 'goals' });

@@ -82,7 +82,7 @@ const MORE_ACH = [
   { id: 'date10', name: '約會十次', desc: '完成 10 個約會', m: 'datesDone', goal: 10, tier: 's', mark: '約' },
   { id: 'date30', name: '約會常客', desc: '完成 30 個約會', m: 'datesDone', goal: 30, tier: 'g', mark: '約' },
   { id: 'look4', name: '換裝達人', desc: '小小黑解鎖 4 套裝扮', m: 'looks', goal: 4, tier: 's', mark: '裝' },
-  { id: 'look8', name: '衣櫃滿滿', desc: '小小黑 8 套裝扮全部解鎖', m: 'looks', goal: 8, tier: 'g', mark: '衣' },
+  { id: 'look8', name: '衣櫃滿滿', desc: '小小黑解鎖 8 套裝扮', m: 'looks', goal: 8, tier: 'g', mark: '衣' },
   { id: 'feed30', name: '罐罐飼養員', desc: '餵小小黑 30 個罐罐', m: 'feeds', goal: 30, tier: 'b', mark: '罐' },
   { id: 'feed100', name: '罐罐大戶', desc: '餵小小黑 100 個罐罐', m: 'feeds', goal: 100, tier: 's', mark: '罐' },
   { id: 'poke50', name: '戳戳樂', desc: '兩人互戳 50 次', m: 'pokes', goal: 50, tier: 'b', mark: '戳' },
@@ -140,7 +140,7 @@ function linkFlags() {
 }
 // 十連抽次數
 document.addEventListener('click', (e) => {
-  if (e.target.closest('#g-10, #g-10t') && S.couple && bothIn()) fire(S.store.coupleTx(S.cid, (c) => ({ 'links.tens': ((c.links || {}).tens || 0) + 1 })));
+  if (e.target.closest('#g-10, #g-10t:not(.short)') && S.couple && bothIn()) fire(S.store.coupleTx(S.cid, (c) => ({ 'links.tens': ((c.links || {}).tens || 0) + 1 })));
 }, true);
 
 // ============================================================

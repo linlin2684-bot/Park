@@ -244,9 +244,12 @@ function catStroll(force) {
   if (!force && typeof pickScene === 'function') { const sc = pickScene(k); if (sc) return duoStroll(sc); }
   const el = walker(k);
   if (k === 'tuxedo' && Math.random() < .35) el.classList.add('backwards');
-  let timer = setTimeout(() => el.remove(), 9500);
+  // 11/24：走完畫面才消失（看 animationend）；開著視窗時會停在原地等（CSS），關掉再繼續走
+  el.addEventListener('animationend', (ev) => { if (ev.target === el) el.remove(); });
+  let timer = setTimeout(() => el.remove(), 120000);
   el.onclick = async () => {
     const r = el.getBoundingClientRect();
+    const art0 = el.innerHTML;
     // 鯊鯊：第一次點＝鼻子被碰到，關機掉到地上；再點一次＝倒吸一口氣開機，游走
     if (k === 'shark') {
       if (!el.classList.contains('off')) {
@@ -279,7 +282,8 @@ function catStroll(force) {
       blackPatXP();
     }
     sayAt = el; sayLine(k);
-    clearTimeout(timer); setTimeout(() => el.remove(), 3400);
+    // 講完話繼續走完（倒退走的也繼續倒退）
+    setTimeout(() => { if (!el.isConnected) return; if (k === 'black') el.innerHTML = art0; el.classList.remove('caught', 'clap', 'trip', 'roll'); }, 2600);
   };
   document.body.appendChild(el);
 }

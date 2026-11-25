@@ -90,8 +90,8 @@ function showPest(k = pick(PEST_KEYS)) {
       if (trialOpen() && document.querySelector('.modal-back.hot-zone')) { pestDone = false; clearTimeout(pestTimer); pestTimer = setTimeout(pestTry, 8000 + Math.random() * 4000); }
     }, 1900);
   };
-  // 不理牠的話，45 秒後自己走掉
-  const idle = setTimeout(() => leave(P.idle, false), 45000);
+  // 11/24：不會自己走掉，一定要點到牠跑掉（關掉火辣區才會跟著消失）
+  const idle = 0;
   let lastPush = -1;
   $('.pest-body', el).onclick = () => {
     if (gone) return;

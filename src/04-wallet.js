@@ -337,8 +337,20 @@ function walletWish() {
     ${theirs.length ? `<h3 style="margin:4px 2px 8px">${esc(nick(partner()))} 的願望</h3>${theirs.map((w) => `<div class="card"><div class="row"><span class="chip" style="color:var(--r-${w.rarity.toLowerCase()})">${w.rarity}</span><b class="grow" style="font-family:var(--serif)">${esc(w.title)}</b></div>
       ${w.note ? `<p class="small muted" style="margin:6px 0 0">${esc(w.note)}</p>` : ''}
       <div class="btn-row"><button class="btn ghost sm" data-act="wishNo" data-id="${w.id}">下次吧</button><button class="btn sm" data-act="wishOk" data-id="${w.id}"><i data-ic="sparkle"></i> 實現願望</button></div></div>`).join('')}` : ''}
-    ${rest.length ? `<h3 style="margin:10px 2px 8px">願望紀錄</h3>${rest.map((w) => `<div class="list-row"><span class="lr-i">${w.by === me() ? '<i data-ic="star"></i>' : '<i data-ic="heart"></i>'}</span><span class="grow">${esc(w.title)}<div class="small muted">${esc(nick(w.by))} · ${fmtDate(w.at)}</div></span><span class="small">${st[w.status]}</span></div>`).join('')}` : ''}`;
+    ${rest.length ? `<h3 style="margin:10px 2px 8px">願望紀錄</h3>${rest.map((w) => `<div class="list-row tap" data-act="wishView" data-id="${w.id}"><span class="lr-i">${w.by === me() ? '<i data-ic="star"></i>' : '<i data-ic="heart"></i>'}</span><span class="grow">${esc(w.title)}<div class="small muted">${esc(nick(w.by))} · ${fmtDate(w.at)}</div></span><span class="small">${st[w.status]}</span></div>`).join('')}` : ''}`;
 }
+// 11/24：願望紀錄點下去看卡面
+ACT.wishView = (el) => {
+  const w = list('wishes').find((x) => x.id === el.dataset.id); if (!w) return;
+  const st = { pending: '等待中', ok: `${fmtDate(w.doneAt || w.at)} 實現了`, no: '下次吧' }[w.status] || '';
+  const granter = (S.couple.members || []).find((u) => u !== w.by) || w.by;
+  const c = { id: 'wish-' + w.id, title: w.title, desc: w.desc || '', rarity: w.rarity || 'N', spice: w.spice || 1, mark: w.mark || '', series: WISH_SERIES, kind: 'card', at: w.at, owner: w.by, from: granter, qty: 1, used: 0, log: [] };
+  const hide = typeof hotLockedCard === 'function' && hotLockedCard(c);
+  openModal(`${mhead('<i data-ic="shooting"></i> 願望')}
+    <div class="ritual">${hide ? bigCardHTML({ ...c, title: '？', desc: '' }) : bigCardHTML(c)}</div>
+    <p class="center small muted" style="margin:10px 0 0">${esc(nick(w.by))} 在 ${fmtDate(w.at)} 許的願・${st}</p>
+    ${w.note ? `<p class="center small" style="margin:6px 0 0">${esc(w.note)}</p>` : ''}`, { center: true });
+};
 ACT.makeWish = () => {
   if (!partner()) return toast('對方加入後才能許願');
   cardEditor({ title: '許一個願' }, async (t) => {

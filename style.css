@@ -2279,3 +2279,42 @@ button.sched-i { width: 100%; text-align: left; }
 @keyframes giftBob { 0%, 100% { transform: translateY(0) rotate(0); } 25% { transform: translateY(-4px) rotate(-3deg); } 75% { transform: translateY(-2px) rotate(3deg); } }
 @keyframes giftTw { 0%, 100% { opacity: .2; } 50% { opacity: 1; } }
 @keyframes giftShake { 0%, 100% { transform: rotate(0); } 33% { transform: rotate(-8deg); } 66% { transform: rotate(8deg); } }
+
+/* 11/24：跳出視窗時，路過的小動物停在原地、先藏起來，關掉視窗再繼續走 */
+body:has(.modal-back) .cat-stroll { animation-play-state: paused !important; visibility: hidden; }
+.g10-btn.tk.short { opacity: .55; filter: saturate(.6); }
+
+/* ===== 兌換中：先收起來 → 做完打勾 → 驗收（07y2-redeem.js）===== */
+.rd-wallet { margin: 0 0 14px; padding: 12px 12px 6px; border-radius: 18px; background: color-mix(in srgb, var(--accent) 7%, var(--card)); border: 1px dashed color-mix(in srgb, var(--accent) 40%, transparent); }
+.rd-h { display: flex; align-items: center; gap: 6px; margin: 0 2px 8px; font-size: 15px; font-family: var(--serif); }
+.rd-row { display: flex; align-items: center; gap: 10px; width: 100%; padding: 11px 12px; margin-bottom: 6px; border-radius: 12px; border: 1px solid var(--line); background: var(--card); color: var(--ink); text-align: left; font: inherit; }
+.rd-row .rd-t { flex: 1; font-weight: 700; font-family: var(--serif); }
+.rd-row .rd-s { font-size: 12px; color: var(--muted); white-space: nowrap; }
+.rd-row.done .rd-s { color: var(--accent); font-weight: 700; }
+.rd-steps { display: flex; justify-content: space-between; gap: 4px; margin: 14px 0 12px; position: relative; }
+.rd-steps::before { content: ""; position: absolute; left: 12%; right: 12%; top: 13px; height: 2px; background: var(--line); z-index: 0; }
+.rd-step { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 4px; font-size: 11.5px; color: var(--muted); text-align: center; position: relative; z-index: 1; }
+.rd-step .rd-dot { width: 26px; height: 26px; border-radius: 50%; display: grid; place-items: center; background: var(--card); border: 1.5px solid var(--line); font-weight: 800; font-size: 12px; }
+.rd-step.on { color: var(--ink); }
+.rd-step.on .rd-dot { background: var(--accent); border-color: var(--accent); color: #fff; }
+.rd-step.on .rd-dot .ic { width: 14px; height: 14px; }
+
+/* 11/24：火辣成就的銅銀金標籤（原本被 .hz-hall .ach span 的淡色蓋掉，變成白白一塊） */
+.hz-hall .ach .ach-tier { background: rgba(0, 0, 0, .25); border: 1px solid currentColor; letter-spacing: .2em; padding: 2px 10px 2px 12px; }
+.hz-hall .ach .ach-tier.t-b { color: #e0a77c; }
+.hz-hall .ach .ach-tier.t-s { color: #c9d3dc; }
+.hz-hall .ach .ach-tier.t-g { color: #f0cf7a; box-shadow: 0 0 10px rgba(240, 207, 122, .25); }
+.days-left { font-size: 12px; font-weight: 400; color: var(--muted); opacity: .75; letter-spacing: 0; font-family: var(--sans, inherit); }
+
+/* ===== 約會完成：照片＋足跡（06b-dates.js dateAfter）===== */
+.da-head { display: flex; align-items: center; gap: 12px; margin: 0 0 6px; padding: 10px 12px; border-radius: 16px; background: color-mix(in srgb, var(--accent) 8%, var(--card)); }
+.da-head .da-t { font-family: var(--serif); font-weight: 800; font-size: 17px; }
+.da-ph { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 4px; }
+.da-ph .da-add, .da-ph .da-img { aspect-ratio: 1; border-radius: 14px; position: relative; }
+.da-ph .da-add { display: grid; place-items: center; border: 1.5px dashed color-mix(in srgb, var(--accent) 45%, transparent); color: var(--accent); background: color-mix(in srgb, var(--accent) 5%, transparent); cursor: pointer; margin: 0; }
+.da-ph .da-add .ic { width: 26px; height: 26px; }
+.da-ph .da-img { background: center / cover no-repeat; box-shadow: 0 0 0 1px var(--line), 0 4px 10px rgba(0, 0, 0, .12); }
+.da-ph .da-img button { position: absolute; top: 4px; right: 4px; width: 22px; height: 22px; border-radius: 50%; border: 0; background: rgba(0, 0, 0, .55); color: #fff; font-size: 11px; line-height: 22px; padding: 0; }
+.da-ph .da-img span { position: absolute; left: 6px; bottom: 6px; font-size: 10.5px; font-weight: 800; color: #fff; background: var(--accent); padding: 1px 7px; border-radius: 999px; }
+.da-p { display: inline-block; width: 9em; padding: 2px 6px !important; margin: 0 !important; font-size: 14px; border-radius: 8px; }
+.idea-x { border: 0; background: none; color: var(--muted); font-size: 13px; padding: 4px 6px; }
