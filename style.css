@@ -2318,3 +2318,4 @@ body:has(.modal-back) .cat-stroll { animation-play-state: paused !important; vis
 .da-ph .da-img span { position: absolute; left: 6px; bottom: 6px; font-size: 10.5px; font-weight: 800; color: #fff; background: var(--accent); padding: 1px 7px; border-radius: 999px; }
 .modal #da-p { display: block; box-sizing: border-box; margin: 2px 0 10px 30px; width: calc(100% - 30px); max-width: none; }
 .idea-x { border: 0; background: none; color: var(--muted); font-size: 13px; padding: 4px 6px; }
+.pet-svg { overflow: visible; }

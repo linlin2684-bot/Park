@@ -111,6 +111,9 @@ function petSVG(st, mood, wear, { blink = true, look = '' } = {}) {
     ? `<path d="M47 42.5 Q50 40.5 53 42.5" fill="none" stroke="#efe6f2" stroke-width="1" stroke-linecap="round"/>`
     : `<path d="M50 40 Q48 42.5 46.5 41.5 M50 40 Q52 42.5 53.5 41.5" fill="none" stroke="#efe6f2" stroke-width="1" stroke-linecap="round"/>${mood === 'happy' ? '<path d="M48.6 41.6 Q50 44.5 51.4 41.6 Z" fill="#ff9fb4"/>' : ''}`;
   const acc = petAccArt(wear);
+  const LP = look ? lookParts(look) : { back: '', torso: '', neck: '', head: '', top: '', fx: '' };
+  // 穿衣服時，跟衣服撞到的配件先不畫（脖子上的配件遇到有領口的衣服、頭上的配件遇到帽子）；披風背後那片照樣保留
+  const accHidden = (['bell', 'scarf', 'ribbon', 'cape', 'bowtie'].includes(wear) && !!(LP.neck || LP.torso)) || (['bow', 'flower', 'crown', 'santa', 'beret', 'starclip'].includes(wear) && !!(LP.head || LP.top));
   const s = PET_STAGES[st].scale;
   return `<svg viewBox="0 0 100 92" class="pet-svg pet-${mood}" xmlns="http://www.w3.org/2000/svg">
     <ellipse cx="50" cy="88" rx="${26 * s}" ry="3.5" fill="currentColor" opacity=".1"/>
@@ -118,8 +121,10 @@ function petSVG(st, mood, wear, { blink = true, look = '' } = {}) {
     <g transform="translate(50 88) scale(${s}) translate(-50 -88)">
       <g class="pet-body">
         ${wear === 'cape' && look !== 'ghost' ? '<path d="M38 52 Q50 47 62 52 Q72 66 76 86 Q50 93 24 86 Q28 66 38 52 Z" fill="#c42e52"/><path d="M24 86 Q50 93 76 86" fill="none" stroke="#e9c77b" stroke-width="1.6"/><path d="M27 82 Q31 66 39 55 M73 82 Q69 66 61 55" fill="none" stroke="#9e2140" stroke-width="1"/>' : ''}
+        ${LP.back}
         <path class="pet-tail" d="M66 80 Q86 80 84 64 Q83 56 76 58" fill="none" stroke="${I}" stroke-width="5" stroke-linecap="round"/>
         <path d="M34 86 Q29 62 39 50 Q50 43 61 50 Q71 62 66 86 Z" fill="${I}"/>
+        ${LP.torso ? `<defs><clipPath id="pet-bc"><path d="${LOOK_BODY}"/></clipPath></defs><g clip-path="url(#pet-bc)">${LP.torso}</g>` : ''}
         <ellipse cx="42" cy="86" rx="6" ry="3" fill="${I}"/><ellipse cx="58" cy="86" rx="6" ry="3" fill="${I}"/>
         <g transform="translate(0 4)">
           <path d="M33 29 L35 12 L45 22 Z M67 29 L65 12 L55 22 Z" fill="${I}" stroke="${I}" stroke-width="2" stroke-linejoin="round"/>
@@ -129,9 +134,9 @@ function petSVG(st, mood, wear, { blink = true, look = '' } = {}) {
           <path d="M48.5 38.5 L51.5 38.5 L50 40 Z" fill="#ff9fb4"/>${mouth}
           <path d="M31 36 L39 37 M31 40 L39 39 M69 36 L61 37 M69 40 L61 39" stroke="#efe6f2" stroke-width=".8" stroke-linecap="round"/>
           <ellipse cx="39.5" cy="40" rx="2.4" ry="1.3" fill="#ff9fb4" opacity="${mood === 'happy' ? .8 : .45}"/><ellipse cx="60.5" cy="40" rx="2.4" ry="1.3" fill="#ff9fb4" opacity="${mood === 'happy' ? .8 : .45}"/>
-          ${look === 'ghost' ? '' : acc}
+          ${look === 'ghost' || accHidden ? '' : acc}
         </g>
-        ${look ? `<g transform="translate(50 62) scale(1.12) translate(-50 -62)">${lookArt(look)}</g>` : ''}   <!-- 11/24：服裝放大一點 -->
+        ${LP.neck}${LP.head}${LP.top}${LP.fx}
       </g>
     </g>
   </svg>`;
