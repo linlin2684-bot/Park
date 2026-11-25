@@ -3182,7 +3182,7 @@ ACT.gacha = () => {
     <div id="gbtns">
       <div class="btn-row"><button class="btn" id="g-pt">扭一次（${D.POINTS.gachaCost} 點）</button>${tickets(me()) ? `<button class="btn gold" id="g-tk">用扭蛋券 <i data-ic="ticket"></i>${tickets(me())}</button>` : ''}</div>
       <button class="btn block g10-btn" id="g-10"><b>十連抽</b>（${D.POINTS.gachaCost * 10} 點）<span class="g10-gift">多送 1 抽</span></button>
-      <button class="btn gold block g10-btn tk ${tickets(me()) >= 10 ? '' : 'short'}" id="g-10t"><b>十連抽</b>（扭蛋券 10 張${tickets(me()) >= 10 ? '' : `・你有 ${tickets(me())} 張`}）<span class="g10-gift">多送 1 抽</span></button>
+      <button class="btn gold block g10-btn tk ${tickets(me()) >= 10 ? '' : 'short'}" id="g-10t"><b>十連抽</b>（扭蛋券 10 張）<span class="g10-gift">${tickets(me()) >= 10 ? '多送 1 抽' : `還差 ${10 - tickets(me())} 張`}</span></button>
       <p class="center small muted">我的點數：<i data-ic="coin"></i> ${balance(me())} · 機率 N ${D.RARITY.N.weight}% / R ${D.RARITY.R.weight}% / SR ${D.RARITY.SR.weight}% / SSR ${D.RARITY.SSR.weight}%</p>
     </div>`, { center: true });
   const go = async (useTicket) => {
@@ -4170,7 +4170,8 @@ function dateAfter(d) {
     <label>今天的照片（最多 6 張，會自動壓縮）</label>
     <div class="da-ph" id="da-ph"><label class="da-add"><i data-ic="plus"></i><input type="file" accept="image/*" multiple id="da-f" class="hidden"></label></div>
     <label>一句話記下今天</label><textarea id="da-n" maxlength="200" placeholder="今天最開心的是…"></textarea>
-    <label class="check-row"><input type="checkbox" id="da-trip" checked> 收進足跡（地點：<input id="da-p" class="da-p" maxlength="30" value="${esc(place)}">）</label>
+    <label class="check-row"><input type="checkbox" id="da-trip" checked> 收進足跡</label>
+    <input id="da-p" class="da-p" maxlength="30" value="${esc(place)}" placeholder="足跡上的地點名稱">
     <label class="check-row"><input type="checkbox" id="da-mem" checked> 記進時間軸</label>
     <button class="btn block mt" id="da-ok"><i data-ic="pin"></i> 收進回憶</button>
     <button class="link center" id="da-skip" style="margin-top:8px">先不用</button>`, { center: true });
@@ -4186,6 +4187,7 @@ function dateAfter(d) {
     e.target.value = ''; draw();
   };
   $('#da-skip', m).onclick = () => closeModal(m);
+  $('#da-trip', m).onchange = (e) => { $('#da-p', m).style.display = e.target.checked ? '' : 'none'; };
   $('#da-ok', m).onclick = async () => {
     const note = $('#da-n', m).value.trim(), toTrip = $('#da-trip', m).checked, toMem = $('#da-mem', m).checked, name = $('#da-p', m).value.trim() || d.title;
     if (!toTrip && !toMem && !shots.length) return closeModal(m);

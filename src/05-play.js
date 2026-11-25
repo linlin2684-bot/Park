@@ -81,7 +81,7 @@ ACT.gacha = () => {
     <div id="gbtns">
       <div class="btn-row"><button class="btn" id="g-pt">扭一次（${D.POINTS.gachaCost} 點）</button>${tickets(me()) ? `<button class="btn gold" id="g-tk">用扭蛋券 <i data-ic="ticket"></i>${tickets(me())}</button>` : ''}</div>
       <button class="btn block g10-btn" id="g-10"><b>十連抽</b>（${D.POINTS.gachaCost * 10} 點）<span class="g10-gift">多送 1 抽</span></button>
-      <button class="btn gold block g10-btn tk ${tickets(me()) >= 10 ? '' : 'short'}" id="g-10t"><b>十連抽</b>（扭蛋券 10 張${tickets(me()) >= 10 ? '' : `・你有 ${tickets(me())} 張`}）<span class="g10-gift">多送 1 抽</span></button>
+      <button class="btn gold block g10-btn tk ${tickets(me()) >= 10 ? '' : 'short'}" id="g-10t"><b>十連抽</b>（扭蛋券 10 張）<span class="g10-gift">${tickets(me()) >= 10 ? '多送 1 抽' : `還差 ${10 - tickets(me())} 張`}</span></button>
       <p class="center small muted">我的點數：<i data-ic="coin"></i> ${balance(me())} · 機率 N ${D.RARITY.N.weight}% / R ${D.RARITY.R.weight}% / SR ${D.RARITY.SR.weight}% / SSR ${D.RARITY.SSR.weight}%</p>
     </div>`, { center: true });
   const go = async (useTicket) => {
