@@ -126,7 +126,7 @@ function memTimeline() {
     const d = new Date(x.at), mk = `${d.getFullYear()} 年 ${d.getMonth() + 1} 月`;
     if (mk !== lastM) { out += `<div class="tl-month">${mk}</div>`; lastM = mk; }
     out += `<div class="tl-item ${x.mid ? 'tl-mine' : ''}" ${x.mid ? `data-act="editMemory" data-id="${x.mid}"` : ''}>
-      ${x.cover ? `<div class="tl-cover" style="background-image:url(${x.cover})"></div>` : ''}
+      ${x.cover ? `<div class="tl-cover" ${x.mid ? `data-act="viewImg" data-mid="${x.mid}"` : ''} style="background-image:url(${x.cover})"></div>` : ''}
       <div class="d">${d.getMonth() + 1}/${d.getDate()}${x.mid ? ' · 點一下可以編輯' : ''}</div>${x.icon} ${esc(x.text)}${x.sub ? `<div class="small muted" style="white-space:pre-wrap">${esc(x.sub)}</div>` : ''}</div>`;
   }
   const caps = list('capsules'), canOpen = caps.filter((c) => c.openAt && c.openAt <= now() && !c.firstOpenAt).length;

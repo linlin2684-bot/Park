@@ -58,10 +58,44 @@ ACT.albumView = (el) => {
         ${x.kind === 'photo' && x.by === me() ? '<button class="btn sm ghost" id="av-del" style="color:#d4405f">刪除</button>' : ''}
         <button class="btn sm ghost" id="av-n" ${i >= all.length - 1 ? 'disabled' : ''}>下一張 ›</button>
       </div>`;
+    $('.pp', m).onclick = () => imgViewer(all.map((y) => y.src), i);   // 點照片放大看
     $('#av-p', m).onclick = () => { i--; draw(); };
     $('#av-n', m).onclick = () => { i++; draw(); };
     const d = $('#av-del', m);
     if (d) d.onclick = async () => { if (!(await confirmBox('確定刪除這張照片？', '刪除'))) return; await col('photos').remove(x.id); closeModal(m); toast('刪除了'); };
   };
   draw();
+};
+
+// ---------- 看大圖（11/27：時間軸、足跡的照片點了可以放大看） ----------
+function imgViewer(srcs, i = 0) {
+  srcs = srcs.filter(Boolean); if (!srcs.length) return;
+  i = Math.max(0, Math.min(i, srcs.length - 1));
+  const v = document.createElement('div');
+  v.className = 'img-view';
+  v.innerHTML = `<button class="iv-x" aria-label="關閉">✕</button><img alt=""><div class="iv-n"></div>
+    ${srcs.length > 1 ? '<button class="iv-a iv-p" aria-label="上一張">‹</button><button class="iv-a iv-nx" aria-label="下一張">›</button>' : ''}`;
+  const img = v.querySelector('img');
+  const show = () => { img.src = srcs[i]; v.querySelector('.iv-n').textContent = srcs.length > 1 ? `${i + 1} / ${srcs.length}` : ''; };
+  const go = (d) => { const n = i + d; if (n < 0 || n >= srcs.length) return; i = n; show(); };
+  const close = () => { v.classList.add('out'); setTimeout(() => v.remove(), 220); };
+  v.addEventListener('click', (e) => {
+    e.stopPropagation();
+    if (e.target.closest('.iv-p')) return go(-1);
+    if (e.target.closest('.iv-nx')) return go(1);
+    close();
+  });
+  let sx = null;
+  v.addEventListener('touchstart', (e) => { sx = e.touches[0].clientX; }, { passive: true });
+  v.addEventListener('touchend', (e) => { if (sx == null) return; const dx = e.changedTouches[0].clientX - sx; sx = null; if (Math.abs(dx) > 50) go(dx < 0 ? 1 : -1); });
+  show(); document.body.appendChild(v);
+}
+ACT.viewImg = (el, e) => {
+  e && e.stopPropagation();
+  if (el.dataset.mid) { const mm = list('memories').find((x) => x.id === el.dataset.mid); return mm && imgViewer([mm.cover], 0); }
+  if (el.dataset.trip) {
+    const t = list('trips').find((x) => x.id === el.dataset.trip); if (!t) return;
+    return imgViewer([t.cover, ...tripPhotos(t).map((x) => x.img)].filter(Boolean), +el.dataset.i || 0);
+  }
+  if (el.dataset.src) imgViewer([el.dataset.src], 0);
 };

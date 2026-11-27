@@ -2319,3 +2319,14 @@ body:has(.modal-back) .cat-stroll { animation-play-state: paused !important; vis
 .modal #da-p { display: block; box-sizing: border-box; margin: 2px 0 10px 30px; width: calc(100% - 30px); max-width: none; }
 .idea-x { border: 0; background: none; color: var(--muted); font-size: 13px; padding: 4px 6px; }
 .pet-svg { overflow: visible; }
+
+/* ===== 看大圖（11/27）===== */
+.img-view { position: fixed; inset: 0; z-index: 9500; background: rgba(12, 8, 10, .94); display: flex; align-items: center; justify-content: center; animation: ivIn .2s ease-out; padding: max(env(safe-area-inset-top), 16px) 12px max(env(safe-area-inset-bottom), 16px); }
+.img-view.out { opacity: 0; transition: opacity .2s; }
+.img-view img { max-width: 100%; max-height: 84vh; object-fit: contain; border-radius: 10px; box-shadow: 0 10px 40px rgba(0, 0, 0, .5); }
+.img-view .iv-x { position: absolute; top: max(env(safe-area-inset-top), 14px); right: 14px; width: 40px; height: 40px; border-radius: 50%; border: 0; background: rgba(255, 255, 255, .14); color: #fff; font-size: 18px; }
+.img-view .iv-n { position: absolute; bottom: max(env(safe-area-inset-bottom), 18px); left: 0; right: 0; text-align: center; color: rgba(255, 255, 255, .75); font-size: 13px; letter-spacing: .1em; }
+.img-view .iv-a { position: absolute; top: 50%; transform: translateY(-50%); width: 40px; height: 56px; border: 0; border-radius: 12px; background: rgba(255, 255, 255, .12); color: #fff; font-size: 28px; }
+.img-view .iv-p { left: 8px; } .img-view .iv-nx { right: 8px; }
+.tl-cover[data-act], .trip-ph-g img, img[data-act="viewImg"] { cursor: zoom-in; }
+@keyframes ivIn { from { opacity: 0; } }

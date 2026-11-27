@@ -252,11 +252,11 @@ function tripPhotos(t) {
 ACT.openTrip = (el) => {
   const t = list('trips').find((x) => x.id === el.dataset.id); if (!t) return;
   const m = openModal(`${mhead('<i data-ic="pin"></i> ' + esc(t.name))}
-    ${t.cover ? `<img src="${t.cover}" style="width:100%;border-radius:16px;display:block">` : ''}
+    ${t.cover ? `<img src="${t.cover}" data-act="viewImg" data-trip="${t.id}" data-i="0" style="width:100%;border-radius:16px;display:block">` : ''}
     <p class="small muted">${esc(t.date || '')} · ${esc(nick(t.by))} 記錄</p>
     ${tripSaysHTML(t)}
     <button class="btn sm ghost" id="tp-say" style="margin:0 0 10px">${tripSays(t)[me()] ? '改我的心得' : '寫我的心得'}</button>
-    ${(() => { const ps = tripPhotos(t); return ps.length ? `<div class="trip-ph"><div class="small muted">這趟的照片（${ps.length}）</div><div class="trip-ph-g">${ps.map((x) => `<img src="${x.img}" alt="">`).join('')}</div></div>` : ''; })()}
+    ${(() => { const ps = tripPhotos(t); return ps.length ? `<div class="trip-ph"><div class="small muted">這趟的照片（${ps.length}）</div><div class="trip-ph-g">${ps.map((x, k) => `<img src="${x.img}" alt="" data-act="viewImg" data-trip="${t.id}" data-i="${k + (t.cover ? 1 : 0)}">`).join('')}</div></div>` : ''; })()}
     <div class="btn-row">${t.lat != null && S.map ? '<button class="btn ghost" id="tp-go">在地圖上看</button>' : ''}<button class="btn ghost" id="tp-ed"><i data-ic="pin"></i> 改地點／日期</button>${t.by === me() ? '<button class="btn ghost" id="tp-del">刪除</button>' : ''}</div>`);
   $('#tp-ed', m).onclick = () => { closeModal(m); setTimeout(() => ACT.editTrip(el), 200); };
   $('#tp-say', m).onclick = async () => {

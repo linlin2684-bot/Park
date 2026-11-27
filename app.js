@@ -4051,11 +4051,11 @@ function tripPhotos(t) {
 ACT.openTrip = (el) => {
   const t = list('trips').find((x) => x.id === el.dataset.id); if (!t) return;
   const m = openModal(`${mhead('<i data-ic="pin"></i> ' + esc(t.name))}
-    ${t.cover ? `<img src="${t.cover}" style="width:100%;border-radius:16px;display:block">` : ''}
+    ${t.cover ? `<img src="${t.cover}" data-act="viewImg" data-trip="${t.id}" data-i="0" style="width:100%;border-radius:16px;display:block">` : ''}
     <p class="small muted">${esc(t.date || '')} · ${esc(nick(t.by))} 記錄</p>
     ${tripSaysHTML(t)}
     <button class="btn sm ghost" id="tp-say" style="margin:0 0 10px">${tripSays(t)[me()] ? '改我的心得' : '寫我的心得'}</button>
-    ${(() => { const ps = tripPhotos(t); return ps.length ? `<div class="trip-ph"><div class="small muted">這趟的照片（${ps.length}）</div><div class="trip-ph-g">${ps.map((x) => `<img src="${x.img}" alt="">`).join('')}</div></div>` : ''; })()}
+    ${(() => { const ps = tripPhotos(t); return ps.length ? `<div class="trip-ph"><div class="small muted">這趟的照片（${ps.length}）</div><div class="trip-ph-g">${ps.map((x, k) => `<img src="${x.img}" alt="" data-act="viewImg" data-trip="${t.id}" data-i="${k + (t.cover ? 1 : 0)}">`).join('')}</div></div>` : ''; })()}
     <div class="btn-row">${t.lat != null && S.map ? '<button class="btn ghost" id="tp-go">在地圖上看</button>' : ''}<button class="btn ghost" id="tp-ed"><i data-ic="pin"></i> 改地點／日期</button>${t.by === me() ? '<button class="btn ghost" id="tp-del">刪除</button>' : ''}</div>`);
   $('#tp-ed', m).onclick = () => { closeModal(m); setTimeout(() => ACT.editTrip(el), 200); };
   $('#tp-say', m).onclick = async () => {
@@ -4491,7 +4491,7 @@ function memTimeline() {
     const d = new Date(x.at), mk = `${d.getFullYear()} 年 ${d.getMonth() + 1} 月`;
     if (mk !== lastM) { out += `<div class="tl-month">${mk}</div>`; lastM = mk; }
     out += `<div class="tl-item ${x.mid ? 'tl-mine' : ''}" ${x.mid ? `data-act="editMemory" data-id="${x.mid}"` : ''}>
-      ${x.cover ? `<div class="tl-cover" style="background-image:url(${x.cover})"></div>` : ''}
+      ${x.cover ? `<div class="tl-cover" ${x.mid ? `data-act="viewImg" data-mid="${x.mid}"` : ''} style="background-image:url(${x.cover})"></div>` : ''}
       <div class="d">${d.getMonth() + 1}/${d.getDate()}${x.mid ? ' · 點一下可以編輯' : ''}</div>${x.icon} ${esc(x.text)}${x.sub ? `<div class="small muted" style="white-space:pre-wrap">${esc(x.sub)}</div>` : ''}</div>`;
   }
   const caps = list('capsules'), canOpen = caps.filter((c) => c.openAt && c.openAt <= now() && !c.firstOpenAt).length;
@@ -5369,12 +5369,46 @@ ACT.albumView = (el) => {
         ${x.kind === 'photo' && x.by === me() ? '<button class="btn sm ghost" id="av-del" style="color:#d4405f">刪除</button>' : ''}
         <button class="btn sm ghost" id="av-n" ${i >= all.length - 1 ? 'disabled' : ''}>下一張 ›</button>
       </div>`;
+    $('.pp', m).onclick = () => imgViewer(all.map((y) => y.src), i);   // 點照片放大看
     $('#av-p', m).onclick = () => { i--; draw(); };
     $('#av-n', m).onclick = () => { i++; draw(); };
     const d = $('#av-del', m);
     if (d) d.onclick = async () => { if (!(await confirmBox('確定刪除這張照片？', '刪除'))) return; await col('photos').remove(x.id); closeModal(m); toast('刪除了'); };
   };
   draw();
+};
+
+// ---------- 看大圖（11/27：時間軸、足跡的照片點了可以放大看） ----------
+function imgViewer(srcs, i = 0) {
+  srcs = srcs.filter(Boolean); if (!srcs.length) return;
+  i = Math.max(0, Math.min(i, srcs.length - 1));
+  const v = document.createElement('div');
+  v.className = 'img-view';
+  v.innerHTML = `<button class="iv-x" aria-label="關閉">✕</button><img alt=""><div class="iv-n"></div>
+    ${srcs.length > 1 ? '<button class="iv-a iv-p" aria-label="上一張">‹</button><button class="iv-a iv-nx" aria-label="下一張">›</button>' : ''}`;
+  const img = v.querySelector('img');
+  const show = () => { img.src = srcs[i]; v.querySelector('.iv-n').textContent = srcs.length > 1 ? `${i + 1} / ${srcs.length}` : ''; };
+  const go = (d) => { const n = i + d; if (n < 0 || n >= srcs.length) return; i = n; show(); };
+  const close = () => { v.classList.add('out'); setTimeout(() => v.remove(), 220); };
+  v.addEventListener('click', (e) => {
+    e.stopPropagation();
+    if (e.target.closest('.iv-p')) return go(-1);
+    if (e.target.closest('.iv-nx')) return go(1);
+    close();
+  });
+  let sx = null;
+  v.addEventListener('touchstart', (e) => { sx = e.touches[0].clientX; }, { passive: true });
+  v.addEventListener('touchend', (e) => { if (sx == null) return; const dx = e.changedTouches[0].clientX - sx; sx = null; if (Math.abs(dx) > 50) go(dx < 0 ? 1 : -1); });
+  show(); document.body.appendChild(v);
+}
+ACT.viewImg = (el, e) => {
+  e && e.stopPropagation();
+  if (el.dataset.mid) { const mm = list('memories').find((x) => x.id === el.dataset.mid); return mm && imgViewer([mm.cover], 0); }
+  if (el.dataset.trip) {
+    const t = list('trips').find((x) => x.id === el.dataset.trip); if (!t) return;
+    return imgViewer([t.cover, ...tripPhotos(t).map((x) => x.img)].filter(Boolean), +el.dataset.i || 0);
+  }
+  if (el.dataset.src) imgViewer([el.dataset.src], 0);
 };
 // ============================================================
 //  季任務：深度問答。每季同一組題目，每年重複，看見價值觀的變化
