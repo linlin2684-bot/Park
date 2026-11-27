@@ -132,7 +132,8 @@ function dateAfter(d) {
       if (partner()) await notify(partner(), 'trip', `${nick(me())} 把約會收進足跡了 🗺️`, name);
       await col('dates').update(d.id, { tripId });
       // 有地點就順手找座標（找不到也沒關係）
-      if (d.place) fetch(`https://nominatim.openstreetmap.org/search?format=json&limit=1&accept-language=zh-TW&q=${encodeURIComponent(d.place)}`).then((r) => r.json()).then((j) => { if (j && j[0]) col('trips').update(tripId, { lat: +j[0].lat, lng: +j[0].lon }); }).catch(() => {});
+      // 約會地點只在台灣裡找；找不到就先不標，之後可以在足跡裡自己標
+      if (d.place) placeSearch(d.place, true).then((j) => { if (j) col('trips').update(tripId, { lat: j.lat, lng: j.lng }); }).catch(() => {});
     }
     for (const img of shots) await col('photos').add({ img, caption: d.title, date: d.date || dkey(), tripId, dateId: d.id, by: me(), at: now() });
     if (toMem) await col('memories').add({ title: d.title, date: d.date || dkey(), kind: 'date', note: note || d.place || '', by: me(), at: now() });

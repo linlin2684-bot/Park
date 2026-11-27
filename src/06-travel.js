@@ -179,6 +179,15 @@ function compressImage(file, max = 480) {
   });
 }
 
+// 找地點：先找台灣，台灣找不到才找國外（11/27：「巴哈迪」被找到國外去）
+async function placeSearch(q, twOnly = false) {
+  const go = async (extra) => {
+    const r = await fetch(`https://nominatim.openstreetmap.org/search?format=json&limit=1&accept-language=zh-TW${extra}&q=${encodeURIComponent(q)}`);
+    const j = await r.json();
+    return j && j[0] ? { lat: +j[0].lat, lng: +j[0].lon } : null;
+  };
+  return (await go('&countrycodes=tw')) || (twOnly ? null : await go(''));
+}
 ACT.addTrip = () => {
   const t = { name: '', date: dkey(), note: '', cover: '', lat: null, lng: null };
   const m = openModal(`${mhead('<i data-ic="pin"></i> 新增足跡')}
@@ -207,10 +216,9 @@ ACT.addTrip = () => {
   $('#tr-s', m).onclick = async () => {
     const q = $('#tr-n', m).value.trim(); if (!q) return toast('先輸入地點名稱');
     try {
-      const r = await fetch(`https://nominatim.openstreetmap.org/search?format=json&limit=1&accept-language=zh-TW&q=${encodeURIComponent(q)}`);
-      const j = await r.json();
-      if (!j.length) return toast('找不到，直接在地圖上點吧');
-      const lat = +j[0].lat, lng = +j[0].lon;
+      const j = await placeSearch(q);
+      if (!j) return toast('找不到，直接在地圖上點吧');
+      const lat = j.lat, lng = j.lng;
       setPt(lat, lng); mm && mm.setView([lat, lng], 11);
     } catch (e) { toast('搜尋失敗，直接在地圖上點吧'); }
   };
@@ -249,7 +257,8 @@ ACT.openTrip = (el) => {
     ${tripSaysHTML(t)}
     <button class="btn sm ghost" id="tp-say" style="margin:0 0 10px">${tripSays(t)[me()] ? '改我的心得' : '寫我的心得'}</button>
     ${(() => { const ps = tripPhotos(t); return ps.length ? `<div class="trip-ph"><div class="small muted">這趟的照片（${ps.length}）</div><div class="trip-ph-g">${ps.map((x) => `<img src="${x.img}" alt="">`).join('')}</div></div>` : ''; })()}
-    <div class="btn-row">${t.lat != null && S.map ? '<button class="btn ghost" id="tp-go">在地圖上看</button>' : ''}${t.by === me() ? '<button class="btn ghost" id="tp-del">刪除</button>' : ''}</div>`);
+    <div class="btn-row">${t.lat != null && S.map ? '<button class="btn ghost" id="tp-go">在地圖上看</button>' : ''}<button class="btn ghost" id="tp-ed"><i data-ic="pin"></i> 改地點／日期</button>${t.by === me() ? '<button class="btn ghost" id="tp-del">刪除</button>' : ''}</div>`);
+  $('#tp-ed', m).onclick = () => { closeModal(m); setTimeout(() => ACT.editTrip(el), 200); };
   $('#tp-say', m).onclick = async () => {
     const cur = tripSays(t)[me()] || '';
     const m2 = openModal(`${mhead('我的心得')}<p class="small muted">${esc(t.name)}・寫下這趟最想記住的事</p>
@@ -265,4 +274,56 @@ ACT.openTrip = (el) => {
   };
   $('#tp-go', m) && ($('#tp-go', m).onclick = () => { closeModal(m); S.map.setView([t.lat, t.lng], 12); window.scrollTo({ top: 0, behavior: 'smooth' }); });
   $('#tp-del', m) && ($('#tp-del', m).onclick = async () => { if (await confirmBox('刪除這個足跡？')) { await col('trips').remove(t.id); closeModal(m); } });
+};
+
+// 足跡可以自己改：名字、日期、地圖上的位置（點地圖重新標、搜尋、或拿掉位置）、封面（11/27）
+ACT.editTrip = (el) => {
+  const t0 = list('trips').find((x) => x.id === el.dataset.id); if (!t0) return;
+  const t = { lat: t0.lat ?? null, lng: t0.lng ?? null, cover: t0.cover || '' };
+  const m = openModal(`${mhead('<i data-ic="pin"></i> 改足跡')}
+    <label>地點名稱</label>
+    <div class="row"><input id="te-n" maxlength="30" value="${esc(t0.name || '')}" class="grow"><button class="btn sm ghost" id="te-s"><i data-ic="search"></i> 找</button></div>
+    <label>在地圖上點一下，就把位置移到那裡</label>
+    <div class="mini-map" id="te-map"></div>
+    <div class="row" style="justify-content:space-between;align-items:center"><span class="small muted" id="te-where">${t.lat != null ? (inTaiwan(t.lat, t.lng) ? '目前標在台灣' : '目前標在國外') : '目前沒有標位置'}</span><button class="btn sm ghost" id="te-clr">拿掉位置</button></div>
+    <div class="row"><div class="grow"><label>日期</label><input id="te-d" type="date" value="${esc(t0.date || '')}"></div><div class="grow"><label>到哪天（可不填）</label><input id="te-d2" type="date" value="${esc(t0.dateEnd || '')}"></div></div>
+    <label>封面照片</label>
+    <label class="photo-pick" id="te-pp" style="margin:0;${t.cover ? `background-image:url(${t.cover})` : ''}">${t.cover ? '' : '點這裡選照片'}<input type="file" accept="image/*" id="te-f" class="hidden"></label>
+    <button class="btn block mt" id="te-ok">存起來</button>`);
+  let mk = null, mm = null;
+  const where = () => { $('#te-where', m).textContent = t.lat != null ? (inTaiwan(t.lat, t.lng) ? '目前標在台灣' : '目前標在國外') : '目前沒有標位置'; };
+  const setPt = (lat, lng) => {
+    t.lat = lat; t.lng = lng; where();
+    if (!mm) return;
+    if (lat == null) { if (mk) { mm.removeLayer(mk); mk = null; } return; }
+    if (mk) mk.setLatLng([lat, lng]); else mk = L.marker([lat, lng], { icon: L.divIcon({ html: `<div class="map-pin">${ic('pin')}</div>`, className: '', iconSize: [20, 20] }) }).addTo(mm);
+  };
+  setTimeout(() => {
+    if (!window.L) { $('#te-map', m).outerHTML = '<p class="small muted">地圖載入失敗，等一下再試</p>'; return; }
+    mm = L.map($('#te-map', m), { zoomControl: false }).setView(t.lat != null ? [t.lat, t.lng] : [23.7, 121], t.lat != null ? 12 : 6);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 18, attribution: '© OSM' }).addTo(mm);
+    mm.on('click', (e) => setPt(e.latlng.lat, e.latlng.lng));
+    if (t.lat != null) setPt(t.lat, t.lng);
+  }, 350);
+  $('#te-s', m).onclick = async () => {
+    const q = $('#te-n', m).value.trim(); if (!q) return toast('先輸入地點名稱');
+    try {
+      const j = await placeSearch(q);
+      if (!j) return toast('找不到，直接在地圖上點吧');
+      setPt(j.lat, j.lng); mm && mm.setView([j.lat, j.lng], 13);
+    } catch (e) { toast('搜尋失敗，直接在地圖上點吧'); }
+  };
+  $('#te-clr', m).onclick = () => setPt(null, null);
+  $('#te-f', m).onchange = async (e) => {
+    const f = e.target.files[0]; if (!f) return;
+    try { t.cover = await compressImage(f); $('#te-pp', m).style.backgroundImage = `url(${t.cover})`; $('#te-pp', m).firstChild.textContent = ''; }
+    catch (err) { toast('照片讀取失敗'); }
+  };
+  $('#te-ok', m).onclick = async () => {
+    const name = $('#te-n', m).value.trim(); if (!name) return toast('地點要有名字');
+    const date = $('#te-d', m).value, d2 = $('#te-d2', m).value;
+    await col('trips').update(t0.id, { name, date, dateEnd: d2 && date && d2 > date ? d2 : S.store.DEL(), lat: t.lat, lng: t.lng, cover: t.cover });
+    closeModal(m); toast('足跡改好了 📍');
+    setTimeout(() => ACT.openTrip(el), 250);
+  };
 };
