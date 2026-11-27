@@ -4470,7 +4470,8 @@ function timelineItems() {
   for (const b of list('battles')) if (b.status === 'done') it.push({ at: b.doneAt || b.at, icon: '<i data-ic="swords"></i>', text: `${nick(b.winner)} 贏了挑戰「${b.task}」` });
   for (const w of list('wishes')) if (w.status === 'ok') it.push({ at: w.doneAt || w.at, icon: '<i data-ic="shooting"></i>', text: `${nick(w.by)} 的願望「${w.title}」實現了` });
   for (const c of list('capsules')) if (c.firstOpenAt) it.push({ at: c.firstOpenAt, icon: '<i data-ic="hourglass"></i>', text: `打開了時光膠囊「${c.title}」` });
-  for (const n of list('notes')) if (n.found) it.push({ at: n.foundAt, icon: '<i data-ic="letter"></i>', text: `${nick(n.to)} 找到了一張小紙條` });
+  // 11/27 她說：找到小紙條不要出現在時間軸
+  //   for (const n of list('notes')) if (n.found) it.push({ at: n.foundAt, icon: '<i data-ic="letter"></i>', text: `${nick(n.to)} 找到了一張小紙條` });
   for (const mm of list('memories')) it.push({ at: mm.date ? parseD(mm.date).getTime() : mm.at, icon: (MEM_KINDS.find((k) => k.id === mm.kind) || MEM_KINDS[MEM_KINDS.length - 1]).icon, text: mm.title, sub: mm.note, cover: mm.cover, mid: mm.id });
   return it.filter((x) => x.at).sort((a, b) => b.at - a.at);
 }
