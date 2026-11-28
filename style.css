@@ -2359,3 +2359,60 @@ html[data-theme="night"] .ticket.UR .t-title { background: linear-gradient(90deg
 .ur-fx .ur-title span { font-family: var(--serif); font-size: 22px; letter-spacing: .4em; color: #f6d98a; }
 @keyframes urSpin { to { transform: rotate(360deg); } }
 @keyframes urPulse { to { transform: scale(1.15); opacity: 1; } }
+
+/* ===== 小劇場動作（11/28，07h3-scenefx.js）===== */
+.cat-stroll .fx-pos, .cat-stroll .fx-body, .cat-stroll .fx-anim { display: block; position: relative; transform-origin: 50% 100%; }
+.cat-stroll .fx-pos { transition: transform .45s cubic-bezier(.3, 1.3, .5, 1); }
+.cat-stroll .fx-body { transition: transform .5s cubic-bezier(.3, 1.3, .5, 1), opacity .4s; }
+.fx-body.s-lie { transform: scaleY(.72) scaleX(1.08); }
+.fx-body.s-off { transform: rotate(-82deg) translate(-10%, 10%); transition-duration: .7s; }
+.fx-body.s-vanish { transform: scale(.05); opacity: 0; }
+.fx-body.s-turn .cat-svg { transform: scaleX(1) !important; }
+.fx-anim.a-jump { animation: fxJump .55s ease-out; }
+.fx-anim.a-hop { animation: fxHop .75s cubic-bezier(.3, 1.4, .5, 1); }
+.fx-anim.a-shake { animation: fxShake .5s ease-in-out; }
+.fx-anim.a-spin { animation: fxSpin .8s ease-in-out; transform-origin: 50% 60%; }
+.fx-anim.a-fall { animation: fxFall 1.3s ease-in-out; }
+.fx-anim.a-squash { animation: fxSquash .5s ease-out; }
+.fx-anim.a-wiggle { animation: fxWiggle .7s ease-in-out; }
+.fx-anim.a-puff { animation: fxPuff .8s ease-out; }
+.fx-anim.a-fly { animation: fxFly 1.3s cubic-bezier(.3, .8, .5, 1); }
+.fx-anim.a-roll { animation: fxRoll 1.3s ease-in-out; transform-origin: 50% 60%; }
+.fx-anim.a-grow { animation: fxGrow 1.2s cubic-bezier(.3, 1.5, .5, 1); }
+@keyframes fxJump { 40% { transform: translateY(-18px); } 70% { transform: translateY(0) scaleY(.92); } }
+@keyframes fxHop { 35% { transform: translateY(-34px) rotate(-8deg); } 70% { transform: translateY(0) scaleY(.88); } }
+@keyframes fxShake { 20%, 60% { transform: translateX(-4px); } 40%, 80% { transform: translateX(4px); } }
+@keyframes fxSpin { to { transform: rotate(360deg); } }
+@keyframes fxFall { 25% { transform: rotate(-70deg) translateY(4px); } 70% { transform: rotate(-70deg) translateY(4px); } }
+@keyframes fxSquash { 30% { transform: scaleY(.7) scaleX(1.15); } 60% { transform: scaleY(1.06) scaleX(.96); } }
+@keyframes fxWiggle { 20% { transform: rotate(-7deg); } 40% { transform: rotate(7deg); } 60% { transform: rotate(-5deg); } 80% { transform: rotate(4deg); } }
+@keyframes fxPuff { 25% { transform: scale(1.22); filter: drop-shadow(0 0 0 transparent); } 40% { transform: scale(1.22) translateX(-3px); } 55% { transform: scale(1.22) translateX(3px); } }
+@keyframes fxFly { 30% { transform: translate(40px, -70px) rotate(220deg); } 55% { transform: translate(70px, -30px) rotate(420deg); } 75% { transform: translate(40px, 0) rotate(720deg); } 100% { transform: translate(0, 0) rotate(720deg); } }
+@keyframes fxRoll { 50% { transform: translateX(30px) rotate(360deg); } 100% { transform: translateX(0) rotate(720deg); } }
+@keyframes fxGrow { 0% { transform: scale(.2); } 60% { transform: scale(1.15); } }
+.fx-prop { position: absolute; width: 20px; height: 20px; transform: translate(-50%, -50%); z-index: 3; pointer-events: none; transition: opacity .4s, transform .4s; }
+.fx-prop svg { width: 100%; height: 100%; display: block; overflow: visible; filter: drop-shadow(0 1px 1px rgba(0, 0, 0, .2)); }
+.fx-prop.worn { transform: translate(-50%, -70%) rotate(-14deg) scale(1.05); }
+.fx-prop.gone { opacity: 0; transform: translate(-50%, -50%) scale(.3); }
+.fx-prop.fx-flying { position: fixed; transition: transform .6s cubic-bezier(.4, -.3, .4, 1.3); z-index: 46; }
+.fx-prop.fx-boxed { width: 92%; height: auto; left: 50% !important; top: auto !important; bottom: -2%; transform: translateX(-50%); }
+.fx-prop.fx-boxed.gone { transform: translateX(-50%) translateY(30%) scale(.8); }
+.fx-pop { position: absolute; left: 50%; top: -6px; transform: translateX(-50%); pointer-events: none; z-index: 4; white-space: nowrap; font-weight: 800; }
+.fx-pop.p-mark b { display: inline-grid; place-items: center; width: 22px; height: 22px; border-radius: 50%; background: var(--card, #fff); color: var(--accent, #e2445f); border: 1.5px solid currentColor; font-size: 14px; animation: fxPopIn .35s cubic-bezier(.3, 1.6, .5, 1), fxUp 1.8s ease-out forwards; }
+.fx-pop i { display: inline-block; font-style: normal; animation: fxFloat 1.6s ease-out forwards; opacity: 0; }
+.fx-pop i:nth-child(2) { animation-delay: .18s; } .fx-pop i:nth-child(3) { animation-delay: .36s; } .fx-pop i:nth-child(4) { animation-delay: .5s; }
+.fx-pop.p-hearts i { color: #ff6f91; font-size: 13px; margin: 0 2px; }
+.fx-pop.p-sparkle i { color: #e8b04b; font-size: 12px; margin: 0 3px; }
+.fx-pop.p-notes i { color: #8a63d8; font-size: 14px; margin: 0 3px; }
+.fx-pop.p-zzz i { color: #8fa6d8; font-size: 11px; margin: 0 1px; }
+.fx-pop.p-sweat { left: 78%; top: 8%; }
+.fx-pop.p-sweat i { width: 7px; height: 10px; border-radius: 50% 50% 50% 50% / 60% 60% 40% 40%; background: #9fd0ff; animation-name: fxDrip; }
+.fx-pop.p-bubbles i { width: 9px; height: 9px; border-radius: 50%; border: 1.4px solid #9fd0ff; background: rgba(220, 240, 255, .4); margin: 0 2px; }
+.fx-pop.p-think i { width: 5px; height: 5px; border-radius: 50%; background: var(--muted, #998); margin: 0 2px; animation-name: fxBlink; }
+.fx-sun { position: fixed; width: 120px; height: 70px; transform: translateX(-50%); z-index: 39; pointer-events: none; background: radial-gradient(ellipse at 50% 0%, rgba(255, 220, 120, .55), rgba(255, 220, 120, 0) 70%); animation: fxSunIn .8s ease-out; }
+@keyframes fxPopIn { from { transform: scale(0); } }
+@keyframes fxUp { 70% { transform: translateY(-6px); opacity: 1; } 100% { transform: translateY(-14px); opacity: 0; } }
+@keyframes fxFloat { 0% { opacity: 0; transform: translateY(6px) scale(.6); } 25% { opacity: 1; } 100% { opacity: 0; transform: translateY(-26px) scale(1.1); } }
+@keyframes fxDrip { 0% { opacity: 0; } 20% { opacity: 1; } 100% { opacity: 0; transform: translateY(12px); } }
+@keyframes fxBlink { 0% { opacity: 0; } 30%, 70% { opacity: 1; } 100% { opacity: 0; } }
+@keyframes fxSunIn { from { opacity: 0; } }

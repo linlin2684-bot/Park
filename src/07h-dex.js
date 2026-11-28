@@ -89,6 +89,7 @@ function duoStroll(sc) {
   [lead, back].forEach((e) => { e.style.animationDuration = dur + 's'; });
   lead.style.animationDelay = `-${gap.toFixed(2)}s`;
   const byKey = { [sc.lead]: lead, [other]: back };
+  [lead, back].forEach(sfxWrap);   // 包一層，才能做動作、拿道具（07h3-scenefx.js）
   // 11/24：走完畫面才消失（看 animationend），開著視窗時會停下來等
   [lead, back].forEach((e) => e.addEventListener('animationend', (ev) => { if (ev.target === e) e.remove(); }));
   let timer = setTimeout(() => { lead.remove(); back.remove(); }, 120000);
@@ -99,12 +100,15 @@ function duoStroll(sc) {
     [lead, back].forEach((e) => e.classList.add('paused'));
     sfx('heart');
     const ra = byKey[sc.a].getBoundingClientRect(), rb = byKey[sc.b].getBoundingClientRect();
+    const fxCtx = { A: byKey[sc.a], B: byKey[sc.b], key: { A: sc.a, B: sc.b }, dir: { A: rb.left > ra.left ? 1 : -1, B: ra.left > rb.left ? 1 : -1 }, extras: [] };
+    const fxList = SCENE_FX[sc.id] || [];
     // 點一下才講下一句（12 秒都沒點就自己結束）
     let quit = false;
     for (const [i, [who, t]] of sc.lines.entries()) {
       let b;
       if (who === 'n') b = bubble(t, (ra.left + ra.right + rb.left + rb.right) / 4, Math.min(ra.top, rb.top) - 34, 'narr');
       else { const r = who === 'a' ? ra : rb; b = bubble(t, r.left + r.width * .55, r.top + 6); byKey[sc[who]].classList.add('talk'); }
+      sceneFx(fxList[i], fxCtx);
       b.insertAdjacentHTML('beforeend', `<span class="fr-next">${i < sc.lines.length - 1 ? '點一下繼續' : '點一下結束'}</span>`);
       await sleep(350);   // 避免同一下點擊直接跳過
       // 只有點對話框或牠們才會繼續，點畫面其他地方照常（不會被吃掉）
@@ -121,6 +125,7 @@ function duoStroll(sc) {
       if (!tapped) { quit = true; break; }
       sfx('pop');
     }
+    await sleep(400); sceneFxEnd(fxCtx);
     [lead, back].forEach((e) => e.classList.remove('paused'));
     timer = setTimeout(() => { lead.remove(); back.remove(); }, 120000);
     if (sc.a === 'black' || sc.b === 'black') blackPatXP();
