@@ -6325,6 +6325,8 @@ const SFX_PROPS = {
   drum: '<svg viewBox="-10 -10 20 20"><path d="M-1 1 C-8 6 -9 -4 -3 -7 C3 -9 6 -3 2 1 Z" fill="#c9792f"/><path d="M1 0 L7 6" stroke="#fbf3e6" stroke-width="2.6" stroke-linecap="round"/><circle cx="7.6" cy="5" r="1.6" fill="#fbf3e6"/><circle cx="6" cy="7.4" r="1.6" fill="#fbf3e6"/></svg>',
   box: '<svg viewBox="0 0 40 26"><path d="M2 6 H38 V25 H2 Z" fill="#c89a5e"/><path d="M2 6 L8 1 H32 L38 6" fill="#d9ad72"/><path d="M14 6 V12 M26 6 V12" stroke="#a87b45" stroke-width="1.2"/><path d="M14 16 h12" stroke="#a87b45" stroke-width="1"/></svg>',
 };
+// 花別在「後面那隻耳朵」根部（畫面已左右翻轉，面向右走；座標＝佔圖片寬高的比例），不會擋到眼睛
+const SFX_EAR = { doggy: [.56, .42], abian: [.56, .42], white: [.57, .37], black: [.57, .37], orange: [.57, .36], calico: [.57, .37], tuxedo: [.57, .37], haohao: [.6, .36] };
 const SFX_MARK = { '!': '!', '?': '?', '…': '…', '♪': '♪' };
 function sfxWrap(el) {
   if (el.querySelector('.fx-pos')) return;
@@ -6336,7 +6338,7 @@ function sfxGeo(el, k) {
   const at = HAT_AT[k] || [30, 30];
   const w = vb && vb.width ? vb.width : 100, h = vb && vb.height ? vb.height : 100;
   const hx = 1 - at[0] / w, hy = Math.max(0, at[1] / h);
-  return { head: [hx - .08, hy + .07], front: [Math.min(1.02, hx + .12), Math.min(.9, hy + .3)] };
+  return { head: SFX_EAR[k] || [hx - .1, hy + .06], front: [Math.min(1.02, hx + .12), Math.min(.9, hy + .3)] };
 }
 function sfxPropEl(name) {
   const s = document.createElement('span');
