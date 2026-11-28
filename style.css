@@ -2330,3 +2330,32 @@ body:has(.modal-back) .cat-stroll { animation-play-state: paused !important; vis
 .img-view .iv-p { left: 8px; } .img-view .iv-nx { right: 8px; }
 .tl-cover[data-act], .trip-ph-g img, img[data-act="viewImg"] { cursor: zoom-in; }
 @keyframes ivIn { from { opacity: 0; } }
+
+/* ===== UR 許願券（11/28）：深夜紫底＋金箔＋彩虹光暈 ===== */
+:root { --r-ur: #b48cff; --ur-grad: linear-gradient(120deg, #f6d365, #fda085, #f093fb, #a18cd1, #8fd3f4, #f6d365); }
+.emb-UR { --e-bg: #1e1430; --e-ink: #f2d796; --e-acc: #a07ad8; }
+html[data-theme="night"] .emb-UR { --e-bg: #1a1029; --e-ink: #f6dea0; --e-acc: #8c66c8; }
+.ticket.UR { --rc: var(--r-ur); position: relative; border: 1.6px solid transparent; background: linear-gradient(var(--card), var(--card)) padding-box, var(--ur-grad) border-box; background-size: 100% 100%, 300% 300%; animation: urBorder 6s linear infinite; box-shadow: 0 6px 22px rgba(161, 140, 209, .35), 0 0 0 1px rgba(246, 211, 101, .25) inset; overflow: hidden; }
+.ticket.UR .stub { background: radial-gradient(circle at 30% 20%, #4b2a7a, #1e1430 70%); color: #f6d98a; position: relative; overflow: hidden; }
+.ticket.UR .stub .rk { background: linear-gradient(180deg, #fff3c4, #e8b04b 60%, #b8862f); -webkit-background-clip: text; background-clip: text; color: transparent; font-size: 1.25em; letter-spacing: .06em; filter: drop-shadow(0 1px 0 rgba(0, 0, 0, .3)); }
+.ticket.UR .stub .rl { color: #e9d4ff; letter-spacing: .3em; }
+.ticket.UR .stub::before { content: '✦  ✧  ✦'; position: absolute; top: 6px; left: 0; right: 0; text-align: center; font-size: 8px; color: #f6d98a; opacity: .8; letter-spacing: 2px; }
+.ticket.UR .stub::after, .ticket.UR::after { content: ''; position: absolute; inset: -50% -30%; background: linear-gradient(105deg, transparent 40%, rgba(255, 255, 255, .55) 50%, transparent 60%); transform: translateX(-60%); animation: urSweep 3.8s ease-in-out infinite; pointer-events: none; }
+.ticket.UR .t-title { background: linear-gradient(90deg, #8a5a1c, #c08a2a, #8a5a1c); -webkit-background-clip: text; background-clip: text; color: transparent; }
+html[data-theme="night"] .ticket.UR .t-title { background: linear-gradient(90deg, #f6d98a, #fff3c4, #f6d98a); -webkit-background-clip: text; background-clip: text; }
+.ticket.UR .t-emb .emb-mini { filter: drop-shadow(0 0 6px rgba(246, 211, 101, .55)) drop-shadow(0 0 14px rgba(180, 140, 255, .45)); }
+@keyframes urBorder { to { background-position: 0 0, 300% 0; } }
+@keyframes urSweep { 0%, 55% { transform: translateX(-60%); } 85%, 100% { transform: translateX(60%); } }
+.ur-pv { margin: 4px 0 10px; }
+.ur-pv .ticket { margin: 0; }
+.ur-fx { position: fixed; inset: 0; z-index: 9200; display: flex; align-items: center; justify-content: center; background: radial-gradient(circle at 50% 45%, #3a1f5c, #120a1d 70%); animation: ilyIn .35s ease-out; overflow: hidden; }
+.ur-fx.out { opacity: 0; transition: opacity .5s; }
+.ur-fx .ur-orb { position: absolute; width: 180px; height: 180px; border-radius: 50%; background: conic-gradient(from 0deg, #f6d365, #fda085, #f093fb, #a18cd1, #8fd3f4, #f6d365); filter: blur(18px); opacity: .85; animation: urSpin 3s linear infinite, urPulse 1.2s ease-in-out infinite alternate; }
+.ur-fx .ur-rays { position: absolute; top: 50%; left: 50%; width: 0; height: 0; }
+.ur-fx .ur-rays i { position: absolute; left: -1.5px; top: -260px; width: 3px; height: 120px; border-radius: 3px; background: linear-gradient(#fff3c4, rgba(246, 211, 101, 0)); transform-origin: 1.5px 260px; transform: rotate(var(--a)); animation: ilyRay 1.4s ease-out var(--d) both; }
+.ur-fx .ur-title { position: relative; text-align: center; color: #fff3e0; display: flex; flex-direction: column; align-items: center; gap: 2px; animation: ilyStamp .7s cubic-bezier(.2, 1.6, .4, 1) .3s both; }
+.ur-fx .ur-title small { font-size: 12px; letter-spacing: .3em; color: #e9d4ff; }
+.ur-fx .ur-title b { font-family: var(--serif); font-size: 76px; line-height: 1; letter-spacing: .08em; background: linear-gradient(180deg, #fff3c4, #e8b04b 55%, #b8862f); -webkit-background-clip: text; background-clip: text; color: transparent; filter: drop-shadow(0 0 18px rgba(246, 211, 101, .6)); }
+.ur-fx .ur-title span { font-family: var(--serif); font-size: 22px; letter-spacing: .4em; color: #f6d98a; }
+@keyframes urSpin { to { transform: rotate(360deg); } }
+@keyframes urPulse { to { transform: scale(1.15); opacity: 1; } }

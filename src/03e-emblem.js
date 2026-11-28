@@ -176,7 +176,7 @@ function bigCardHTML(c, { hide = false } = {}) {
       </div>
     </div></div>
   </div>
-  <p class="center small muted" style="margin:-4px 0 10px">點卡片翻面${c.rarity === 'SR' || c.rarity === 'SSR' ? '，傾斜手機看光澤' : ''}</p>`;
+  <p class="center small muted" style="margin:-4px 0 10px">點卡片翻面${c.rarity === 'SR' || c.rarity === 'SSR' || c.rarity === 'UR' ? '，傾斜手機看光澤' : ''}</p>`;
 }
 
 // 翻面＋傾斜光澤

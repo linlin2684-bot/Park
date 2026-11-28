@@ -115,7 +115,6 @@ export const POOL = [
   { v: 2, title: '撒嬌全部買單', rarity: 'R', spice: 1, mark: '寵', desc: '今天你怎麼撒嬌我都照單全收' },
   { v: 2, title: '當面說十句情話', rarity: 'R', spice: 1, mark: '語', desc: '看著你的眼睛說，不准看稿' },
   { v: 2, title: '一日約會全規劃', rarity: 'SR', spice: 1, mark: '程', desc: '從早到晚的行程，我排好帶你走' },
-  { v: 2, title: '願望清單兌現', rarity: 'SR', spice: 1, mark: '願', desc: '從你的清單挑一件，幫你實現' },
   { v: 2, title: '吵架求和券', rarity: 'SR', spice: 1, mark: '和', desc: '拿出來就休戰，先抱再說' },
   { v: 2, title: '秘密基地', rarity: 'SR', spice: 1, mark: '秘', desc: '帶你去一個你沒去過的地方' },
   { v: 2, giver: 'him', title: '一起學一首歌', rarity: 'SR', spice: 1, mark: '曲', desc: '你唱我拉，練到可以合奏' },

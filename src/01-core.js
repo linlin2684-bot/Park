@@ -3,7 +3,7 @@
 //  （這個檔案是由 src/ 資料夾裡的分段檔合併而成）
 // ============================================================
 import { firebaseConfig } from './config.js';
-import * as D from './data.js?v=11232102';
+import * as D from './data.js?v=11281521';
 import { createStore } from './store.js?v=11211647';
 
 const S = {

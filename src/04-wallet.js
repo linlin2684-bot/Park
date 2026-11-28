@@ -29,7 +29,9 @@ function ticketHTML(c, { act = 'openCard', showFrom = true, showOwner = false } 
     ${used && !exp ? '<div class="stamp-used">已兌換</div>' : ''}${exp ? '<div class="stamp-used">已過期</div>' : ''}
   </div>`;
 }
-const rarityRank = (r) => D.RARITY_ORDER.indexOf(r);
+// UR（夢幻）：只能用 3 張 SSR 合成，扭蛋抽不到（11/28）
+D.RARITY.UR ||= { name: 'UR', label: '夢幻', weight: 0, color: 'var(--r-ur)' };
+const rarityRank = (r) => (r === 'UR' ? 4 : D.RARITY_ORDER.indexOf(r));
 
 PAGES.wallet = {
   html() {
@@ -400,19 +402,19 @@ function craftRarity() {
 }
 function walletCraft() {
   const n = D.CRAFT_COST;
-  const cs = craftable().filter((c) => c.rarity !== 'SSR');
+  const cs = craftable().filter((c) => c.rarity !== 'UR');
   // 清掉已經不能用的選擇
   for (const id of Object.keys(S.craftSel)) { const c = cs.find((x) => x.id === id); if (!c || S.craftSel[id] <= 0) delete S.craftSel[id]; else S.craftSel[id] = Math.min(S.craftSel[id], remaining(c)); }
   const total = craftTotal(), r = craftRarity();
-  const to = r ? D.RARITY_ORDER[rarityRank(r) + 1] : '';
-  const groups = ['N', 'R', 'SR'].map((rr) => [rr, cs.filter((c) => c.rarity === rr).sort((a, b) => a.title.localeCompare(b.title))]).filter(([, a]) => a.length);
+  const to = r === 'SSR' ? 'UR' : r ? D.RARITY_ORDER[rarityRank(r) + 1] : '';
+  const groups = ['N', 'R', 'SR', 'SSR'].map((rr) => [rr, cs.filter((c) => c.rarity === rr).sort((a, b) => a.title.localeCompare(b.title))]).filter(([, a]) => a.length);
   return `<div class="card center"><div style="font-size:40px"><i data-ic="flask"></i></div><h3 style="justify-content:center">合成工坊</h3>
-      <p class="small muted" style="margin:0">挑 ${n} 張<b>同稀有度</b>、不想要的票券，合成 1 張高一級的隨機卡（從卡池抽，由 ${esc(nick(partner()))} 兌現）</p></div>
+      <p class="small muted" style="margin:0">挑 ${n} 張<b>同稀有度</b>、不想要的票券，合成 1 張高一級的隨機卡（從卡池抽，由 ${esc(nick(partner()))} 兌現）；<b>3 張 SSR 可以合成 UR 許願券</b></p></div>
     <div class="craft-bar card">
       <div class="row"><div class="grow"><b style="font-family:var(--serif);font-size:17px">已選 ${total} / ${n}</b>${r ? ` <span class="chip" style="color:var(--r-${r.toLowerCase()})">${r}</span>` : ''}
-        <div class="small muted">${r ? `合成後得到 1 張 ${to} 刮刮卡` : '先點一張卡開始選'}</div></div>
+        <div class="small muted">${r === 'SSR' ? '合成後得到 1 張 UR 許願券：自己寫願望，對方幫你實現' : r ? `合成後得到 1 張 ${to} 刮刮卡` : '先點一張卡開始選'}</div></div>
         ${total ? '<button class="small muted" data-act="craftClear">清除</button>' : ''}</div>
-      <button class="btn block mt" data-act="craft" ${total === n && (partner() || trialOpen()) ? '' : 'disabled'}>${total === n ? `合成 1 張 ${to}` : `還要選 ${n - total} 張`}</button>
+      <button class="btn block mt" data-act="craft" ${total === n && (partner() || trialOpen()) ? '' : 'disabled'}>${total === n ? (to === 'UR' ? '合成 UR 許願券 ✦' : `合成 1 張 ${to}`) : `還要選 ${n - total} 張`}</button>
     </div>
     ${groups.length ? groups.map(([rr, arr]) => `<h3 class="craft-h" style="color:var(--r-${rr.toLowerCase()})">${rr} · ${D.RARITY[rr].label}</h3>
       ${arr.map((c) => {
@@ -426,7 +428,7 @@ function walletCraft() {
         </div>`;
       }).join('')}`).join('')
       : '<div class="empty"><span class="big"><i data-ic="flask"></i></span>目前沒有可以合成的票券</div>'}
-    <p class="small muted center" style="margin-top:12px">SSR、生日／節日／旅行等系列卡、收藏卡和神秘盲盒不能合成</p>`;
+    <p class="small muted center" style="margin-top:12px">UR、生日／節日／旅行等系列卡、收藏卡和神秘盲盒不能合成</p>`;
 }
 ACT.craftAdd = (el, e) => {
   e && e.stopPropagation();
@@ -447,7 +449,7 @@ ACT.craftSub = (el, e) => {
 };
 ACT.craftClear = () => { S.craftSel = {}; render(); };
 ACT.craft = async () => {
-  const r = craftRarity(), to = D.RARITY_ORDER[rarityRank(r) + 1];
+  const r = craftRarity(), to = r === 'SSR' ? 'UR' : D.RARITY_ORDER[rarityRank(r) + 1];
   const picks = Object.entries(S.craftSel).map(([id, k]) => [list('cards').find((x) => x.id === id), k]).filter(([c, k]) => c && k > 0);
   if (sum(picks, ([, k]) => k) !== D.CRAFT_COST || !to || picks.some(([c]) => c.rarity !== r)) return toast(`要選 ${D.CRAFT_COST} 張同稀有度的卡`);
   const names = picks.map(([c, k]) => `${c.title}${k > 1 ? ' ×' + k : ''}`).join('、');
@@ -456,6 +458,7 @@ ACT.craft = async () => {
     await col('cards').update(c.id, { used: (c.used || 0) + k, log: [...(c.log || []), ...Array.from({ length: k }, () => ({ at: now(), how: 'craft' }))] });
   }
   S.craftSel = {};
+  if (to === 'UR') return urCraftReveal();
   const tpl = drawFromPool(to, true);
   const m = openModal(`<div class="center" style="padding:20px 0"><div style="font-size:70px;animation:spin 1s linear infinite"><i data-ic="flask"></i></div><h2>合成中…</h2></div>`, { center: true });
   await sleep(1300);

@@ -3,7 +3,7 @@
 //  （這個檔案是由 src/ 資料夾裡的分段檔合併而成）
 // ============================================================
 import { firebaseConfig } from './config.js';
-import * as D from './data.js?v=11232102';
+import * as D from './data.js?v=11281521';
 import { createStore } from './store.js?v=11211647';
 
 const S = {
@@ -2264,7 +2264,7 @@ function bigCardHTML(c, { hide = false } = {}) {
       </div>
     </div></div>
   </div>
-  <p class="center small muted" style="margin:-4px 0 10px">點卡片翻面${c.rarity === 'SR' || c.rarity === 'SSR' ? '，傾斜手機看光澤' : ''}</p>`;
+  <p class="center small muted" style="margin:-4px 0 10px">點卡片翻面${c.rarity === 'SR' || c.rarity === 'SSR' || c.rarity === 'UR' ? '，傾斜手機看光澤' : ''}</p>`;
 }
 
 // 翻面＋傾斜光澤
@@ -2572,7 +2572,9 @@ function ticketHTML(c, { act = 'openCard', showFrom = true, showOwner = false } 
     ${used && !exp ? '<div class="stamp-used">已兌換</div>' : ''}${exp ? '<div class="stamp-used">已過期</div>' : ''}
   </div>`;
 }
-const rarityRank = (r) => D.RARITY_ORDER.indexOf(r);
+// UR（夢幻）：只能用 3 張 SSR 合成，扭蛋抽不到（11/28）
+D.RARITY.UR ||= { name: 'UR', label: '夢幻', weight: 0, color: 'var(--r-ur)' };
+const rarityRank = (r) => (r === 'UR' ? 4 : D.RARITY_ORDER.indexOf(r));
 
 PAGES.wallet = {
   html() {
@@ -2943,19 +2945,19 @@ function craftRarity() {
 }
 function walletCraft() {
   const n = D.CRAFT_COST;
-  const cs = craftable().filter((c) => c.rarity !== 'SSR');
+  const cs = craftable().filter((c) => c.rarity !== 'UR');
   // 清掉已經不能用的選擇
   for (const id of Object.keys(S.craftSel)) { const c = cs.find((x) => x.id === id); if (!c || S.craftSel[id] <= 0) delete S.craftSel[id]; else S.craftSel[id] = Math.min(S.craftSel[id], remaining(c)); }
   const total = craftTotal(), r = craftRarity();
-  const to = r ? D.RARITY_ORDER[rarityRank(r) + 1] : '';
-  const groups = ['N', 'R', 'SR'].map((rr) => [rr, cs.filter((c) => c.rarity === rr).sort((a, b) => a.title.localeCompare(b.title))]).filter(([, a]) => a.length);
+  const to = r === 'SSR' ? 'UR' : r ? D.RARITY_ORDER[rarityRank(r) + 1] : '';
+  const groups = ['N', 'R', 'SR', 'SSR'].map((rr) => [rr, cs.filter((c) => c.rarity === rr).sort((a, b) => a.title.localeCompare(b.title))]).filter(([, a]) => a.length);
   return `<div class="card center"><div style="font-size:40px"><i data-ic="flask"></i></div><h3 style="justify-content:center">合成工坊</h3>
-      <p class="small muted" style="margin:0">挑 ${n} 張<b>同稀有度</b>、不想要的票券，合成 1 張高一級的隨機卡（從卡池抽，由 ${esc(nick(partner()))} 兌現）</p></div>
+      <p class="small muted" style="margin:0">挑 ${n} 張<b>同稀有度</b>、不想要的票券，合成 1 張高一級的隨機卡（從卡池抽，由 ${esc(nick(partner()))} 兌現）；<b>3 張 SSR 可以合成 UR 許願券</b></p></div>
     <div class="craft-bar card">
       <div class="row"><div class="grow"><b style="font-family:var(--serif);font-size:17px">已選 ${total} / ${n}</b>${r ? ` <span class="chip" style="color:var(--r-${r.toLowerCase()})">${r}</span>` : ''}
-        <div class="small muted">${r ? `合成後得到 1 張 ${to} 刮刮卡` : '先點一張卡開始選'}</div></div>
+        <div class="small muted">${r === 'SSR' ? '合成後得到 1 張 UR 許願券：自己寫願望，對方幫你實現' : r ? `合成後得到 1 張 ${to} 刮刮卡` : '先點一張卡開始選'}</div></div>
         ${total ? '<button class="small muted" data-act="craftClear">清除</button>' : ''}</div>
-      <button class="btn block mt" data-act="craft" ${total === n && (partner() || trialOpen()) ? '' : 'disabled'}>${total === n ? `合成 1 張 ${to}` : `還要選 ${n - total} 張`}</button>
+      <button class="btn block mt" data-act="craft" ${total === n && (partner() || trialOpen()) ? '' : 'disabled'}>${total === n ? (to === 'UR' ? '合成 UR 許願券 ✦' : `合成 1 張 ${to}`) : `還要選 ${n - total} 張`}</button>
     </div>
     ${groups.length ? groups.map(([rr, arr]) => `<h3 class="craft-h" style="color:var(--r-${rr.toLowerCase()})">${rr} · ${D.RARITY[rr].label}</h3>
       ${arr.map((c) => {
@@ -2969,7 +2971,7 @@ function walletCraft() {
         </div>`;
       }).join('')}`).join('')
       : '<div class="empty"><span class="big"><i data-ic="flask"></i></span>目前沒有可以合成的票券</div>'}
-    <p class="small muted center" style="margin-top:12px">SSR、生日／節日／旅行等系列卡、收藏卡和神秘盲盒不能合成</p>`;
+    <p class="small muted center" style="margin-top:12px">UR、生日／節日／旅行等系列卡、收藏卡和神秘盲盒不能合成</p>`;
 }
 ACT.craftAdd = (el, e) => {
   e && e.stopPropagation();
@@ -2990,7 +2992,7 @@ ACT.craftSub = (el, e) => {
 };
 ACT.craftClear = () => { S.craftSel = {}; render(); };
 ACT.craft = async () => {
-  const r = craftRarity(), to = D.RARITY_ORDER[rarityRank(r) + 1];
+  const r = craftRarity(), to = r === 'SSR' ? 'UR' : D.RARITY_ORDER[rarityRank(r) + 1];
   const picks = Object.entries(S.craftSel).map(([id, k]) => [list('cards').find((x) => x.id === id), k]).filter(([c, k]) => c && k > 0);
   if (sum(picks, ([, k]) => k) !== D.CRAFT_COST || !to || picks.some(([c]) => c.rarity !== r)) return toast(`要選 ${D.CRAFT_COST} 張同稀有度的卡`);
   const names = picks.map(([c, k]) => `${c.title}${k > 1 ? ' ×' + k : ''}`).join('、');
@@ -2999,6 +3001,7 @@ ACT.craft = async () => {
     await col('cards').update(c.id, { used: (c.used || 0) + k, log: [...(c.log || []), ...Array.from({ length: k }, () => ({ at: now(), how: 'craft' }))] });
   }
   S.craftSel = {};
+  if (to === 'UR') return urCraftReveal();
   const tpl = drawFromPool(to, true);
   const m = openModal(`<div class="center" style="padding:20px 0"><div style="font-size:70px;animation:spin 1s linear infinite"><i data-ic="flask"></i></div><h2>合成中…</h2></div>`, { center: true });
   await sleep(1300);
@@ -10139,6 +10142,72 @@ setInterval(async () => {
   btOldBusy = true;
   try { for (const b of old) await col('battles').update(b.id, { status: 'cancel', cancelWhy: 'v3' }); } finally { btOldBusy = false; }
 }, 5000);
+// ============================================================
+//  UR 許願券（11/28 晽晽要求）
+//  3 張 SSR 合成 1 張 UR「許願券」：持有的人自己寫願望，對方幫忙實現。扭蛋抽不到。
+//  卡池裡原本的「許願券」類卡片拿掉（願望清單兌現、標題有「許願」的），只做一次（drops pool-nowish）。
+// ============================================================
+const UR_IDEAS = ['一趟說走就走的小旅行，你來安排', '一整天的約會，行程全部聽我的', '一份我想了很久的禮物', '一頓你親手做的大餐', '一個沒有手機、只有我們的晚上'];
+const UR_TPL = { title: '許願券', rarity: 'UR', mark: '夢', pat: 'shippo', frame: 0, desc: '' };
+async function urCraftReveal() {
+  const p = partner() || 'sys';
+  const id = await giveCard(me(), { ...UR_TPL }, { from: p, scratched: true, urWish: true });
+  await col('gacha').add({ uid: me(), rarity: 'UR', title: '許願券', how: 'craft', at: now() });
+  // 華麗登場
+  const fx = document.createElement('div');
+  fx.className = 'ur-fx';
+  let rays = '';
+  for (let i = 0; i < 24; i++) rays += `<i style="--a:${i * 15}deg;--d:${(i % 3) * 0.08}s"></i>`;
+  fx.innerHTML = `<div class="ur-rays">${rays}</div><div class="ur-orb"></div>
+    <div class="ur-title"><small>✦ 3 張 SSR 合而為一 ✦</small><b>UR</b><span>許願券</span></div>`;
+  document.body.appendChild(fx);
+  confetti(180, ['#f6d365', '#fda085', '#f093fb', '#8fd3f4', '#c9a3ff', '#fff']); sfx('sparkle'); vibrate([60, 40, 60, 40, 240]);
+  await sleep(2600);
+  fx.classList.add('out'); setTimeout(() => fx.remove(), 500);
+  urWrite(id, true);
+}
+function urWrite(id, fresh = false) {
+  const c = list('cards').find((x) => x.id === id);
+  const m = openModal(`${mhead('<i data-ic="sparkle"></i> UR 許願券')}
+    <div class="ur-pv">${ticketHTML(c || { ...UR_TPL, id, owner: me(), from: partner(), qty: 1, used: 0, scratched: true })}</div>
+    <p class="small muted">${fresh ? '恭喜！' : ''}寫下一個願望，${esc(nick(partner()))} 會幫你實現。寫好之後放在票夾，想兌現的時候再拿出來。</p>
+    <textarea id="ur-in" maxlength="60" placeholder="我的願望是…">${esc((c && c.desc) || '')}</textarea>
+    <div class="ms-ideas">${UR_IDEAS.map((s) => `<button class="chip" data-idea="${esc(s)}">${esc(s)}</button>`).join('')}</div>
+    <div class="btn-row"><button class="btn ghost" id="ur-later">之後再寫</button><button class="btn" id="ur-ok">許願 ✦</button></div>`, { center: true });
+  m.querySelectorAll('[data-idea]').forEach((b) => b.onclick = () => { $('#ur-in', m).value = b.dataset.idea; });
+  $('#ur-later', m).onclick = () => closeModal(m);
+  $('#ur-ok', m).onclick = async () => {
+    const v = $('#ur-in', m).value.trim();
+    if (!v) return toast('先寫下你的願望');
+    await col('cards').update(id, { desc: v });
+    if (partner()) await notify(partner(), 'card', `${nick(me())} 用 3 張 SSR 合成了一張 UR 許願券 ✦`);
+    closeModal(m); toast('願望收進票夾了 ✦'); render();
+  };
+}
+ACT.urWrite = (el) => urWrite(el.dataset.id);
+const _urTodos0 = homeTodos;
+homeTodos = () => {
+  const t = _urTodos0();
+  for (const c of list('cards').filter((c) => c.urWish && !c.desc && c.owner === me())) {
+    t.unshift({ icon: '<i data-ic="sparkle"></i>', text: '你的 UR 許願券還沒寫願望', act: 'urWrite', id: c.id, btn: '去寫' });
+  }
+  return t;
+};
+// 卡池拿掉許願券類的卡
+const POOL_NOWISH = (p) => p && p.title && (/許願/.test(p.title) || p.title === '願望清單兌現');
+let poolNoWishBusy = false;
+async function poolNoWishOnce() {
+  const c = S.couple;
+  if (poolNoWishBusy || !c || !S.cid || (c.drops || {})['pool-nowish'] || !S.d.pool) return;
+  poolNoWishBusy = true;
+  try {
+    const ok = await S.store.coupleTx(S.cid, (x) => ((x.drops || {})['pool-nowish'] ? null : { 'drops.pool-nowish': true }));
+    if (!ok) return;
+    for (const p of list('pool').filter(POOL_NOWISH)) await col('pool').remove(p.id);
+  } catch (e) { console.warn('卡池拿掉許願券', e); }
+  finally { poolNoWishBusy = false; }
+}
+setInterval(() => { if (document.visibilityState !== 'hidden') poolNoWishOnce(); }, 4000);
 // ============================================================
 //  年度回顧多的幾頁：最常遇到的小夥伴、小紙條、小小黑這一年、撞答案、
 //  戳一戳、送給對方的卡、今年的第一次
