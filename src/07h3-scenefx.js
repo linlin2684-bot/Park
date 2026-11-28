@@ -27,7 +27,7 @@ function sfxGeo(el, k) {
   const at = HAT_AT[k] || [30, 30];
   const w = vb && vb.width ? vb.width : 100, h = vb && vb.height ? vb.height : 100;
   const hx = 1 - at[0] / w, hy = Math.max(0, at[1] / h);
-  return { head: [hx, hy], front: [Math.min(1.02, hx + .12), Math.min(.9, hy + .3)] };
+  return { head: [hx - .08, hy + .07], front: [Math.min(1.02, hx + .12), Math.min(.9, hy + .3)] };
 }
 function sfxPropEl(name) {
   const s = document.createElement('span');
